@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="parameter.cpp" />
+    <ClCompile Include="RFDaemon.cpp" />
+    <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp">
+      <Filter>jsoncpp</Filter>
+    </ClCompile>
+    <ClCompile Include="jsoncpp\src\lib_json\json_value.cpp">
+      <Filter>jsoncpp</Filter>
+    </ClCompile>
+    <ClCompile Include="jsoncpp\src\lib_json\json_writer.cpp">
+      <Filter>jsoncpp</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="main.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="parameter.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="RFDaemon.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\src\lib_json\json_tool.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{be327ce3-a369-4fd2-93bd-618c500894bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jsoncpp">
+      <UniqueIdentifier>{d9de87dc-b5a5-4d9a-aa69-8daed0bea0dc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

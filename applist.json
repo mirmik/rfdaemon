@@ -1,0 +1,20 @@
+{
+    "apps": [
+        {
+            "name" : "crowker",
+            "command" : "crowker --udp 10009"
+        },
+        {
+            "name" : "rfmeas",
+            "command" : "/home/rfmeas/project/rfmeask/rfmeas --config /home/rfmeas/settings.json --runtime /home/rfmeas/runtime.json > /home/rfmeas/rfmeas_log"
+        },
+        {
+            "name" : "ctrans",
+            "command" : "ctrans --udp 10014 --serial_v1 /dev/ttyS1 --noconsole"
+        },
+        {
+            "name" : "dataproxy",
+            "command" : "/home/rfmeas/project/dataproxy/dataproxy"
+        }
+    ]
+}
