@@ -5,11 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
-#include <boost/algorithm/string.hpp>
 #include "RFDaemon.h"
 #include "main.h"
 #include "pthread.h"
 #include "jsoncpp/json/json.h"
+#include "RFDaemonServer.h"
 
 using namespace std;
 
@@ -19,6 +19,7 @@ vector<pid_t> appPidList;
 vector<string> appList, appCmdList;
 vector<vector<string>> appCmdArgList;
 int srvRetCode = 0, appWatcherRetCode = 0, userIORetCode = 0;
+uint16_t port = DEFAULT_TCP_PORT;
 
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
@@ -34,7 +35,6 @@ int srvRetCode = 0, appWatcherRetCode = 0, userIORetCode = 0;
 int main(int argc, char* argv[])
 {
     string configFileName = "";
-    uint16_t port = DEFAULT_TCP_PORT;
     uint8_t terminalMode = 0;
     bool serverOnlyMode = false;
     pid_t daemonPid = 0;
@@ -124,7 +124,7 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appList, uint8
         }
     }
     if (wrongArg || !len)
-        printf("Usage: %s [-p 0..65535/0..FFFF] [-t] -c file.json\n", argv[0]);
+        printf("Usage: %s [-p 0..65535/0..FFFF] [-t] -c filename.json\n", argv[0]);
     return (wrongArg || !len);
 }
 
@@ -173,25 +173,26 @@ bool checkConfigFile(const string& filename, vector<string>& apps, vector<string
             success = true;
         }
 
-        for (int i = 0; i < arraySize; i++)
+        for (auto& s : cmds)
         {
-            string& s = cmds[i];
-
             if (!s.empty())
             {
                 size_t argsBegin = s.find_first_of(' ');
+                vector<string> args = { s.substr(0, argsBegin) };
+
                 if (argsBegin != string::npos)
                 {
-                    vector<string> args;
                     string argstr = s.substr(argsBegin);
-                    boost::split(args, argstr, boost::is_any_of(" "), boost::algorithm::token_compress_mode_type::token_compress_on);
-                    cmdArgs.push_back(args);
-                    s = s.substr(0, argsBegin);
+
+                    char* p = strtok((char*)argstr.c_str(), " ");
+                    while (p)
+                    {
+                        args.push_back(p);
+                        p = strtok(NULL, " ");
+                    }
                 }
-                else
-                    cmdArgs.push_back(vector<string>({ "" }));
+                cmdArgs.push_back(args);
             }
-            cmdArgs[i][0] = s;
             appRestartEnableList.push_back(1);
         }
         appRestartAttempts.resize(arraySize);
@@ -266,8 +267,8 @@ void closeApps(const vector<pid_t>& appPidList)
 
 void* tcpServerThread(void* arg)
 {
-    //RFDaemon* tcpServer = new RFDaemon();
-    //tcpServer->exec();
+    RFDaemonServer* srv = new RFDaemonServer(port);
+    srvRetCode = srv->exec();
     return &srvRetCode;
 }
 

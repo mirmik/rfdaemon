@@ -1,7 +1,7 @@
 #include "RFDaemon.h"
 #include <unistd.h>
 #include <algorithm>
-#include <boost/crc.hpp>
+#include "igris/util/crc.h"
 
 RFDaemon::RFDaemon(uint16_t port, uint16_t bufferLen)
 {
@@ -86,7 +86,6 @@ int RFDaemon::parseInput(uint8_t* input, uint8_t* output, uint32_t inputSize)
     static bool multipacketReadEnabled = false;
     static bool multipacketWriteEnabled = false;
     static std::vector<uint8_t>* multipacketWritePtr = nullptr;
-    static boost::crc_32_type crc;
 
     uint16_t rxCnt = 4;
     uint16_t answerSize = 4;
@@ -254,9 +253,7 @@ int RFDaemon::parseInput(uint8_t* input, uint8_t* output, uint32_t inputSize)
         multipacketReadSize = fileTransmitSize;
         *((unsigned int*)(output + answerSize)) = multipacketReadSize;
         answerSize += 4;
-        crc.reset(0xADDADD00);
-        crc.process_bytes(fileTransmitPtr, fileTransmitSize);
-        *((unsigned int*)(output + answerSize)) = crc.checksum();
+        *((unsigned int*)(output + answerSize)) = crc32(fileTransmitPtr, fileTransmitSize, true);
         answerSize += 4;
         answerCmd |= Cmd::BEGIN_MULTIPACKET_READ;
         multipacketReadEnabled = true;
@@ -315,9 +312,7 @@ int RFDaemon::parseInput(uint8_t* input, uint8_t* output, uint32_t inputSize)
     {
         if (multipacketWritePtr)
         {
-            crc.reset(0xADDADD00);
-            crc.process_bytes(multipacketWritePtr->data(), multipacketWritePtr->size());
-            if (multipacketCRC32 == crc.checksum())
+            if (multipacketCRC32 == crc32(multipacketWritePtr->data(), multipacketWritePtr->size(), true))
             {
                 printf("File transfer success\n");
                 answerCmd |= Cmd::END_MULTIPACKET_WRITE;

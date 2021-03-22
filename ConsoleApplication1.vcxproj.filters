@@ -5,14 +5,18 @@
     <ClCompile Include="parameter.cpp" />
     <ClCompile Include="RFDaemon.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp">
-      <Filter>jsoncpp</Filter>
+      <Filter>jsoncpp\src</Filter>
     </ClCompile>
     <ClCompile Include="jsoncpp\src\lib_json\json_value.cpp">
-      <Filter>jsoncpp</Filter>
+      <Filter>jsoncpp\src</Filter>
     </ClCompile>
     <ClCompile Include="jsoncpp\src\lib_json\json_writer.cpp">
-      <Filter>jsoncpp</Filter>
+      <Filter>jsoncpp\src</Filter>
     </ClCompile>
+    <ClCompile Include="..\igris\igris\util\crc.c">
+      <Filter>igris\src</Filter>
+    </ClCompile>
+    <ClCompile Include="RFDaemonServer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -24,7 +28,49 @@
     <ClInclude Include="RFDaemon.h">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="jsoncpp\json\allocator.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\assertions.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\config.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\forwards.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\json.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\json_features.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\reader.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\value.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\version.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="jsoncpp\json\writer.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
     <ClInclude Include="jsoncpp\src\lib_json\json_tool.h">
+      <Filter>jsoncpp\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\igris\igris\util\crc.h">
+      <Filter>igris\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="TcpServer.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="RFDaemonServer.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="functors.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,5 +81,25 @@
     <Filter Include="jsoncpp">
       <UniqueIdentifier>{d9de87dc-b5a5-4d9a-aa69-8daed0bea0dc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="igris">
+      <UniqueIdentifier>{afeeda35-a9fc-4ec2-a6da-2c0419ca58fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jsoncpp\src">
+      <UniqueIdentifier>{b444012f-219c-4bd9-ad60-4c017093daa4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jsoncpp\inc">
+      <UniqueIdentifier>{262fc42d-1f3b-43ad-94bf-4b3b3e85c4dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="igris\src">
+      <UniqueIdentifier>{f4c1baf9-8082-4327-8e71-027da4f8e279}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="igris\inc">
+      <UniqueIdentifier>{6dd8f1f1-6249-4355-bfc6-4003c3c9da91}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="jsoncpp\src\lib_json\json_valueiterator.inl">
+      <Filter>jsoncpp\src</Filter>
+    </None>
   </ItemGroup>
 </Project>

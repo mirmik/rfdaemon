@@ -76,23 +76,42 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir);$(IncludePath);C:\Users\itxs\source\repos\ConsoleApplication1\jsoncpp</IncludePath>
+    <IncludePath>$(ProjectDir);$(IncludePath);C:\Users\itxs\source\repos\ConsoleApplication1\jsoncpp\json;C:\Users\itxs\source\repos\ConsoleApplication1\jsoncpp;C:\Users\itxs\source\repos\igris</IncludePath>
     <MultiProcNumber>8</MultiProcNumber>
     <RemoteCCompileToolExe>g++</RemoteCCompileToolExe>
   </PropertyGroup>
   <ItemGroup>
+    <ClCompile Include="..\igris\igris\util\crc.c" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_value.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_writer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parameter.cpp" />
     <ClCompile Include="RFDaemon.cpp" />
+    <ClCompile Include="RFDaemonServer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\igris\igris\util\crc.h" />
+    <ClInclude Include="functors.h" />
+    <ClInclude Include="jsoncpp\json\allocator.h" />
+    <ClInclude Include="jsoncpp\json\assertions.h" />
+    <ClInclude Include="jsoncpp\json\config.h" />
+    <ClInclude Include="jsoncpp\json\forwards.h" />
+    <ClInclude Include="jsoncpp\json\json.h" />
+    <ClInclude Include="jsoncpp\json\json_features.h" />
+    <ClInclude Include="jsoncpp\json\reader.h" />
+    <ClInclude Include="jsoncpp\json\value.h" />
+    <ClInclude Include="jsoncpp\json\version.h" />
+    <ClInclude Include="jsoncpp\json\writer.h" />
     <ClInclude Include="jsoncpp\src\lib_json\json_tool.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="parameter.h" />
     <ClInclude Include="RFDaemon.h" />
+    <ClInclude Include="RFDaemonServer.h" />
+    <ClInclude Include="TcpServer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="jsoncpp\src\lib_json\json_valueiterator.inl" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
