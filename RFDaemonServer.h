@@ -1,5 +1,10 @@
 #pragma once
 #include "TcpServer.h"
+#include <vector>
+#include <string>
+
+class AppManager;
+class DeviceManager;
 
 class RFDaemonServer : public TcpServer<RFDaemonServer>
 {
@@ -11,7 +16,7 @@ public:
         SERVICES_STOP = 1 << 2,
         SERVICES_RESTART = 3 << 1,
         GET_DEVICES = 1 << 3,
-        GET_LOGS = 1 << 4,
+        GET_DEV_LOGS = 1 << 4,
         SET_STREAMING = 1 << 5,
         AXES_LIMITS_SET = 1 << 6,
         AXES_LIMITS_GET = 1 << 7,
@@ -37,7 +42,7 @@ public:
         BEGIN_MULTIPACKET_WRITE = 1 << 27,
         MULTIPACKET_DATA_WRITE = 1 << 28,
         END_MULTIPACKET_WRITE = 1 << 29,
-        ACK = 1 << 30,
+        GET_APP_LOGS = 1 << 30,
         IS_ANSWER = 1 << 31
     } CmdId;
     RFDaemonServer(uint16_t port);
@@ -46,7 +51,7 @@ public:
     CmdBufResult stopAllApps(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
     CmdBufResult restartAllApps(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
     CmdBufResult getAllDevices(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
-    CmdBufResult getLogs(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
+    CmdBufResult getDevErrLogs(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
     CmdBufResult setStreaming(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
     CmdBufResult setAxesLimits(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
     CmdBufResult getAxesLimits(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
@@ -71,7 +76,10 @@ public:
     CmdBufResult beginMultiPacketWrite(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
     CmdBufResult multipacketWrite(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
     CmdBufResult endMultipacketWrite(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
+    CmdBufResult getAppLogs(uint8_t* rxData, uint8_t* txData, uint32_t remainingRxLen, uint32_t remainingTxLen);
+    void setAppManager(AppManager* manager);
+    void setDeviceManager(DeviceManager* manager);
 private:
-
+    AppManager* appMgr = NULL;
+    DeviceManager* devMgr = NULL;
 };
-

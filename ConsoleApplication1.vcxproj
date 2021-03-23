@@ -82,6 +82,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="..\igris\igris\util\crc.c" />
+    <ClCompile Include="AppManager.cpp" />
+    <ClCompile Include="DeviceManager.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_value.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_writer.cpp" />
@@ -92,6 +94,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\igris\igris\util\crc.h" />
+    <ClInclude Include="AppManager.h" />
+    <ClInclude Include="DeviceManager.h" />
     <ClInclude Include="functors.h" />
     <ClInclude Include="jsoncpp\json\allocator.h" />
     <ClInclude Include="jsoncpp\json\assertions.h" />
@@ -108,6 +112,7 @@
     <ClInclude Include="parameter.h" />
     <ClInclude Include="RFDaemon.h" />
     <ClInclude Include="RFDaemonServer.h" />
+    <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpServer.h" />
   </ItemGroup>
   <ItemGroup>

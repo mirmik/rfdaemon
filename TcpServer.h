@@ -25,7 +25,8 @@ template<typename T>
 class TcpServer
 {
 public:
-
+	static constexpr uint32_t answerMask = 1 << 31;
+	static constexpr uint32_t ackMask = 1 << 30;
 	typedef struct
 	{
 		uint32_t bitCode;
@@ -67,7 +68,7 @@ public:
 		free(rxPtr);
 		free(txPtr);
 	}
-	int exec()
+	int thread()
 	{
 		// Main thread loop
 		for (;;)
@@ -87,16 +88,21 @@ public:
 				result = recv(socketDesc, rxPtr, bufferLength, 0);
 				if (result > 0)
 				{
-					uint32_t answerOffset = 0, rxDataOffset = 0, cmd = *(uint32_t*)rxPtr;
+					uint32_t cmd = *(uint32_t*)rxPtr;
+					uint32_t answerOffset = sizeof(cmd), rxDataOffset = sizeof(cmd);
 					for (auto& c : commands)
 					{
 						if (cmd & c.bitCode)
 						{
-							CmdBufResult res = c.cmd(rxPtr, txPtr, bufferLength - rxDataOffset, bufferLength - answerOffset);
+							CmdBufResult res = c.cmd(rxPtr + rxDataOffset,
+													 txPtr + answerOffset,
+													 bufferLength - rxDataOffset,
+													 bufferLength - answerOffset - streamingDataLength);
 							answerOffset += res.txOffset;
 							rxDataOffset += res.rxOffset;
 						}
 					}
+					*(uint32_t*)txPtr = (answerOffset > sizeof(cmd)) ? (cmd | answerMask) : 0;
 
 					result = send(socketDesc, txPtr, std::min<int>(answerOffset, bufferLength), 0);
 					if (result < 0)
@@ -125,12 +131,28 @@ public:
 		c.cmd = cmd;
 		commands.push_back(c);
 	}
+	uint32_t getBufferLength()
+	{
+		return bufferLength;
+	}
+	void streamingEnable(uint32_t streamingLen)
+	{
+		streamingEnabled = true;
+		streamingDataLength = streamingLen;
+	}
+	void streamingDisable()
+	{
+		streamingEnabled = false;
+		streamingDataLength = 0;
+	}
 private:
+	uint32_t bufferLength = 0;
 	uint8_t* rxPtr, * txPtr;
 	sockaddr_in sAddr;
 	int socketDesc = 0;
 	int connDesc = 0;
-	uint32_t bufferLength = 0;
 	bool terminate = false;
 	std::vector<SrvCmd> commands;
+	bool streamingEnabled = false;
+	uint32_t streamingDataLength = 0;
 };

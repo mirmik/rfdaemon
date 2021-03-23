@@ -17,6 +17,8 @@
       <Filter>igris\src</Filter>
     </ClCompile>
     <ClCompile Include="RFDaemonServer.cpp" />
+    <ClCompile Include="AppManager.cpp" />
+    <ClCompile Include="DeviceManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -71,6 +73,15 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="functors.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="AppManager.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="TcpClient.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceManager.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>
