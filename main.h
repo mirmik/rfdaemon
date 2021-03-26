@@ -10,6 +10,7 @@
 #define APP_MAX_SUCCESSIVE_RESTART_ATTEMPTS	5
 
 bool checkRunArgs(int argc, char* argv[], uint16_t& port, std::string& appListFileName, uint8_t& terminalMode);
-void* tcpServerThread(void* arg);
+void* tcpServerSendThread(void* arg);
+void* tcpServerReceiveThread(void* arg);
 void* appWatcherThread(void* arg);
 void* userIOThread(void* arg);

@@ -30,17 +30,17 @@ Parameter &Parameter::operator=(int64_t d)
     return *this;
 }
 
-string Parameter::name() const
+const string& Parameter::name() const
 {
     return _name;
 }
 
-string Parameter::description() const
+const string& Parameter::description() const
 {
     return _description;
 }
 
-string Parameter::unit() const
+const string& Parameter::unit() const
 {
     return _unit;
 }
@@ -67,5 +67,5 @@ int64_t Parameter::getRangeMax() const
 
 size_t Parameter::byteSize() const
 {
-    return sizeof(_value) + sizeof(rangeMin) + sizeof(rangeMax) + 1 + _name.size() + _description.size() + _unit.size();
+    return sizeof(_value) + sizeof(rangeMin) + sizeof(rangeMax) + _name.size() + _description.size() + _unit.size() + 4;
 }

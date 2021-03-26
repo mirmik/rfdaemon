@@ -10,9 +10,9 @@ public:
     Parameter();
     Parameter(const std::string& name, const std::string& desc, const std::string& units, int64_t min, int64_t max, int64_t value, bool hex = false);
     Parameter& operator=(int64_t d);
-    std::string name() const;
-    std::string description() const;
-    std::string unit() const;
+    const std::string& name() const;
+    const std::string& description() const;
+    const std::string& unit() const;
     bool getIsHex() const;
     int64_t getValue() const;
     int64_t getRangeMin() const;

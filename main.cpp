@@ -18,7 +18,8 @@ using namespace std;
 uint16_t port = DEFAULT_TCP_PORT;
 AppManager appManager;
 DeviceManager devManager(RFMEASK_TCP_PORT);
-int srvRetCode = 0, appWatcherRetCode = 0, userIORetCode = 0;
+RFDaemonServer* srv = NULL;
+int srvSendRetCode = 0, srvRecvRetCode = 0, appWatcherRetCode = 0, userIORetCode = 0;
 
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
@@ -36,8 +37,8 @@ int main(int argc, char* argv[])
     uint8_t terminalMode = 0;
     bool serverOnlyMode = false;
     pid_t daemonPid = 0;
-    atomic<uint32_t> srvThreadArg = 0, appWatcherThreadArg = 0, userIOThreadArg = 0;
-    pthread_t hNetworkThread = 0, hAppWatcherThread = 0, hUserIOThread = 0;
+    atomic<uint32_t> srvSendThreadArg = 0, srvRecvThreadArg = 0, appWatcherThreadArg = 0, userIOThreadArg = 0;
+    pthread_t hSrvSendThread = 0, hSrvRecvThread = 0, hAppWatcherThread = 0, hUserIOThread = 0;
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
@@ -45,6 +46,10 @@ int main(int argc, char* argv[])
         configFileName = "applist.json";
         port = DEFAULT_TCP_PORT;
     }
+
+    srv = new RFDaemonServer(port);
+    srv->setAppManager(&appManager);
+    srv->setDeviceManager(&devManager);
 
     if (appManager.openConfigFile(configFileName))
     {
@@ -65,16 +70,21 @@ int main(int argc, char* argv[])
         //sleep(1);
         //closeApps(appPidList);
 
-        pthread_create(&hNetworkThread, NULL, tcpServerThread, &srvThreadArg);
+        pthread_create(&hSrvRecvThread, NULL, tcpServerReceiveThread, &srvRecvThreadArg);
+        pthread_create(&hSrvSendThread, NULL, tcpServerSendThread, &srvSendThreadArg);
         pthread_create(&hAppWatcherThread, NULL, appWatcherThread, &appWatcherThreadArg);
         if (terminalMode)
             pthread_create(&hUserIOThread, NULL, userIOThread, &userIOThreadArg);
-        pthread_join(hNetworkThread, NULL);
+        pthread_join(hSrvRecvThread, NULL);
+        pthread_join(hSrvSendThread, NULL);
         pthread_join(hAppWatcherThread, NULL);
         if (terminalMode)
             pthread_join(hUserIOThread, NULL);
-        if (srvRetCode || appWatcherRetCode || userIORetCode)
-            cerr << srvRetCode << " " << appWatcherRetCode << " " << userIORetCode << endl;
+        if (srvSendRetCode || srvRecvRetCode || appWatcherRetCode || userIORetCode)
+            cerr << srvSendRetCode << " "
+                 << srvRecvRetCode << " "
+                 << appWatcherRetCode << " "
+                 << userIORetCode << endl;
     }
     return 0;
 }
@@ -124,13 +134,16 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
     return (wrongArg || !len);
 }
 
-void* tcpServerThread(void* arg)
+void* tcpServerSendThread(void* arg)
 {
-    RFDaemonServer* srv = new RFDaemonServer(port);
-    srv->setAppManager(&appManager);
-    srv->setDeviceManager(&devManager);
-    srvRetCode = srv->thread();
-    return &srvRetCode;
+    srvSendRetCode = srv->sendThread();
+    return &srvSendRetCode;
+}
+
+void* tcpServerReceiveThread(void* arg)
+{
+    srvRecvRetCode = srv->receiveThread();
+    return &srvRecvRetCode;
 }
 
 void* appWatcherThread(void* arg)
