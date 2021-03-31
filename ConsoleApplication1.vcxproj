@@ -83,6 +83,8 @@
   <ItemGroup>
     <ClCompile Include="..\igris\igris\util\crc.c" />
     <ClCompile Include="AppManager.cpp" />
+    <ClCompile Include="config_json_default.cpp" />
+    <ClCompile Include="Device.cpp" />
     <ClCompile Include="DeviceManager.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_value.cpp" />
@@ -91,10 +93,14 @@
     <ClCompile Include="parameter.cpp" />
     <ClCompile Include="RFDaemon.cpp" />
     <ClCompile Include="RFDaemonServer.cpp" />
+    <ClCompile Include="string_constants.cpp" />
+    <ClCompile Include="TcpClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\igris\igris\util\crc.h" />
     <ClInclude Include="AppManager.h" />
+    <ClInclude Include="config_json_default.h" />
+    <ClInclude Include="Device.h" />
     <ClInclude Include="DeviceManager.h" />
     <ClInclude Include="functors.h" />
     <ClInclude Include="jsoncpp\json\allocator.h" />
@@ -112,6 +118,7 @@
     <ClInclude Include="parameter.h" />
     <ClInclude Include="RFDaemon.h" />
     <ClInclude Include="RFDaemonServer.h" />
+    <ClInclude Include="string_constants.h" />
     <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpServer.h" />
   </ItemGroup>

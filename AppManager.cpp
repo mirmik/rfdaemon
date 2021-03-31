@@ -4,11 +4,12 @@
 #include <unistd.h>
 #include <signal.h>
 #include "jsoncpp/json/json.h"
-
+#include <pwd.h>
 using namespace std;
 
 AppManager::AppManager()
 {
+    devDescFileName = "";
 }
 
 bool AppManager::openConfigFile(const string& filename)
@@ -16,21 +17,22 @@ bool AppManager::openConfigFile(const string& filename)
     Json::Value root;
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
-    bool success = false;
-    ifstream appFile(filename);
+    bool error = false;
+    appConfFile = ifstream(filename);
+    string homedir = string(getpwuid(getuid())->pw_dir);
 
-    if (!appFile.is_open())
+    if (!appConfFile.is_open())
     {
         cout << "RFDaemon configuration file \"" + filename + "\" missing.\n";
-        success = true;
+        error = true;
     }
     else
         cout << "RFDaemon configuration file \"" + filename + "\" found.\n";
 
-    if (!parseFromStream(builder, appFile, &root, &errs))
+    if (!parseFromStream(builder, appConfFile, &root, &errs))
     {
         cout << "Errors in configuration file \"" + filename + "\"[" << errs << "].\n";
-        success = true;
+        error = true;
     }
     else
     {
@@ -38,7 +40,7 @@ bool AppManager::openConfigFile(const string& filename)
         if (!arraySize)
         {
             cout << "No apps found in file \"" + filename + "\".\n";
-            success = true;
+            error = true;
         }
         for (int i = 0; i < arraySize; i++)
         {
@@ -48,18 +50,26 @@ bool AppManager::openConfigFile(const string& filename)
         if (appList.empty())
         {
             cout << "No apps found in file \"" + filename + "\"\n";
-            success = true;
+            error = true;
         }
         if (appList.size() != appCmdList.size())
         {
             cout << "Property 'command' missing in file \"" + filename + "\".\n";
-            success = true;
+            error = true;
         }
 
         for (auto& s : appCmdList)
         {
             if (!s.empty())
             {
+                size_t homePathPos = s.find("/home/");
+                size_t homePathEnd = s.find('/', homePathPos + 7);
+                while ((homePathPos != string::npos) && (homePathEnd != string::npos) && (homePathEnd > homePathPos))
+                {
+                    s.replace(homePathPos, homePathEnd - homePathPos, homedir);
+                    homePathPos = s.find("/home/", homePathEnd);
+                    homePathEnd = s.find('/', homePathPos + 7);
+                }
                 size_t argsBegin = s.find_first_of(' ');
                 vector<string> args = { s.substr(0, argsBegin) };
 
@@ -81,7 +91,35 @@ bool AppManager::openConfigFile(const string& filename)
         appRestartAttempts.resize(arraySize);
         appRunningStatusList.resize(arraySize);
     }
-    return success;
+    if (!error)
+    {
+        bool configFound = false;
+        cfgFileName = filename;
+
+        size_t i = 0, j = 0;
+        for (; i < appCmdList.size(); i++)
+        {
+            if (appCmdList[i].find("rfmeas") != string::npos)
+                break;
+        }
+        for (;j < appCmdArgList[i].size(); j++)
+        {
+            if (appCmdArgList[i][j].find("--config") != string::npos)
+            {
+                configFound = true;
+                break;
+            }
+        }
+
+        if (!configFound)
+            devDescFileName = appCmdArgList[i][j + 1];
+        else
+        {
+            
+            devDescFileName = homedir + "/settings.json";
+        }
+    }
+    return error;
 }
 
 void AppManager::runApps()
@@ -172,7 +210,7 @@ int AppManager::thread()
                     appPidList[i] = runApp(appList[i], appCmdList[i], appCmdArgList[i]);
                     if (appPidList[i] == -1)
                     {
-                        if (appRestartAttempts[i] < APP_MAX_SUCCESSIVE_RESTART_ATTEMPTS)
+                        if (appRestartAttempts[i] < APP_MAX_RESTART_ATTEMPTS)
                             appRestartAttempts[i]++;
                         else
                         {
@@ -192,6 +230,11 @@ int AppManager::thread()
     return 0;
 }
 
+const string& AppManager::getDeviceDescFilename() const
+{
+    return devDescFileName;
+}
+
 void AppManager::restartApps()
 {
     closeApps();
@@ -207,6 +250,15 @@ uint32_t AppManager::getAppCount() const
 bool AppManager::appsIsRunning() const
 {
     return appsIsRunningFlag;
+}
+
+void AppManager::updateConfigFile(const string& newContent)
+{
+}
+
+ifstream& AppManager::getAppConfigFile()
+{
+    return appConfFile;
 }
 
 const vector<pid_t>& AppManager::getAppPids() const
@@ -234,8 +286,7 @@ const vector<vector<string>>& AppManager::getAppArgs() const
     return appCmdArgList;
 }
 
-const std::string& AppManager::getLogFile() const
+ifstream& AppManager::getLogFile()
 {
-    return logFileStr;
+    return appLogFile;
 }
-

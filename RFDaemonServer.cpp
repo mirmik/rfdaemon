@@ -1,6 +1,7 @@
 #include "RFDaemonServer.h"
 #include "AppManager.h"
 #include "DeviceManager.h"
+#include <fstream>
 
 using namespace std;
 
@@ -45,7 +46,7 @@ vector<uint8_t> RFDaemonServer::getAppInfo(const uint8_t* data, uint32_t size)
 	vector<uint8_t> answer(1);
 	answer[0] = appMgr->getAppCount();
 
-	for (int i = 0; i < appMgr->getAppCount(); i++)
+	for (size_t i = 0; i < appMgr->getAppCount(); i++)
 	{
 		uint8_t arr[5];
 		arr[0] = appMgr->getAppStatusList()[i];
@@ -80,8 +81,9 @@ vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t* data, uint32_t siz
 vector<uint8_t> RFDaemonServer::getAllDevices(const uint8_t* data, uint32_t size)
 {
 	vector<uint8_t> answer(1);
-	answer[0] = devMgr->getDevList().size();
-	for (auto& d : devMgr->getDevList())
+	vector<string> devNamesList = devMgr->getDevList();
+	answer[0] = devMgr->getDevCount();
+	for (auto& d : devNamesList)
 		answer.insert(answer.end(), d.c_str(), d.c_str() + d.length() + 1);
 	return answer;
 }
@@ -104,7 +106,7 @@ vector<uint8_t> RFDaemonServer::getCurrentDevValue(const uint8_t* data, uint32_t
 
 vector<uint8_t> RFDaemonServer::setAxesLimits(const uint8_t* data, uint32_t size)
 {
-	size_t devCount = std::min<size_t>(data[0], devMgr->getDevList().size());
+	size_t devCount = std::min<size_t>(data[0], devMgr->getDevCount());
 	double* value = (double*)(data + 1);
 	for (size_t i = 0; i < devCount; i++)
 		devMgr->setAxisLimits(i, value[i * 2], value[i * 2 + 1]);
@@ -113,7 +115,7 @@ vector<uint8_t> RFDaemonServer::setAxesLimits(const uint8_t* data, uint32_t size
 
 vector<uint8_t> RFDaemonServer::getAxesLimits(const uint8_t* data, uint32_t size)
 {
-	size_t devCount = std::min<size_t>(data[0], devMgr->getDevList().size());
+	size_t devCount = std::min<size_t>(data[0], devMgr->getDevCount());
 	vector<uint8_t> answer(1 + 2 * devCount * sizeof(double));
 	answer[0] = devCount;
 	double* value = (double*)(answer.data() + 1);
@@ -167,53 +169,40 @@ vector<uint8_t> RFDaemonServer::updateControllerFW(const uint8_t* data, uint32_t
 
 vector<uint8_t> RFDaemonServer::getParams(const uint8_t* data, uint32_t size)
 {
-	vector<uint8_t> answer(4);
 	uint8_t devId = data[0];
 	bool getAllParameters = data[1] != 0;
+	const vector<Parameter>& parameters = devMgr->getParameterList(devId);
+	uint16_t requestedParamCount = parameters.size();
+	size_t startParamId = 0;
+
+	vector<uint8_t> answer(4);
+	answer.reserve(answer.size() + parameters.size() * (sizeof(uint16_t) + sizeof(Parameter)));
 	answer[0] = devId;
 	answer[1] = getAllParameters;
-	uint16_t* pParamNumList = (uint16_t*)(data + 4);
-	uint16_t requestedParamCount = *(uint16_t*)(data + 2);
-	const vector<Parameter>& parameters = devMgr->getParameterList(devId);
-	vector<uint16_t> answerParamIds;
-	vector<uint8_t> answerParams;
-	vector<uint8_t>& paramsList = getAllParameters ? answer : answerParams;
-	size_t startParamId = getAllParameters ? 0 : pParamNumList[0];
-	size_t paramCnt = getAllParameters ? parameters.size() : requestedParamCount;
-
-	if (!getAllParameters)
-	{
-		for (size_t i = startParamId; (i < parameters.size()) && paramCnt; i++)
-		{
-			if ((pParamNumList[i] == i) || getAllParameters)
-			{
-				const string& name = parameters[i].name();
-				const string& desc = parameters[i].description();
-				const string& unit = parameters[i].unit();
-				double vals[] = { parameters[i].getValue(), parameters[i].getRangeMin(), parameters[i].getRangeMax() };
-
-				paramsList.insert(paramsList.end(), name.c_str(), name.c_str() + name.length() + 1);
-				paramsList.insert(paramsList.end(), desc.c_str(), desc.c_str() + desc.length() + 1);
-				paramsList.insert(paramsList.end(), unit.c_str(), unit.c_str() + unit.length() + 1);
-				paramsList.insert(paramsList.end(), vals, vals + 2);
-				if (!getAllParameters)
-					answerParamIds.push_back(i);
-				paramCnt--;
-			}
-		}
-
-		if (!getAllParameters)
-		{
-			*(uint16_t*)(answer.data() + 2) = answerParamIds.size();
-			answer.insert(answer.end(), answerParamIds.begin(), answerParamIds.end());
-			answer.insert(answer.end(), paramsList.begin(), paramsList.end());
-		}
-		else
-			*(uint16_t*)(answer.data() + 2) = parameters.size();
-	}
+	uint16_t* pParamNumAnsList = NULL, *pParamNumList = NULL;
+	
+	if (getAllParameters)
+		*(uint16_t*)(answer.data() + 2) = parameters.size();
 	else
 	{
-		for (size_t i = startParamId; i < parameters.size(); i++)
+		requestedParamCount = *(uint16_t*)(data + 2);
+		*(uint16_t*)(answer.data() + 2) = requestedParamCount;
+
+		if (requestedParamCount <= parameters.size())
+		{
+			pParamNumList = (uint16_t*)(data + 4);
+			pParamNumAnsList = (uint16_t*)(answer.data() + 4);
+			startParamId = pParamNumList[0];
+			answer.resize(answer.size() + requestedParamCount * sizeof(uint16_t));
+			for (size_t i = 0; i < requestedParamCount; i++)
+				pParamNumAnsList[i] = pParamNumList[i];
+		}
+	}
+
+	for (size_t i = startParamId; (i < parameters.size()) && (i < requestedParamCount); i++)
+	{
+		bool include = getAllParameters ? true : (pParamNumAnsList[i] == i);
+		if (include)
 		{
 			const string& name = parameters[i].name();
 			const string& desc = parameters[i].description();
@@ -224,65 +213,106 @@ vector<uint8_t> RFDaemonServer::getParams(const uint8_t* data, uint32_t size)
 			answer.insert(answer.end(), desc.c_str(), desc.c_str() + desc.length() + 1);
 			answer.insert(answer.end(), unit.c_str(), unit.c_str() + unit.length() + 1);
 			answer.insert(answer.end(), vals, vals + 2);
-			answer.push_back(i);
 		}
-		*(uint16_t*)(answer.data() + 2) = parameters.size();
 	}
 	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::setParams(const uint8_t* data, uint32_t size)
 {
-	//devMgr->setParameterList(0, );
-	return vector<uint8_t>();
+	uint8_t devId = data[0];
+	bool setAllParameters = data[1] != 0;
+	size_t startParamId = 0;
+	size_t devParamCount = devMgr->getParameterList(devId).size();
+	uint16_t requestedParamCount = devParamCount;
+	vector<uint8_t> answer(4);
+	answer[0] = devId;
+	answer[1] = setAllParameters;
+	uint16_t* pParamNumList = NULL;
+	vector<uint16_t> paramIdList;
+	vector<double> paramValList;
+	double* pValList = (double*)(data + 4);
+
+	if (!setAllParameters)
+	{
+		pParamNumList = (uint16_t*)(data + 4);
+		requestedParamCount = *(uint16_t*)(data + 2);
+		pValList = (double*)(data + 4 + requestedParamCount * sizeof(uint16_t));
+	}
+
+	for (size_t i = startParamId; (i < devParamCount) && (i < requestedParamCount); i++)
+	{
+		bool include = setAllParameters ? true : (pParamNumList[i] == i);
+		if (include)
+		{
+			paramIdList.push_back(i);
+			paramValList.push_back(*pValList);
+		}
+	}
+	if (setAllParameters)
+		devMgr->setParameterValues(devId, paramValList);
+	else
+		devMgr->setParameterValues(devId, paramIdList, paramValList);
+	
+	*(uint16_t*)(answer.data() + 2) = paramValList.size();
+	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::setAxisPosToZero(const uint8_t* data, uint32_t size)
 {
+	devMgr->setDevAxisToZero(data[0]);
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::homeAxis(const uint8_t* data, uint32_t size)
 {
+	devMgr->moveDevAxisToHome(data[0]);
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::setAxisPos(const uint8_t* data, uint32_t size)
 {
+	devMgr->setAxisPosition(data[0], *(double*)(data + 1));
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::stopAxis(const uint8_t* data, uint32_t size)
 {
+	devMgr->stopDevAxis(data[0]);
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::jogAxis(const uint8_t* data, uint32_t size)
 {
+	devMgr->jogAxis(data[0], *(double*)(data + 1));
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::setAppsList(const uint8_t* data, uint32_t size)
 {
+	string s = string((char*)data, size);
+	appMgr->updateConfigFile(s);
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 {
-	return vector<uint8_t>();
+	ifstream& f = appMgr->getAppConfigFile();
+	string s(istreambuf_iterator<char>{f}, {});
+	uint32_t strSize = s.length() + 1;
+	vector<uint8_t> answer(strSize);
+	memcpy(answer.data(), s.c_str(), strSize);
+	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::getAppLogs(const uint8_t* data, uint32_t size)
 {
-	uint32_t copyLength = std::min<uint32_t>(appMgr->getLogFile().length() + 1, remainingTxLen);
-	memcpy(data, appMgr->getLogFile().c_str(), copyLength);
-	return vector<uint8_t>{ 0, copyLength };
-}
-
-vector<uint8_t> RFDaemonServer::streaming(const uint8_t* data, uint32_t size)
-{
-	*((float*)txData) = devMgr->getMeasuredValue(streamingDevNum);
-	return vector<uint8_t>{ 0, sizeof(float) };
+	ifstream& f = appMgr->getLogFile();
+	string s(istreambuf_iterator<char>{f}, {});
+	uint32_t strSize = s.length() + 1;
+	vector<uint8_t> answer(strSize);
+	memcpy(answer.data(), s.c_str(), strSize);
+	return answer;
 }
 
 void RFDaemonServer::setAppManager(AppManager* manager)

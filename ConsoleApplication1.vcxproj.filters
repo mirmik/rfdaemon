@@ -19,6 +19,10 @@
     <ClCompile Include="RFDaemonServer.cpp" />
     <ClCompile Include="AppManager.cpp" />
     <ClCompile Include="DeviceManager.cpp" />
+    <ClCompile Include="TcpClient.cpp" />
+    <ClCompile Include="Device.cpp" />
+    <ClCompile Include="string_constants.cpp" />
+    <ClCompile Include="config_json_default.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -82,6 +86,15 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="DeviceManager.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="string_constants.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="config_json_default.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

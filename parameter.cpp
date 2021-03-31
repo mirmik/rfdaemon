@@ -13,7 +13,7 @@ Parameter::Parameter()
     rangeMax = 0;
 }
 
-Parameter::Parameter(const string& name, const string& desc, const string& units, int64_t min, int64_t max, int64_t value, bool hex)
+Parameter::Parameter(const string& name, const string& desc, const string& units, double min, double max, double value, bool hex)
 {
     _name = name;
     _description = desc;
@@ -24,7 +24,7 @@ Parameter::Parameter(const string& name, const string& desc, const string& units
     rangeMax = max;
 }
 
-Parameter &Parameter::operator=(int64_t d)
+Parameter &Parameter::operator=(double d)
 {
     _value = d;
     return *this;
@@ -50,17 +50,17 @@ bool Parameter::getIsHex() const
     return isHex;
 }
 
-int64_t Parameter::getValue() const
+double Parameter::getValue() const
 {
     return _value;
 }
 
-int64_t Parameter::getRangeMin() const
+double Parameter::getRangeMin() const
 {
     return rangeMin;
 }
 
-int64_t Parameter::getRangeMax() const
+double Parameter::getRangeMax() const
 {
     return rangeMax;
 }

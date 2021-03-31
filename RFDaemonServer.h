@@ -14,7 +14,7 @@ typedef struct
     Func<RFDaemonServer, std::vector<uint8_t>, const uint8_t*, uint32_t> cmd;
 } SrvCmd;
 
-class RFDaemonServer : public TcpServer<RFDaemonServer>
+class RFDaemonServer : public TcpServer
 {
 public:
     typedef enum

@@ -8,7 +8,6 @@
 #include "RFDaemon.h"
 #include "main.h"
 #include "pthread.h"
-#include "jsoncpp/json/json.h"
 #include "RFDaemonServer.h"
 #include "AppManager.h"
 #include "DeviceManager.h"
@@ -17,9 +16,11 @@ using namespace std;
 
 uint16_t port = DEFAULT_TCP_PORT;
 AppManager appManager;
-DeviceManager devManager(RFMEASK_TCP_PORT);
+DeviceManager* devManager = NULL;
 RFDaemonServer* srv = NULL;
-int srvSendRetCode = 0, srvRecvRetCode = 0, appWatcherRetCode = 0, userIORetCode = 0;
+int srvSendRetCode = 0, srvRecvRetCode = 0,
+clientSendRetCode = 0, clientRecvRetCode = 0,
+appWatcherRetCode = 0, userIORetCode = 0;
 
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
@@ -37,8 +38,12 @@ int main(int argc, char* argv[])
     uint8_t terminalMode = 0;
     bool serverOnlyMode = false;
     pid_t daemonPid = 0;
-    atomic<uint32_t> srvSendThreadArg = 0, srvRecvThreadArg = 0, appWatcherThreadArg = 0, userIOThreadArg = 0;
-    pthread_t hSrvSendThread = 0, hSrvRecvThread = 0, hAppWatcherThread = 0, hUserIOThread = 0;
+    uint32_t srvSendThreadArg = 0, srvRecvThreadArg = 0,
+        clientSendThreadArg = 0, clientRecvThreadArg = 0,
+        appWatcherThreadArg = 0, userIOThreadArg = 0;
+    pthread_t hSrvSendThread = 0, hSrvRecvThread = 0,
+        hClientSendThread = 0, hClientRecvThread = 0,
+        hAppWatcherThread = 0, hUserIOThread = 0;
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
@@ -47,16 +52,17 @@ int main(int argc, char* argv[])
         port = DEFAULT_TCP_PORT;
     }
 
-    srv = new RFDaemonServer(port);
-    srv->setAppManager(&appManager);
-    srv->setDeviceManager(&devManager);
-
     if (appManager.openConfigFile(configFileName))
     {
         serverOnlyMode = true;
         cout << "Run server-only mode.\n";
     }
-    
+
+    devManager = new DeviceManager(RFMEASK_TCP_PORT, appManager.getDeviceDescFilename());
+    srv = new RFDaemonServer(port);
+    srv->setAppManager(&appManager);
+    srv->setDeviceManager(devManager);
+
     cout << "Starting in " << (terminalMode ? "terminal" : "daemon") << "mode.\n";
 
     if (!terminalMode)
@@ -72,17 +78,23 @@ int main(int argc, char* argv[])
 
         pthread_create(&hSrvRecvThread, NULL, tcpServerReceiveThread, &srvRecvThreadArg);
         pthread_create(&hSrvSendThread, NULL, tcpServerSendThread, &srvSendThreadArg);
+        pthread_create(&hClientRecvThread, NULL, tcpClientReceiveThread, &clientRecvThreadArg);
+        pthread_create(&hClientSendThread, NULL, tcpClientSendThread, &clientSendThreadArg);
         pthread_create(&hAppWatcherThread, NULL, appWatcherThread, &appWatcherThreadArg);
         if (terminalMode)
             pthread_create(&hUserIOThread, NULL, userIOThread, &userIOThreadArg);
         pthread_join(hSrvRecvThread, NULL);
         pthread_join(hSrvSendThread, NULL);
+        pthread_join(hClientRecvThread, NULL);
+        pthread_join(hClientSendThread, NULL);
         pthread_join(hAppWatcherThread, NULL);
         if (terminalMode)
             pthread_join(hUserIOThread, NULL);
-        if (srvSendRetCode || srvRecvRetCode || appWatcherRetCode || userIORetCode)
+        if (srvSendRetCode || srvRecvRetCode || clientSendRetCode || clientRecvRetCode || appWatcherRetCode || userIORetCode)
             cerr << srvSendRetCode << " "
                  << srvRecvRetCode << " "
+                 << clientSendRetCode << " "
+                 << clientRecvRetCode << " "
                  << appWatcherRetCode << " "
                  << userIORetCode << endl;
     }
@@ -144,6 +156,20 @@ void* tcpServerReceiveThread(void* arg)
 {
     srvRecvRetCode = srv->receiveThread();
     return &srvRecvRetCode;
+}
+
+void* tcpClientSendThread(void* arg)
+{
+    clientSendRetCode = devManager->sendThread();
+    return &clientSendRetCode;
+}
+
+void* tcpClientReceiveThread(void* arg)
+{
+    usleep(1000000);
+    devManager->connectToPort("localhost", RFMEASK_TCP_PORT);
+    clientRecvRetCode = devManager->receiveThread();
+    return &clientRecvRetCode;
 }
 
 void* appWatcherThread(void* arg)

@@ -36,16 +36,16 @@ enum class QueryResult
 	AppRejected
 };
 
-template<typename T>
 class TcpServer
 {
 public:
-	
 	TcpServer(uint16_t port, size_t bufferSize = 65535)
 	{
-		rxBufferPtr = (uint8_t*)malloc(bufferSize);
-		txBufferPtr = (uint8_t*)malloc(bufferSize);
+		rxBufferPtr = (uint8_t*)malloc(bufferSize + sizeof(PacketHeader));
+		txBufferPtr = (uint8_t*)malloc(bufferSize + sizeof(PacketHeader));
 		bufferLength = bufferSize;
+		rxQueue.reserve(bufferSize * 2);
+		txQueue.reserve(bufferSize * 2);
 
 		socketDesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (socketDesc == -1)
@@ -102,7 +102,7 @@ public:
 				ssize_t result = 0;
 				do
 				{
-					result = recv(socketDesc, rxBufferPtr, bufferLength, 0);
+					result = recv(socketDesc, rxBufferPtr + rxBufferHeaderCollectCnt, bufferLength, 0);
 
 					if (result > 0)
 					{
@@ -110,19 +110,32 @@ public:
 
 						if (!rxQueueActive)
 						{
-							// Received data contains header at start
-							PacketHeader* h = (PacketHeader*)&rxBufferPtr;
-							if ((h->preamble == HeaderPreamble) && ((uint32_t)result >= sizeof(PacketHeader)))
+							if (result < (ssize_t)sizeof(PacketHeader))
 							{
-								rxQueueActive = true;
-								rxCrc32 = h->crc32;
-								rxSize = h->size;
-								dataStartPtr = rxBufferPtr + sizeof(PacketHeader);
-								result -= sizeof(PacketHeader);
+								if (rxBufferHeaderCollectCnt < sizeof(PacketHeader))
+									rxBufferHeaderCollectCnt += result;
+							}
+							else
+								rxBufferHeaderCollectCnt = result;
+
+							if (rxBufferHeaderCollectCnt >= sizeof(PacketHeader))
+							{
+								rxBufferHeaderCollectCnt = 0; // Clear header fragment size counter
+
+								// Received data contains header at start
+								PacketHeader* h = (PacketHeader*)&rxBufferPtr;
+								if ((h->preamble == HeaderPreamble) && ((uint32_t)result >= sizeof(PacketHeader)))
+								{
+									rxQueueActive = true;
+									rxCrc32 = h->crc32;
+									rxSize = h->size;
+									dataStartPtr = rxBufferPtr + sizeof(PacketHeader);
+									result -= sizeof(PacketHeader);
+								}
 							}
 						}
 
-						if (rxQueueActive)
+						if (rxQueueActive && (result > 0))
 						{
 							// Received data is not header, it is body part
 							if (rxQueue.size() < rxSize)
@@ -206,6 +219,7 @@ public:
 								// In case of error at header transfer, reset header include flag
 								if (dataOffset)
 									txQueueActive = false;
+								printf("Server packet header send error.\n");
 							}
 						}
 						else
@@ -244,6 +258,7 @@ private:
 	bool connectionAccepted = false;
 	size_t bufferLength = 0;
 	size_t txQueuePos = 0;
+	size_t rxBufferHeaderCollectCnt = 0; // Byte counter for receiving packet header in multistep mode when recv() returns less bytes than size of header
 	uint8_t *rxBufferPtr, *txBufferPtr;
 	bool rxQueueActive = false;
 	bool txQueueActive = false;

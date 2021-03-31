@@ -4,23 +4,41 @@
 #include <vector>
 #include <string>
 #include "parameter.h"
+#include <fstream>
+#include <stdint.h>
+#include "Device.h"
 
 class DeviceManager : public TcpClient
 {
 public:
-	DeviceManager(uint16_t port);
-	const std::vector<std::string>& getDevList() const;
+	DeviceManager(uint16_t port, const std::string& devDescFileName);
+	const std::vector<std::string> getDevList() const;
+	uint32_t getDevCount() const;
 	const std::string& getLogFile() const;
 	float getMeasuredValue(int devNum);
 	void setAxisLimits(int devNum, double min, double max);
 	void getAxisLimits(int devNum, double& min, double& max);
 	void setAllAxesToZero();
+	void setDevAxisToZero(int devNum);
 	void moveAllAxesToHome();
+	void moveDevAxisToHome(int devNum);
+	void setAxisPosition(int devNum, double pos);
+	void stopDevAxis(int devNum);
+	void jogAxis(int devNum, double offset);
 	const std::vector<Parameter>& getParameterList(int devNum);
-	void setParameterList(int devNum, const std::vector<Parameter>& list);
-	void updateFirmware(const fstream& file);
+	const double getParameterValue(int devNum, int paramId);
+	void setParameterValue(int devNum, uint16_t paramId, double value);
+	void setParameterValues(int devNum, const std::vector<uint16_t>& idList, const std::vector<double>& list);
+	void setParameterValues(int devNum, const std::vector<double>& list);
+	void updateFirmware(const std::fstream& file);
 private:
-	std::vector<std::string> devices;
+	void parseDeviceDescriptionFile(std::fstream& file);
+	virtual void parseReceivedData(const std::vector<uint8_t>& data) override;
+	std::vector<Device> devices;
 	std::string logFileStr;
 	std::vector<float> measuredValues;
+	std::fstream devDescFile;
+	std::string devDescFileStr;
+	int sentCmdId = 0;
+	bool devDescFileNotFound = false;
 };
