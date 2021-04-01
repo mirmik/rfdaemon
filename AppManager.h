@@ -12,6 +12,7 @@ class AppManager
 {
 public:
     AppManager();
+    ~AppManager();
     bool openConfigFile(const std::string& filename);
     void runApps();
     pid_t runApp(const std::string& name, const std::string& cmd, const std::vector<std::string>& args);

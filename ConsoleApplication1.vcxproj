@@ -94,7 +94,6 @@
     <ClCompile Include="RFDaemon.cpp" />
     <ClCompile Include="RFDaemonServer.cpp" />
     <ClCompile Include="string_constants.cpp" />
-    <ClCompile Include="TcpClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\igris\igris\util\crc.h" />

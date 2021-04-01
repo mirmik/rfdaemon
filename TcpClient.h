@@ -19,7 +19,7 @@
 class TcpClient
 {
 public:
-	TcpClient(uint16_t port, size_t bufferSize = 65535)
+	TcpClient(size_t bufferSize = 65535)
 	{
 		rxBufferPtr = (uint8_t*)malloc(bufferSize);
 		txBufferPtr = (uint8_t*)malloc(bufferSize);
@@ -37,6 +37,7 @@ public:
 	}
 	~TcpClient()
 	{
+		disconnect();
 		rxQueue.clear();
 		txQueue.clear();
 		free(rxBufferPtr);
@@ -59,12 +60,19 @@ public:
 
 		if (connect(socketDesc, (sockaddr*)&sAddr, sizeof(sAddr)) < 0)
 		{
-			printf("Bad address.\n");
+			printf("Failed to connect to server.\n");
 			close(socketDesc);
 			return EXIT_FAILURE;
 		}
+		connectionPort = port;
+		terminate = false;
 		connected = true;
 		return 0;
+	}
+	void disconnect()
+	{
+		connected = false;
+		close(socketDesc);
 	}
 	int receiveThread()
 	{
@@ -79,6 +87,14 @@ public:
 					result = recv(socketDesc, rxBufferPtr, bufferLength, 0);
 					if (result > 0)
 					{
+						//for (ssize_t i = 0; i < result; i++)
+						//{
+						//	printf("Data received from server\n");
+						//	printf("0x%02X ", rxBufferPtr[i]);
+						//	if (!(i % 16))
+						//		printf("\n");
+						//}
+						//printf("\n");
 						rxQueue.insert(rxQueue.end(), rxBufferPtr, rxBufferPtr + result);
 						char lastCh = rxQueue.back();
 						if ((lastCh == '\r') || (lastCh == '\n') || (lastCh == 0))
@@ -164,12 +180,21 @@ public:
 	void sendCmd(const std::string& cmd, bool wait = false, int timeoutMs = 0)
 	{
 		pthread_mutex_lock(&mtxQueue);
-		txQueue.insert(txQueue.begin(), cmd.c_str(), cmd.c_str() + cmd.length() + 1);
+		txQueue.insert(txQueue.begin(), cmd.c_str(), cmd.c_str() + cmd.length());
 		pthread_mutex_unlock(&mtxQueue);
-		int cnt = timeoutMs;
-		while (!txQueue.empty() && cnt--)
-			usleep(1000);
+		requestTimeout = timeoutMs * 100UL;
+		while (!txQueue.empty() && requestTimeout)
+		{
+			requestTimeout--;
+			usleep(10);
+		}
 	}
+	uint16_t port()
+	{
+		return connectionPort;
+	}
+protected:
+	unsigned long requestTimeout = 0;
 private:
 	bool connected = false;
 	size_t bufferLength = 0;
@@ -181,4 +206,5 @@ private:
 	int connDesc = 0;
 	bool terminate = false;
 	pthread_mutex_t mtxQueue;
+	uint16_t connectionPort = 0;
 };

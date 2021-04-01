@@ -18,12 +18,6 @@
 
 typedef struct
 {
-	uint32_t rxOffset;
-	uint32_t txOffset;
-} CmdBufResult;
-
-typedef struct
-{
 	uint32_t preamble;
 	uint32_t crc32;
 	uint32_t size;

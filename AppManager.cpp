@@ -62,6 +62,7 @@ bool AppManager::openConfigFile(const string& filename)
         {
             if (!s.empty())
             {
+                // Replace username in command string to actual
                 size_t homePathPos = s.find("/home/");
                 size_t homePathEnd = s.find('/', homePathPos + 7);
                 while ((homePathPos != string::npos) && (homePathEnd != string::npos) && (homePathEnd > homePathPos))
@@ -70,6 +71,8 @@ bool AppManager::openConfigFile(const string& filename)
                     homePathPos = s.find("/home/", homePathEnd);
                     homePathEnd = s.find('/', homePathPos + 7);
                 }
+
+                // Split string to command and arguments
                 size_t argsBegin = s.find_first_of(' ');
                 vector<string> args = { s.substr(0, argsBegin) };
 
@@ -84,6 +87,7 @@ bool AppManager::openConfigFile(const string& filename)
                         p = strtok(NULL, " ");
                     }
                 }
+                s = s.substr(0, argsBegin);
                 appCmdArgList.push_back(args);
             }
             appRestartEnableList.push_back(1);
@@ -111,13 +115,10 @@ bool AppManager::openConfigFile(const string& filename)
             }
         }
 
-        if (!configFound)
+        if (configFound && !appCmdArgList[i][j + 1].empty())
             devDescFileName = appCmdArgList[i][j + 1];
         else
-        {
-            
             devDescFileName = homedir + "/settings.json";
-        }
     }
     return error;
 }
@@ -141,7 +142,7 @@ void AppManager::runApps()
         pid_t pid = fork();
         if (pid == 0)
         {
-            int status = execvp(appCmdList[i].c_str(), (char**)args[i].data());
+            int status = execve(appCmdList[i].c_str(), (char**)args[i].data(), NULL);
             cout << "App \"" << appCmdList[i] << "\" exit status: " << status << endl;
             exit(status);
         }
@@ -188,6 +189,10 @@ void AppManager::closeApps()
         kill(p, SIGTERM);
     appPidList.clear();
     cout << "All created processes have just been killed." << endl;
+}
+
+AppManager::~AppManager()
+{
 }
 
 int AppManager::thread()

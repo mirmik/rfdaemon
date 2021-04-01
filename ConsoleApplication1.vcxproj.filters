@@ -19,7 +19,6 @@
     <ClCompile Include="RFDaemonServer.cpp" />
     <ClCompile Include="AppManager.cpp" />
     <ClCompile Include="DeviceManager.cpp" />
-    <ClCompile Include="TcpClient.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="string_constants.cpp" />
     <ClCompile Include="config_json_default.cpp" />

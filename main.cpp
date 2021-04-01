@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
         cout << "Run server-only mode.\n";
     }
 
-    devManager = new DeviceManager(RFMEASK_TCP_PORT, appManager.getDeviceDescFilename());
+    devManager = new DeviceManager(appManager.getDeviceDescFilename());
     srv = new RFDaemonServer(port);
     srv->setAppManager(&appManager);
     srv->setDeviceManager(devManager);
@@ -92,11 +92,11 @@ int main(int argc, char* argv[])
             pthread_join(hUserIOThread, NULL);
         if (srvSendRetCode || srvRecvRetCode || clientSendRetCode || clientRecvRetCode || appWatcherRetCode || userIORetCode)
             cerr << srvSendRetCode << " "
-                 << srvRecvRetCode << " "
-                 << clientSendRetCode << " "
-                 << clientRecvRetCode << " "
-                 << appWatcherRetCode << " "
-                 << userIORetCode << endl;
+            << srvRecvRetCode << " "
+            << clientSendRetCode << " "
+            << clientRecvRetCode << " "
+            << appWatcherRetCode << " "
+            << userIORetCode << endl;
     }
     return 0;
 }
@@ -182,7 +182,18 @@ void* userIOThread(void* arg)
 {
     while (1)
     {
-
+        sleep(3);
+        devManager->setAxisPosition(0, 5);
+        for (int i = 0; i < 50; i++)
+        {
+            usleep(100000);
+            printf("%.3f\n", devManager->getAxisPos(0));
+        }
+        printf("Shutting down in 3 seconds...\n");
+        sleep(3);
+        devManager->disconnect();
+        appManager.closeApps();
+        break;
     }
     return &userIORetCode;
 }

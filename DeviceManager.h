@@ -11,13 +11,20 @@
 class DeviceManager : public TcpClient
 {
 public:
-	DeviceManager(uint16_t port, const std::string& devDescFileName);
+	enum CmdQueryID
+	{
+		Invalid = 0,
+		POS,
+		UPOS
+	};
+	DeviceManager(const std::string& devDescFileName);
 	const std::vector<std::string> getDevList() const;
 	uint32_t getDevCount() const;
 	const std::string& getLogFile() const;
-	float getMeasuredValue(int devNum);
+	double getMeasuredValue(int devNum);
 	void setAxisLimits(int devNum, double min, double max);
 	void getAxisLimits(int devNum, double& min, double& max);
+	double getAxisPos(int devNum, bool inUnits = true);
 	void setAllAxesToZero();
 	void setDevAxisToZero(int devNum);
 	void moveAllAxesToHome();
@@ -32,13 +39,16 @@ public:
 	void setParameterValues(int devNum, const std::vector<double>& list);
 	void updateFirmware(const std::fstream& file);
 private:
+	// Return true if timeout occurred
+	bool waitAnswer(unsigned long period_ms = 500);
 	void parseDeviceDescriptionFile(std::fstream& file);
 	virtual void parseReceivedData(const std::vector<uint8_t>& data) override;
 	std::vector<Device> devices;
 	std::string logFileStr;
-	std::vector<float> measuredValues;
+	std::vector<double> measuredValues;
 	std::fstream devDescFile;
 	std::string devDescFileStr;
-	int sentCmdId = 0;
+	CmdQueryID sentCmdId = CmdQueryID::Invalid;
+	std::vector<uint8_t> queryArgs;
 	bool devDescFileNotFound = false;
 };

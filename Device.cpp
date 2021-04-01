@@ -14,6 +14,11 @@ const string& Device::getName() const
     return _name;
 }
 
+double Device::axisPosition()
+{
+    return axisPos;
+}
+
 const vector<Parameter>& Device::getParameters() const
 {
     return _parameters;

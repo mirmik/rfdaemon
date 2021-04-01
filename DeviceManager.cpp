@@ -8,12 +8,15 @@
 
 using namespace std;
 
-DeviceManager::DeviceManager(uint16_t port, const string& devDescFileName) :
-	TcpClient(port)
+DeviceManager::DeviceManager(const string& devDescFileName)
 {
+	queryArgs.reserve(16);
 	devDescFileStr = devDescFileName;
 	if (filesystem::exists(devDescFileName))
+	{
 		devDescFile = fstream(devDescFileName, fstream::in);
+		printf("Device description file found.\n");
+	}
 	else
 	{
 		devDescFileNotFound = true;
@@ -21,8 +24,7 @@ DeviceManager::DeviceManager(uint16_t port, const string& devDescFileName) :
 		devDescFile.seekp(0);
 		devDescFile.write(defaultDevDescFile, defaultDevDescFileLen);
 		devDescFile.flush();
-		devDescFile.close();
-		printf("%d\n", strlen(defaultDevDescFile));
+		printf("Device description file not found, create default.\n");
 	}
 	parseDeviceDescriptionFile(devDescFile);
 }
@@ -45,7 +47,7 @@ const string& DeviceManager::getLogFile() const
 	return logFileStr;
 }
 
-float DeviceManager::getMeasuredValue(int devNum)
+double DeviceManager::getMeasuredValue(int devNum)
 {
 	return measuredValues[devNum];
 }
@@ -58,6 +60,19 @@ void DeviceManager::getAxisLimits(int devNum, double& min, double& max)
 {
 }
 
+double DeviceManager::getAxisPos(int devNum, bool inUnits)
+{
+	string cmd = inUnits ? "UPOS" : "POS";
+	sentCmdId = inUnits ? CmdQueryID::UPOS : CmdQueryID::POS;
+	queryArgs.push_back(devNum);
+	sendCmd("AXIS" + to_string(devNum) + ":STAT:"+ cmd +"?\n", true, 100);
+	if (waitAnswer())
+		devices[devNum].axisPos = devices[devNum].prevAxisPos;
+	else
+		devices[devNum].prevAxisPos = devices[devNum].axisPos;
+	return devices[devNum].axisPos;
+}
+
 void DeviceManager::setAllAxesToZero()
 {
 	for (size_t i = 0; i < devices.size(); i++)
@@ -66,7 +81,7 @@ void DeviceManager::setAllAxesToZero()
 
 void DeviceManager::setDevAxisToZero(int devNum)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":SETZER\r\n", true, 100);
+	sendCmd("AXIS" + to_string(devNum) + ":SETZER\n", true, 100);
 }
 
 void DeviceManager::moveAllAxesToHome()
@@ -82,12 +97,12 @@ void DeviceManager::moveDevAxisToHome(int devNum)
 
 void DeviceManager::setAxisPosition(int devNum, double pos)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":UMOV:ABS " + to_string((double)pos) +"\r\n", true, 100);
+	sendCmd("AXIS" + to_string(devNum) + ":UMOV:ABS " + to_string(pos) +"\n", true, 100);
 }
 
 void DeviceManager::stopDevAxis(int devNum)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":STOP\r\n", true, 100);
+	sendCmd("AXIS" + to_string(devNum) + ":STOP\n", true, 100);
 }
 
 void DeviceManager::jogAxis(int devNum, double offset)
@@ -97,20 +112,18 @@ void DeviceManager::jogAxis(int devNum, double offset)
 
 const vector<Parameter>& DeviceManager::getParameterList(int devNum)
 {
-	static vector<Parameter> p;
-	return p;
+	return devices[devNum].getParameters();
 }
 
 const double DeviceManager::getParameterValue(int devNum, int paramId)
 {
-	return double();
+	return devices[devNum].getParameters()[paramId].getValue();
 }
 
-// PA:32 PB:64 PC:80 PD:48 PE:64 PF:48 PL:48, 384 total
 void DeviceManager::setParameterValue(int devNum, uint16_t paramId, double value)
 {
 	string paramName = devices[devNum].getParameters()[paramId].name();
-	sendCmd("DEV" + to_string(devNum) + ":SETParam " + paramName + "," + to_string(value), true, 100);
+	sendCmd("DEV" + to_string(devNum) + ":SETP " + paramName + "," + to_string(value), true, 100);
 }
 
 void DeviceManager::setParameterValues(int devNum, const vector<uint16_t>& idList, const vector<double>& list)
@@ -131,6 +144,20 @@ void DeviceManager::updateFirmware(const fstream& file)
 
 }
 
+// Return true if timeout occurred
+bool DeviceManager::waitAnswer(unsigned long period_ms)
+{
+	requestTimeout = period_ms * 100;
+	while ((sentCmdId != CmdQueryID::Invalid) && requestTimeout)
+	{
+		requestTimeout--;
+		usleep(10);
+	}
+	if (requestTimeout == 0)
+		printf("Timeout while waiting for answer from server at port %d.\n", port());
+	return requestTimeout == 0;
+}
+
 void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 {
     Json::Value root;
@@ -139,44 +166,46 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 
 	if (file.is_open())
 	{
-		if (parseFromStream(builder, file, &root, &errs))
+		if (Json::parseFromStream(builder, file, &root, &errs))
 		{
 			int devicesCount = root["devices"].size();
 			for (int i = 0; i < devicesCount; i++)
 			{
-				auto name = root["devices"][i]["name"].asString();
-				auto type = root["devices"][i]["type"].asString();
+				const auto& dev = root["devices"][i];
+				auto name = dev["name"].asString();
+				auto type = dev["type"].asString();
 				DeviceType devtype = (type == "mitsuservo_type_B") ? DeviceType::TypeB : DeviceType::TypeA;
 				vector<Parameter> params;
 
 				// Iterate parameter groups (from 'A' to ... symbol)
-				for (char paramGroup[] = "PA"; !root["devices"][i][paramGroup].isNull(); paramGroup[1]++)
+				for (char paramGroup[] = "PA"; !dev[paramGroup].isNull(); paramGroup[1]++)
 				{
-					int paramCount = root["devices"][i][paramGroup].size();
+					int paramCount = dev[paramGroup].size();
 					for (int j = 0; j < paramCount; j++)
 					{
 						const char** paramData = getDefaultParam(devtype, (ParamGroup)(paramGroup[1] - 'A'), j);
 						string range = string(paramData[3]);
+						string valueStr = dev[paramGroup][j]["value"].asString();
 
 						// Divide range record "xxx-yyy" to 2 values: minimum (xxx) and maximum (yyy)
-						// Note that if xxx < 0, then there is 2 hyphen signs and we mustt skip first
-						size_t hyphenPos = (paramData[3][0] == '-') ? range.find('-', 1) : range.find('-');
+						// Note that if xxx < 0, then there is 2 hyphen signs and we must skip first
+						size_t hyphenStartSearchPos = (paramData[3][0] == '-') ? 1 : 0;
+						size_t hyphenPos = range.find('-', hyphenStartSearchPos);
 						bool hex = strncmp(paramData[5], "HEX", 3) == 0;
-						double min = 0;
-						double max = 0;
-						double value = 0;
-						size_t pos;
+						double min = 0, max = 0, value = 0;
 						if (hex)
 						{
-							min = stoll(range.substr(0, hyphenPos), &pos, 16);
-							max = stoll(range.substr(hyphenPos + 1), &pos, 16);
-							value = stoll(string(paramData[4]), &pos, 16);
+							min = stoll(range.substr(0, hyphenPos), NULL, 16);
+							max = stoll(range.substr(hyphenPos + 1), NULL, 16);
+							//value = stoll(string(paramData[4]), &pos, 16);
+							value = stoll(valueStr, NULL, 16);
 						}
 						else
 						{
-							min = stod(range.substr(0, hyphenPos), &pos);
-							max = stod(range.substr(hyphenPos + 1), &pos);
-							value = stod(string(paramData[4]), &pos);
+							min = stod(range.substr(0, hyphenPos));
+							max = stod(range.substr(hyphenPos + 1));
+							//value = stod(string(paramData[4]), &pos);
+							value = stod(valueStr);
 						}
 						params.push_back({paramData[0], paramData[1], paramData[2], min, max, value, hex});
 					}
@@ -191,9 +220,15 @@ void DeviceManager::parseReceivedData(const vector<uint8_t>& data)
 {
 	switch (sentCmdId)
 	{
-	case 0:
+	case DeviceManager::Invalid:
+		break;
+	case DeviceManager::POS:
+	case DeviceManager::UPOS:
+		devices[queryArgs[0]].axisPos = strtod((char*)data.data(), NULL);
 		break;
 	default:
 		break;
 	}
+	sentCmdId = CmdQueryID::Invalid;
+	queryArgs.clear();
 }
