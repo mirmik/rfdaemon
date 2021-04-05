@@ -7,6 +7,7 @@ using namespace std;
 
 RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 {
+	addCmd(GET_SERVICES_INFO, Func(this, &RFDaemonServer::getAppInfo));
 	addCmd(SERVICES_START, Func(this, &RFDaemonServer::startAllApps));
 	addCmd(SERVICES_STOP, Func(this, &RFDaemonServer::stopAllApps));
 	addCmd(SERVICES_RESTART, Func(this, &RFDaemonServer::restartAllApps));
@@ -15,8 +16,6 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(GET_CURR_MEAS_VALUE, Func(this, &RFDaemonServer::getCurrentDevValue));
 	addCmd(AXES_LIMITS_SET, Func(this, &RFDaemonServer::setAxesLimits));
 	addCmd(AXES_LIMITS_GET, Func(this, &RFDaemonServer::getAxesLimits));
-	addCmd(ZERO_ALL_AXES, Func(this, &RFDaemonServer::zeroAllAxes));
-	addCmd(HOME_ALL_AXES, Func(this, &RFDaemonServer::homeAllAxes));
 	addCmd(STARTUP_SCRIPT_GET, Func(this, &RFDaemonServer::getStartupScript)); //Not need yet
 	addCmd(STARTUP_SCRIPT_SET, Func(this, &RFDaemonServer::setStartupScript)); //Not need yet
 	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
@@ -46,11 +45,14 @@ vector<uint8_t> RFDaemonServer::getAppInfo(const uint8_t* data, uint32_t size)
 	vector<uint8_t> answer(1);
 	answer[0] = appMgr->getAppCount();
 
+	vector<uint64_t> uptimes = appMgr->getAppUptimeList();
+
 	for (size_t i = 0; i < appMgr->getAppCount(); i++)
 	{
-		uint8_t arr[5];
+		uint8_t arr[13];
 		arr[0] = appMgr->getAppStatusList()[i];
-		*(pid_t*)(arr + 1) = appMgr->getAppPids()[i];
+		*(int32_t*)(arr + 1) = appMgr->getAppPids()[i];
+		*(uint64_t*)(arr + 5) = uptimes[i];
 		answer.insert(answer.end(), arr, arr + sizeof(arr));
 		const string& appName = appMgr->getAppNames()[i];
 		answer.insert(answer.end(), appName.c_str(), appName.c_str() + appName.length() + 1);
@@ -122,18 +124,6 @@ vector<uint8_t> RFDaemonServer::getAxesLimits(const uint8_t* data, uint32_t size
 	for (size_t i = 0; i < devCount; i++)
 		devMgr->getAxisLimits(i, value[i * 2], value[i * 2 + 1]);
 	return answer;
-}
-
-vector<uint8_t> RFDaemonServer::zeroAllAxes(const uint8_t* data, uint32_t size)
-{
-	devMgr->setAllAxesToZero();
-	return vector<uint8_t>();
-}
-
-vector<uint8_t> RFDaemonServer::homeAllAxes(const uint8_t* data, uint32_t size)
-{
-	devMgr->moveAllAxesToHome();
-	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::getStartupScript(const uint8_t* data, uint32_t size)
@@ -260,13 +250,19 @@ vector<uint8_t> RFDaemonServer::setParams(const uint8_t* data, uint32_t size)
 
 vector<uint8_t> RFDaemonServer::setAxisPosToZero(const uint8_t* data, uint32_t size)
 {
-	devMgr->setDevAxisToZero(data[0]);
+	if (data[0] == 0xFF)
+		devMgr->setAllAxesToZero();
+	else
+		devMgr->setDevAxisToZero(data[0]);
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::homeAxis(const uint8_t* data, uint32_t size)
 {
-	devMgr->moveDevAxisToHome(data[0]);
+	if (data[0] == 0xFF)
+		devMgr->moveAllAxesToHome();
+	else
+		devMgr->moveDevAxisToHome(data[0]);
 	return vector<uint8_t>();
 }
 
@@ -278,7 +274,10 @@ vector<uint8_t> RFDaemonServer::setAxisPos(const uint8_t* data, uint32_t size)
 
 vector<uint8_t> RFDaemonServer::stopAxis(const uint8_t* data, uint32_t size)
 {
-	devMgr->stopDevAxis(data[0]);
+	if (data[0] == 0xFF)
+		devMgr->stopAllAxes();
+	else
+		devMgr->stopDevAxis(data[0]);
 	return vector<uint8_t>();
 }
 
@@ -331,22 +330,22 @@ vector<uint8_t> RFDaemonServer::parseReceivedData(const vector<uint8_t>& data)
 	bool fromClientToSrv = data[0] != 0;
 	uint8_t cmdNum = data[1];
 
-	if (fromClientToSrv && (data.size() > (cmdNum * (1 + sizeof(uint32_t)))))
+	if (fromClientToSrv && (data.size() >= (2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t)))))
 	{
-		uint8_t* pCmdList = (uint8_t*)(data.data() + 2);
-		uint32_t* pArgSizeList = (uint32_t*)(data.data() + 2 + cmdNum);
+		uint16_t* pCmdList = (uint16_t*)(data.data() + 2);
+		uint32_t* pArgSizeList = (uint32_t*)(pCmdList + cmdNum * sizeof(uint16_t));
 		uint32_t dataOffset = 0;
 
-		answer.resize(2 + cmdNum * (1 + sizeof(uint32_t)));
-		answer[0] = cmdNum; // Number of commands
-		answer[1] = 0; // '0' is indicating that this is answer from server to client
+		answer.resize(2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t)));
+		answer[0] = 0; // '0' is indicating that this is answer from server to client
+		answer[1] = cmdNum; // Number of commands
 
 		for (size_t i = 0; i < cmdNum; i++)
 		{
-			answer[i + 2] = pCmdList[i];
+			answer[i * 2 + 2] = pCmdList[i];
 			auto cmdRet = commands[pCmdList[i]].cmd(data.data() + dataOffset, pArgSizeList[i]);
 			dataOffset += pArgSizeList[i];
-			*(uint32_t*)(answer.data() + i * 4 + 2 + cmdNum) = cmdRet.size();
+			*(uint32_t*)(answer.data() + i * sizeof(uint32_t) + 2 + cmdNum * sizeof(uint16_t)) = cmdRet.size();
 			if (cmdRet.size() != 0)
 				answer.insert(answer.end(), cmdRet.begin(), cmdRet.end());
 		}

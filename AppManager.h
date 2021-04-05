@@ -23,6 +23,7 @@ public:
     std::ifstream& getAppConfigFile();
     const std::vector<pid_t>& getAppPids() const;
     const std::vector<uint8_t>& getAppStatusList() const;
+    const std::vector<uint64_t> getAppUptimeList() const;
     const std::vector<std::string>& getAppNames() const;
     const std::vector<std::string>& getAppCmds() const;
     const std::vector<std::vector<std::string>>& getAppArgs() const;

@@ -1,10 +1,12 @@
-#include "AppManager.h"
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
 #include <signal.h>
-#include "jsoncpp/json/json.h"
 #include <pwd.h>
+#include "jsoncpp/json/json.h"
+#include "AppManager.h"
+#include <sys/stat.h>
+
 using namespace std;
 
 AppManager::AppManager()
@@ -274,6 +276,20 @@ const vector<pid_t>& AppManager::getAppPids() const
 const vector<uint8_t>& AppManager::getAppStatusList() const
 {
     return appRunningStatusList;
+}
+
+const vector<uint64_t> AppManager::getAppUptimeList() const
+{
+    vector<uint64_t> uptimes;
+
+    for (size_t i = 0; i < appList.size(); i++)
+    {
+        string file = "/proc/" + to_string(appPidList[i]) + "/stat";
+        struct stat attrib;
+        stat(file.c_str(), &attrib);
+        uptimes.push_back(attrib.st_mtime);
+    }
+    return uptimes;
 }
 
 const vector<string>& AppManager::getAppNames() const

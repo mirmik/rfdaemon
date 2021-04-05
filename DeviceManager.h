@@ -31,6 +31,7 @@ public:
 	void moveDevAxisToHome(int devNum);
 	void setAxisPosition(int devNum, double pos);
 	void stopDevAxis(int devNum);
+	void stopAllAxes();
 	void jogAxis(int devNum, double offset);
 	const std::vector<Parameter>& getParameterList(int devNum);
 	const double getParameterValue(int devNum, int paramId);

@@ -28,8 +28,6 @@ public:
         GET_CURR_MEAS_VALUE,
         AXES_LIMITS_SET,
         AXES_LIMITS_GET,
-        ZERO_ALL_AXES,
-        HOME_ALL_AXES,
         STARTUP_SCRIPT_GET,
         STARTUP_SCRIPT_SET,
         UPDATE_IMG,
@@ -41,7 +39,6 @@ public:
         AXIS_SETPOS,
         AXIS_STOP,
         AXIS_JOG,
-        STREAMING_DATA,
         SET_RUNNABLE_APPS_LIST,
         GET_RUNNABLE_APPS_LIST,
         GET_APP_LOGS
@@ -56,8 +53,6 @@ public:
     std::vector<uint8_t> getCurrentDevValue(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setAxesLimits(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getAxesLimits(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> zeroAllAxes(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> homeAllAxes(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getStartupScript(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setStartupScript(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateSysImg(const uint8_t* data, uint32_t size);

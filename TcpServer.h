@@ -104,23 +104,20 @@ public:
 
 						if (!rxQueueActive)
 						{
-							if (result < (ssize_t)sizeof(PacketHeader))
-							{
-								if (rxBufferHeaderCollectCnt < sizeof(PacketHeader))
-									rxBufferHeaderCollectCnt += result;
-							}
-							else
-								rxBufferHeaderCollectCnt = result;
+							if (rxBufferHeaderCollectCnt < sizeof(PacketHeader))
+								rxBufferHeaderCollectCnt += result;
 
 							if (rxBufferHeaderCollectCnt >= sizeof(PacketHeader))
 							{
+								result = rxBufferHeaderCollectCnt;
 								rxBufferHeaderCollectCnt = 0; // Clear header fragment size counter
 
 								// Received data contains header at start
 								PacketHeader* h = (PacketHeader*)&rxBufferPtr;
-								if ((h->preamble == HeaderPreamble) && ((uint32_t)result >= sizeof(PacketHeader)))
+								if (h->preamble == HeaderPreamble)
 								{
 									rxQueueActive = true;
+									rxQueue.clear();
 									rxCrc32 = h->crc32;
 									rxSize = h->size;
 									dataStartPtr = rxBufferPtr + sizeof(PacketHeader);

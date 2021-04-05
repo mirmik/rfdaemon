@@ -105,6 +105,10 @@ void DeviceManager::stopDevAxis(int devNum)
 	sendCmd("AXIS" + to_string(devNum) + ":STOP\n", true, 100);
 }
 
+void DeviceManager::stopAllAxes()
+{
+}
+
 void DeviceManager::jogAxis(int devNum, double offset)
 {
 	printf("\"JOG\" command not implemented.\n");
