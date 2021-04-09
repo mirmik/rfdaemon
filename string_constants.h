@@ -2,7 +2,8 @@
 
 enum DeviceType
 {
-	TypeA = 0,
+	None = 0,
+	TypeA,
 	TypeB
 };
 

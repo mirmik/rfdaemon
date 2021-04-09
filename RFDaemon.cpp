@@ -346,7 +346,7 @@ uint32_t RFDaemon::packParamData(uint8_t* dst, uint8_t dev, uint32_t dstSize)
             memcpy(dst + offset, parameters[dev][i].unit().data(), parameters[dev][i].unit().size());
             offset += parameters[dev][i].unit().size();
             dst[offset++] = 0;
-            dst[offset++] = parameters[dev][i].getIsHex();
+            dst[offset++] = parameters[dev][i].getType();
             *(int64_t*)(dst + offset) = parameters[dev][i].getValue();
             offset += 8;
             *(int64_t*)(dst + offset) = parameters[dev][i].getRangeMin();
@@ -375,7 +375,7 @@ uint32_t RFDaemon::packParamData(uint8_t* dst, uint8_t dev, uint32_t dstSize, ui
         memcpy(dst + offset, parameters[dev][paramId].unit().data(), parameters[dev][paramId].unit().size());
         offset += parameters[dev][paramId].unit().size();
         dst[offset++] = 0;
-        dst[offset++] = parameters[dev][paramId].getIsHex();
+        dst[offset++] = parameters[dev][paramId].getType();
         *(int64_t*)(dst + offset) = parameters[dev][paramId].getValue();
         offset += 8;
         *(int64_t*)(dst + offset) = parameters[dev][paramId].getRangeMin();

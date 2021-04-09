@@ -52,6 +52,11 @@ double DeviceManager::getMeasuredValue(int devNum)
 	return measuredValues[devNum];
 }
 
+void DeviceManager::setMeasuredValue(int devNum, double val)
+{
+	measuredValues[devNum] = val;
+}
+
 void DeviceManager::setAxisLimits(int devNum, double min, double max)
 {
 }
@@ -173,13 +178,22 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 		if (Json::parseFromStream(builder, file, &root, &errs))
 		{
 			int devicesCount = root["devices"].size();
+			measuredValues.resize(devicesCount);
+			string name, type, range, valueStr, minStr, maxStr;
+			DeviceType devtype = DeviceType::None;
+			vector<Parameter> params;
+
 			for (int i = 0; i < devicesCount; i++)
 			{
+				params.clear();
 				const auto& dev = root["devices"][i];
-				auto name = dev["name"].asString();
-				auto type = dev["type"].asString();
-				DeviceType devtype = (type == "mitsuservo_type_B") ? DeviceType::TypeB : DeviceType::TypeA;
-				vector<Parameter> params;
+				name = dev["name"].asString();
+				type = dev["type"].asString();
+				
+				if (type.find("mitsuservo") != string::npos)
+					devtype = (type.find("type_B") != string::npos) ? DeviceType::TypeB : DeviceType::TypeA;
+				else
+					devtype = DeviceType::None;
 
 				// Iterate parameter groups (from 'A' to ... symbol)
 				for (char paramGroup[] = "PA"; !dev[paramGroup].isNull(); paramGroup[1]++)
@@ -187,34 +201,46 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 					int paramCount = dev[paramGroup].size();
 					for (int j = 0; j < paramCount; j++)
 					{
-						const char** paramData = getDefaultParam(devtype, (ParamGroup)(paramGroup[1] - 'A'), j);
-						string range = string(paramData[3]);
-						string valueStr = dev[paramGroup][j]["value"].asString();
+						const char** paramDataDefault = getDefaultParam(devtype, (ParamGroup)(paramGroup[1] - 'A'), j);
+						range = string(paramDataDefault[3]);
+						valueStr = dev[paramGroup][j]["value"].asString();
 
 						// Divide range record "xxx-yyy" to 2 values: minimum (xxx) and maximum (yyy)
 						// Note that if xxx < 0, then there is 2 hyphen signs and we must skip first
-						size_t hyphenStartSearchPos = (paramData[3][0] == '-') ? 1 : 0;
+						size_t hyphenStartSearchPos = (paramDataDefault[3][0] == '-') ? 1 : 0;
 						size_t hyphenPos = range.find('-', hyphenStartSearchPos);
-						bool hex = strncmp(paramData[5], "HEX", 3) == 0;
+						Parameter::Type type = Parameter::Type::Int;
 						double min = 0, max = 0, value = 0;
-						if (hex)
+						minStr = range.substr(0, hyphenPos);
+						maxStr = range.substr(hyphenPos + 1);
+						const char* fppos = strchr(paramDataDefault[3] + hyphenPos, '.');
+
+						if (fppos)
 						{
-							min = stoll(range.substr(0, hyphenPos), NULL, 16);
-							max = stoll(range.substr(hyphenPos + 1), NULL, 16);
-							//value = stoll(string(paramData[4]), &pos, 16);
-							value = stoll(valueStr, NULL, 16);
+							int precision = strlen(fppos) - 2;
+							type = (Parameter::Type)(Parameter::Type::FracPoint1 + precision);
+							min = stod(minStr);
+							max = stod(maxStr);
+							value = stod(valueStr); //value = stod(string(paramData[4]), &pos);
 						}
 						else
 						{
-							min = stod(range.substr(0, hyphenPos));
-							max = stod(range.substr(hyphenPos + 1));
-							//value = stod(string(paramData[4]), &pos);
-							value = stod(valueStr);
+							int base = 10;
+							if (!strncmp(paramDataDefault[5], "HEX", 3))
+							{
+								base = 16;
+								type = Parameter::Type::Hex;
+							}
+
+							min = stoll(minStr, NULL, base);
+							max = stoll(maxStr, NULL, base);
+							value = stoll(valueStr, NULL, base); //value = stoll(string(paramData[4]), &pos, base);
 						}
-						params.push_back({paramData[0], paramData[1], paramData[2], min, max, value, hex});
+						params.push_back({paramDataDefault[0], paramDataDefault[1], paramDataDefault[2], value, min, max, type});
 					}
 				}
 				devices.push_back({name, type, params});
+				measuredValues[i] = 0;
 			}
 		}
 	}

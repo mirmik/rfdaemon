@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <signal.h>
 #include <algorithm>
 #include <functors.h>
 #include "igris/util/crc.h"
@@ -35,11 +36,14 @@ class TcpServer
 public:
 	TcpServer(uint16_t port, size_t bufferSize = 65535)
 	{
-		rxBufferPtr = (uint8_t*)malloc(bufferSize + sizeof(PacketHeader));
-		txBufferPtr = (uint8_t*)malloc(bufferSize + sizeof(PacketHeader));
+		//rxBufferPtr = (uint8_t*)malloc(bufferSize + sizeof(PacketHeader));
+		//txBufferPtr = (uint8_t*)malloc(bufferSize + sizeof(PacketHeader));
 		bufferLength = bufferSize;
 		rxQueue.reserve(bufferSize * 2);
 		txQueue.reserve(bufferSize * 2);
+
+		// Prevent crash due to broken socket pipe
+		signal(SIGPIPE, SIG_IGN);
 
 		socketDesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (socketDesc == -1)
@@ -96,7 +100,7 @@ public:
 				ssize_t result = 0;
 				do
 				{
-					result = recv(socketDesc, rxBufferPtr + rxBufferHeaderCollectCnt, bufferLength, 0);
+					result = recv(connDesc, rxBufferPtr + rxBufferHeaderCollectCnt, bufferLength, 0);
 
 					if (result > 0)
 					{
@@ -118,10 +122,11 @@ public:
 								{
 									rxQueueActive = true;
 									rxQueue.clear();
-									rxCrc32 = h->crc32;
-									rxSize = h->size;
+									currentHeader = *h;
 									dataStartPtr = rxBufferPtr + sizeof(PacketHeader);
 									result -= sizeof(PacketHeader);
+									if (result >= h->size)
+										rxQueue.insert(rxQueue.end(), dataStartPtr, dataStartPtr + result);
 								}
 							}
 						}
@@ -129,12 +134,12 @@ public:
 						if (rxQueueActive && (result > 0))
 						{
 							// Received data is not header, it is body part
-							if (rxQueue.size() < rxSize)
+							if (rxQueue.size() < currentHeader.size)
 								rxQueue.insert(rxQueue.end(), dataStartPtr, dataStartPtr + result);
 							else
 							{
 								rxQueueActive = false;
-								if (crc32(rxQueue.data(), rxQueue.size(), 0) == rxCrc32)
+								if (crc32(rxQueue.data(), currentHeader.size, 0) == currentHeader.crc32)
 								{
 									while (txQueueActive);
 									pthread_mutex_lock(&mtxQueue);
@@ -158,10 +163,8 @@ public:
 				connectionAccepted = false;
 				printf("Socket receive error %d, restart connection.\n", result);
 				shutdown(connDesc, SHUT_RDWR);
-				close(connDesc);
-				connDesc = 0;
 				if (terminate)
-					return 0;
+					break;
 			}
 		}
 		return 0;
@@ -198,11 +201,11 @@ public:
 						if (txQueuePos < txQueue.size())
 						{
 							// Multipacket transmission not finished, copy next data part to buffer
-							size_t packetSize = std::min(txQueue.size() - txQueuePos, bufferLength);
+							size_t packetSize = std::min(txQueue.size() - txQueuePos + dataOffset, bufferLength);
 							memcpy(txBufferPtr + dataOffset, txQueue.data() + txQueuePos, packetSize - dataOffset);
 							
 							// Send next data part
-							result = send(socketDesc, txBufferPtr, packetSize, 0);
+							result = send(connDesc, txBufferPtr, packetSize, 0);
 							if (result > 0)
 								txQueuePos += result;
 							else if (result < 0)
@@ -250,12 +253,11 @@ private:
 	size_t bufferLength = 0;
 	size_t txQueuePos = 0;
 	size_t rxBufferHeaderCollectCnt = 0; // Byte counter for receiving packet header in multistep mode when recv() returns less bytes than size of header
-	uint8_t *rxBufferPtr, *txBufferPtr;
+	uint8_t rxBufferPtr[65535 + sizeof(PacketHeader)], txBufferPtr[65535 + sizeof(PacketHeader)];
 	bool rxQueueActive = false;
 	bool txQueueActive = false;
 	std::vector<uint8_t> rxQueue, txQueue;
-	uint32_t rxCrc32 = 0;
-	uint32_t rxSize = 0;
+	PacketHeader currentHeader;
 	QueryResult lastQueryResult = QueryResult::AllOk;
 	sockaddr_in sAddr;
 	int socketDesc = 0;

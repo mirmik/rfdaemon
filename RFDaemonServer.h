@@ -28,8 +28,6 @@ public:
         GET_CURR_MEAS_VALUE,
         AXES_LIMITS_SET,
         AXES_LIMITS_GET,
-        STARTUP_SCRIPT_GET,
-        STARTUP_SCRIPT_SET,
         UPDATE_IMG,
         UPDATE_FIRMWARE,
         PARAMS_READ,
@@ -39,9 +37,9 @@ public:
         AXIS_SETPOS,
         AXIS_STOP,
         AXIS_JOG,
-        SET_RUNNABLE_APPS_LIST,
-        GET_RUNNABLE_APPS_LIST,
-        GET_APP_LOGS
+        SET_RUNNABLE_SERVICES_LIST,
+        GET_RUNNABLE_SERVICES_LIST,
+        GET_SERVICES_LOGS
     } CmdId;
     RFDaemonServer(uint16_t port);
     std::vector<uint8_t> getAppInfo(const uint8_t* data, uint32_t size);
@@ -53,8 +51,6 @@ public:
     std::vector<uint8_t> getCurrentDevValue(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setAxesLimits(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getAxesLimits(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getStartupScript(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> setStartupScript(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateSysImg(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateControllerFW(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getParams(const uint8_t* data, uint32_t size);

@@ -22,6 +22,7 @@ public:
 	uint32_t getDevCount() const;
 	const std::string& getLogFile() const;
 	double getMeasuredValue(int devNum);
+	void setMeasuredValue(int devNum, double val);
 	void setAxisLimits(int devNum, double min, double max);
 	void getAxisLimits(int devNum, double& min, double& max);
 	double getAxisPos(int devNum, bool inUnits = true);

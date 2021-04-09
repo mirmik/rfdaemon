@@ -16,8 +16,6 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(GET_CURR_MEAS_VALUE, Func(this, &RFDaemonServer::getCurrentDevValue));
 	addCmd(AXES_LIMITS_SET, Func(this, &RFDaemonServer::setAxesLimits));
 	addCmd(AXES_LIMITS_GET, Func(this, &RFDaemonServer::getAxesLimits));
-	addCmd(STARTUP_SCRIPT_GET, Func(this, &RFDaemonServer::getStartupScript)); //Not need yet
-	addCmd(STARTUP_SCRIPT_SET, Func(this, &RFDaemonServer::setStartupScript)); //Not need yet
 	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
 	addCmd(UPDATE_FIRMWARE, Func(this, &RFDaemonServer::updateControllerFW));
 	addCmd(PARAMS_READ, Func(this, &RFDaemonServer::getParams));
@@ -27,9 +25,9 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(AXIS_SETPOS, Func(this, &RFDaemonServer::setAxisPos));
 	addCmd(AXIS_STOP, Func(this, &RFDaemonServer::stopAxis));
 	addCmd(AXIS_JOG, Func(this, &RFDaemonServer::jogAxis));
-	addCmd(SET_RUNNABLE_APPS_LIST, Func(this, &RFDaemonServer::setAppsList));
-	addCmd(GET_RUNNABLE_APPS_LIST, Func(this, &RFDaemonServer::getAppsList));
-	addCmd(GET_APP_LOGS, Func(this, &RFDaemonServer::getAppLogs));
+	addCmd(SET_RUNNABLE_SERVICES_LIST, Func(this, &RFDaemonServer::setAppsList));
+	addCmd(GET_RUNNABLE_SERVICES_LIST, Func(this, &RFDaemonServer::getAppsList));
+	addCmd(GET_SERVICES_LOGS, Func(this, &RFDaemonServer::getAppLogs));
 }
 
 void RFDaemonServer::addCmd(uint32_t code, const Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>& cmd)
@@ -100,9 +98,11 @@ vector<uint8_t> RFDaemonServer::getDevErrLogs(const uint8_t* data, uint32_t size
 
 vector<uint8_t> RFDaemonServer::getCurrentDevValue(const uint8_t* data, uint32_t size)
 {
-	vector<uint8_t> answer(5);
-	answer[0] = data[0];
-	*(float*)(answer.data() + 1) = devMgr->getMeasuredValue(answer[0]);
+	uint8_t devCnt = devMgr->getDevCount();
+	vector<uint8_t> answer(devCnt * sizeof(double) + 1);
+	answer[0] = devCnt;
+	for (int i = 0; i < devCnt; i++)
+		*(double*)(answer.data() + 1 + i * sizeof(double)) = devMgr->getMeasuredValue(i);
 	return answer;
 }
 
@@ -117,7 +117,7 @@ vector<uint8_t> RFDaemonServer::setAxesLimits(const uint8_t* data, uint32_t size
 
 vector<uint8_t> RFDaemonServer::getAxesLimits(const uint8_t* data, uint32_t size)
 {
-	size_t devCount = std::min<size_t>(data[0], devMgr->getDevCount());
+	size_t devCount = devMgr->getDevCount();
 	vector<uint8_t> answer(1 + 2 * devCount * sizeof(double));
 	answer[0] = devCount;
 	double* value = (double*)(answer.data() + 1);
@@ -126,33 +126,29 @@ vector<uint8_t> RFDaemonServer::getAxesLimits(const uint8_t* data, uint32_t size
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getStartupScript(const uint8_t* data, uint32_t size)
-{
-	return vector<uint8_t>();
-}
-
-vector<uint8_t> RFDaemonServer::setStartupScript(const uint8_t* data, uint32_t size)
-{
-	return vector<uint8_t>();
-}
-
 vector<uint8_t> RFDaemonServer::updateSysImg(const uint8_t* data, uint32_t size)
 {
-	auto f = new fstream("new_docker_img.tgz");
-	f->write((const char*)data, size);
-	f->flush();
-	f->close();
+	auto f = new fstream("new_docker_img.tgz", fstream::out);
+	if (f->is_open())
+	{
+		f->write((const char*)data, size);
+		f->flush();
+		f->close();
+	}
 	delete f;
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::updateControllerFW(const uint8_t* data, uint32_t size)
 {
-	auto f = new fstream("new_controller_fw.bin");
-	f->write((const char*)data, size);
-	f->flush();
-	f->close();
-	devMgr->updateFirmware(*f);
+	auto f = new fstream("new_controller_fw.bin", fstream::out);
+	if (f->is_open())
+	{
+		f->write((const char*)data, size);
+		f->flush();
+		devMgr->updateFirmware(*f);
+		f->close();
+	}
 	delete f;
 	return vector<uint8_t>();
 }
@@ -202,7 +198,8 @@ vector<uint8_t> RFDaemonServer::getParams(const uint8_t* data, uint32_t size)
 			answer.insert(answer.end(), name.c_str(), name.c_str() + name.length() + 1);
 			answer.insert(answer.end(), desc.c_str(), desc.c_str() + desc.length() + 1);
 			answer.insert(answer.end(), unit.c_str(), unit.c_str() + unit.length() + 1);
-			answer.insert(answer.end(), vals, vals + 2);
+			answer.push_back((unsigned char)(parameters[i].getType()));
+			answer.insert(answer.end(), (char*)vals, (char*)vals + sizeof(vals));
 		}
 	}
 	return answer;
@@ -329,13 +326,12 @@ vector<uint8_t> RFDaemonServer::parseReceivedData(const vector<uint8_t>& data)
 	vector<uint8_t> answer;
 	bool fromClientToSrv = data[0] != 0;
 	uint8_t cmdNum = data[1];
+	uint32_t argOffset = 2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t));
 
-	if (fromClientToSrv && (data.size() >= (2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t)))))
+	if (fromClientToSrv && (data.size() >= argOffset))
 	{
 		uint16_t* pCmdList = (uint16_t*)(data.data() + 2);
-		uint32_t* pArgSizeList = (uint32_t*)(pCmdList + cmdNum * sizeof(uint16_t));
-		uint32_t dataOffset = 0;
-
+		uint32_t* pArgSizeList = (uint32_t*)(data.data() + 2 + cmdNum * sizeof(uint16_t));
 		answer.resize(2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t)));
 		answer[0] = 0; // '0' is indicating that this is answer from server to client
 		answer[1] = cmdNum; // Number of commands
@@ -343,8 +339,8 @@ vector<uint8_t> RFDaemonServer::parseReceivedData(const vector<uint8_t>& data)
 		for (size_t i = 0; i < cmdNum; i++)
 		{
 			answer[i * 2 + 2] = pCmdList[i];
-			auto cmdRet = commands[pCmdList[i]].cmd(data.data() + dataOffset, pArgSizeList[i]);
-			dataOffset += pArgSizeList[i];
+			auto cmdRet = commands[pCmdList[i]].cmd(data.data() + argOffset, pArgSizeList[i]);
+			argOffset += pArgSizeList[i];
 			*(uint32_t*)(answer.data() + i * sizeof(uint32_t) + 2 + cmdNum * sizeof(uint16_t)) = cmdRet.size();
 			if (cmdRet.size() != 0)
 				answer.insert(answer.end(), cmdRet.begin(), cmdRet.end());

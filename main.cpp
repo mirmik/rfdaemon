@@ -22,6 +22,8 @@ int srvSendRetCode = 0, srvRecvRetCode = 0,
 clientSendRetCode = 0, clientRecvRetCode = 0,
 appWatcherRetCode = 0, userIORetCode = 0;
 
+void exitHandler(int sig);
+
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
 2. Пробуем читать файл конфигурации демона (файл json со списком запускаемых программ)
@@ -45,9 +47,16 @@ int main(int argc, char* argv[])
         hClientSendThread = 0, hClientRecvThread = 0,
         hAppWatcherThread = 0, hUserIOThread = 0;
 
+    system("pkill rfmeas");
+    system("pkill dataproxy");
+    system("pkill ctrans");
+    system("pkill crowker");
+    //system("pkill ConsoleApp");
+
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
-        terminalMode = false;
+#warning "terminalMode = true only for debug"
+        terminalMode = true;
         configFileName = "applist.json";
         port = DEFAULT_TCP_PORT;
     }
@@ -64,6 +73,8 @@ int main(int argc, char* argv[])
     srv->setDeviceManager(devManager);
 
     cout << "Starting in " << (terminalMode ? "terminal" : "daemon") << "mode.\n";
+
+    signal(SIGINT, exitHandler);
 
     if (!terminalMode)
         daemonPid = fork();
@@ -82,14 +93,15 @@ int main(int argc, char* argv[])
         pthread_create(&hClientSendThread, NULL, tcpClientSendThread, &clientSendThreadArg);
         pthread_create(&hAppWatcherThread, NULL, appWatcherThread, &appWatcherThreadArg);
         if (terminalMode)
+        {
             pthread_create(&hUserIOThread, NULL, userIOThread, &userIOThreadArg);
+            pthread_join(hUserIOThread, NULL);
+        }
         pthread_join(hSrvRecvThread, NULL);
         pthread_join(hSrvSendThread, NULL);
         pthread_join(hClientRecvThread, NULL);
         pthread_join(hClientSendThread, NULL);
         pthread_join(hAppWatcherThread, NULL);
-        if (terminalMode)
-            pthread_join(hUserIOThread, NULL);
         if (srvSendRetCode || srvRecvRetCode || clientSendRetCode || clientRecvRetCode || appWatcherRetCode || userIORetCode)
             cerr << srvSendRetCode << " "
             << srvRecvRetCode << " "
@@ -180,6 +192,7 @@ void* appWatcherThread(void* arg)
 
 void* userIOThread(void* arg)
 {
+    srand(2341234);
     while (1)
     {
         sleep(3);
@@ -189,11 +202,25 @@ void* userIOThread(void* arg)
             usleep(100000);
             printf("%.3f\n", devManager->getAxisPos(0));
         }
-        printf("Shutting down in 3 seconds...\n");
-        sleep(3);
-        devManager->disconnect();
-        appManager.closeApps();
+        while (true)
+        {
+            devManager->setMeasuredValue(0, (rand() % 1000) / 1000.0 + 3);
+            devManager->setMeasuredValue(1, (rand() % 1000) / 1000.0 + 6);
+            devManager->setMeasuredValue(2, (rand() % 1000) / 1000.0 + 8);
+            devManager->setMeasuredValue(3, (rand() % 1000) / 1000.0 + 11);
+            usleep(1000);
+        }
+        //printf("Shutting down in 3 seconds...\n");
+        //sleep(3);
+        //devManager->disconnect();
+        //appManager.closeApps();
         break;
     }
     return &userIORetCode;
+}
+
+void exitHandler(int sig)
+{
+    appManager.closeApps();
+    exit(sig);
 }

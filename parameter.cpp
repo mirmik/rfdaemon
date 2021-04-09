@@ -7,24 +7,24 @@ Parameter::Parameter()
     _name = "";
     _description = "";
     _unit = "";
-    isHex = 0;
+    _type = Type::Int;
     _value = 0;
     rangeMin = 0;
     rangeMax = 0;
 }
 
-Parameter::Parameter(const string& name, const string& desc, const string& units, double min, double max, double value, bool hex)
+Parameter::Parameter(const string& name, const string& desc, const string& units, double value, double min, double max, Type type)
 {
     _name = name;
     _description = desc;
     _unit = units;
-    isHex = hex;
+    _type = type;
     _value = value;
     rangeMin = min;
     rangeMax = max;
 }
 
-Parameter &Parameter::operator=(double d)
+Parameter& Parameter::operator=(double d)
 {
     _value = d;
     return *this;
@@ -45,9 +45,9 @@ const string& Parameter::unit() const
     return _unit;
 }
 
-bool Parameter::getIsHex() const
+Parameter::Type Parameter::getType() const
 {
-    return isHex;
+    return _type;
 }
 
 double Parameter::getValue() const
