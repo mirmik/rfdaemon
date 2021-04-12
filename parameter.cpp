@@ -55,6 +55,11 @@ double Parameter::getValue() const
     return _value;
 }
 
+void Parameter::setValue(double value)
+{
+    _value = value;
+}
+
 double Parameter::getRangeMin() const
 {
     return rangeMin;

@@ -22,8 +22,6 @@ int srvSendRetCode = 0, srvRecvRetCode = 0,
 clientSendRetCode = 0, clientRecvRetCode = 0,
 appWatcherRetCode = 0, userIORetCode = 0;
 
-void exitHandler(int sig);
-
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
 2. Пробуем читать файл конфигурации демона (файл json со списком запускаемых программ)
@@ -47,10 +45,7 @@ int main(int argc, char* argv[])
         hClientSendThread = 0, hClientRecvThread = 0,
         hAppWatcherThread = 0, hUserIOThread = 0;
 
-    system("pkill rfmeas");
-    system("pkill dataproxy");
-    system("pkill ctrans");
-    system("pkill crowker");
+    system("pkill rfmeas"); system("pkill dataproxy"); system("pkill ctrans"); system("pkill crowker");
     //system("pkill ConsoleApp");
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
@@ -60,21 +55,8 @@ int main(int argc, char* argv[])
         configFileName = "applist.json";
         port = DEFAULT_TCP_PORT;
     }
-
-    if (appManager.openConfigFile(configFileName))
-    {
-        serverOnlyMode = true;
-        cout << "Run server-only mode.\n";
-    }
-
-    devManager = new DeviceManager(appManager.getDeviceDescFilename());
-    srv = new RFDaemonServer(port);
-    srv->setAppManager(&appManager);
-    srv->setDeviceManager(devManager);
-
+    
     cout << "Starting in " << (terminalMode ? "terminal" : "daemon") << "mode.\n";
-
-    signal(SIGINT, exitHandler);
 
     if (!terminalMode)
         daemonPid = fork();
@@ -82,6 +64,14 @@ int main(int argc, char* argv[])
         cout << "Error: RFDaemon process fork failed.";
     else if (!daemonPid) // fork process code part
     {
+        signal(SIGINT, exitHandler);
+        signal(SIGTERM, exitHandler);
+        signal(SIGQUIT, exitHandler);
+        if (appManager.openConfigFile(configFileName))
+        {
+            serverOnlyMode = true;
+            cout << "Run server-only mode.\n";
+        }
         if (!serverOnlyMode)
             appManager.runApps();
         //sleep(1);
@@ -160,18 +150,25 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
 
 void* tcpServerSendThread(void* arg)
 {
+    auto s = new RFDaemonServer(port);
+    while (!devManager);
+    s->setAppManager(&appManager);
+    s->setDeviceManager(devManager);
+    srv = s;
     srvSendRetCode = srv->sendThread();
     return &srvSendRetCode;
 }
 
 void* tcpServerReceiveThread(void* arg)
 {
+    while (!srv);
     srvRecvRetCode = srv->receiveThread();
     return &srvRecvRetCode;
 }
 
 void* tcpClientSendThread(void* arg)
 {
+    devManager = new DeviceManager(appManager.getDeviceDescFilename());
     clientSendRetCode = devManager->sendThread();
     return &clientSendRetCode;
 }
@@ -179,6 +176,7 @@ void* tcpClientSendThread(void* arg)
 void* tcpClientReceiveThread(void* arg)
 {
     usleep(1000000);
+    while (!devManager);
     devManager->connectToPort("localhost", RFMEASK_TCP_PORT);
     clientRecvRetCode = devManager->receiveThread();
     return &clientRecvRetCode;
@@ -196,7 +194,7 @@ void* userIOThread(void* arg)
     while (1)
     {
         sleep(3);
-        devManager->setAxisPosition(0, 5);
+        devManager->setAxisAbsPosition(0, 5);
         for (int i = 0; i < 50; i++)
         {
             usleep(100000);

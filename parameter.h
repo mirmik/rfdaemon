@@ -28,6 +28,7 @@ public:
     const std::string& unit() const;
     Type getType() const;
     double getValue() const;
+    void setValue(double value);
     double getRangeMin() const;
     double getRangeMax() const;
     size_t byteSize() const;

@@ -15,7 +15,9 @@ public:
 	{
 		Invalid = 0,
 		POS,
-		UPOS
+		UPOS,
+		UFORWLIM,
+		UBACKLIM,
 	};
 	DeviceManager(const std::string& devDescFileName);
 	const std::vector<std::string> getDevList() const;
@@ -30,7 +32,7 @@ public:
 	void setDevAxisToZero(int devNum);
 	void moveAllAxesToHome();
 	void moveDevAxisToHome(int devNum);
-	void setAxisPosition(int devNum, double pos);
+	void setAxisAbsPosition(int devNum, double pos);
 	void stopDevAxis(int devNum);
 	void stopAllAxes();
 	void jogAxis(int devNum, double offset);
@@ -42,7 +44,7 @@ public:
 	void updateFirmware(const std::fstream& file);
 private:
 	// Return true if timeout occurred
-	bool waitAnswer(unsigned long period_ms = 500);
+	bool waitAnswer(unsigned long period_ms = 100UL);
 	void parseDeviceDescriptionFile(std::fstream& file);
 	virtual void parseReceivedData(const std::vector<uint8_t>& data) override;
 	std::vector<Device> devices;
@@ -51,6 +53,6 @@ private:
 	std::fstream devDescFile;
 	std::string devDescFileStr;
 	CmdQueryID sentCmdId = CmdQueryID::Invalid;
-	std::vector<uint8_t> queryArgs;
+	char queryArgs[65535];
 	bool devDescFileNotFound = false;
 };

@@ -23,3 +23,11 @@ const vector<Parameter>& Device::getParameters() const
 {
     return _parameters;
 }
+
+void Device::setParameterValue(uint16_t id, double value)
+{
+    if (_parameters.size() > id)
+        _parameters[id].setValue(value);
+    else
+        printf("Unknown parameter id: %d\n", id);
+}

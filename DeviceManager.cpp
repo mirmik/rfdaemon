@@ -10,7 +10,7 @@ using namespace std;
 
 DeviceManager::DeviceManager(const string& devDescFileName)
 {
-	queryArgs.reserve(16);
+	memset(queryArgs, 0, sizeof(queryArgs));
 	devDescFileStr = devDescFileName;
 	if (filesystem::exists(devDescFileName))
 	{
@@ -59,18 +59,30 @@ void DeviceManager::setMeasuredValue(int devNum, double val)
 
 void DeviceManager::setAxisLimits(int devNum, double min, double max)
 {
+	devices[devNum].axisLimitMin = min;
+	devices[devNum].axisLimitMax = max;
+	sendCmd("AXIS" + to_string(devNum) + ":SETTINGS:ULIMITS " + to_string(min) + ", " + to_string(max) +"\n");
 }
 
 void DeviceManager::getAxisLimits(int devNum, double& min, double& max)
 {
+	queryArgs[0] = devNum;
+	sentCmdId = CmdQueryID::UBACKLIM;
+	sendCmd("AXIS" + to_string(devNum) + ":SETTINGS:UBACKLIM?\n");
+	waitAnswer();
+	sentCmdId = CmdQueryID::UFORWLIM;
+	sendCmd("AXIS" + to_string(devNum) + ":SETTINGS:UFORWLIM?\n");
+	waitAnswer();
+	min = devices[devNum].axisLimitMin;
+	max = devices[devNum].axisLimitMax;
 }
 
 double DeviceManager::getAxisPos(int devNum, bool inUnits)
 {
 	string cmd = inUnits ? "UPOS" : "POS";
 	sentCmdId = inUnits ? CmdQueryID::UPOS : CmdQueryID::POS;
-	queryArgs.push_back(devNum);
-	sendCmd("AXIS" + to_string(devNum) + ":STAT:"+ cmd +"?\n", true, 100);
+	queryArgs[0] = devNum;
+	sendCmd("AXIS" + to_string(devNum) + ":STAT:"+ cmd +"?\n");
 	if (waitAnswer())
 		devices[devNum].axisPos = devices[devNum].prevAxisPos;
 	else
@@ -86,32 +98,33 @@ void DeviceManager::setAllAxesToZero()
 
 void DeviceManager::setDevAxisToZero(int devNum)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":SETZER\n", true, 100);
+	sendCmd("AXIS" + to_string(devNum) + ":SETZER\n");
 }
 
 void DeviceManager::moveAllAxesToHome()
 {
 	for (size_t i = 0; i < devices.size(); i++)
-		setAxisPosition(i, 0);
+		setAxisAbsPosition(i, 0);
 }
 
 void DeviceManager::moveDevAxisToHome(int devNum)
 {
-	setAxisPosition(devNum, 0);
+	setAxisAbsPosition(devNum, 0);
 }
 
-void DeviceManager::setAxisPosition(int devNum, double pos)
+void DeviceManager::setAxisAbsPosition(int devNum, double pos)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":UMOV:ABS " + to_string(pos) +"\n", true, 100);
+	sendCmd("AXIS" + to_string(devNum) + ":UMOV:ABS " + to_string(pos) +"\n");
 }
 
 void DeviceManager::stopDevAxis(int devNum)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":STOP\n", true, 100);
+	sendCmd("AXIS" + to_string(devNum) + ":STOP\n");
 }
 
 void DeviceManager::stopAllAxes()
 {
+	sendCmd("SYST:STOP\n");
 }
 
 void DeviceManager::jogAxis(int devNum, double offset)
@@ -131,8 +144,10 @@ const double DeviceManager::getParameterValue(int devNum, int paramId)
 
 void DeviceManager::setParameterValue(int devNum, uint16_t paramId, double value)
 {
+	devices[devNum].setParameterValue(paramId, value);
 	string paramName = devices[devNum].getParameters()[paramId].name();
-	sendCmd("DEV" + to_string(devNum) + ":SETP " + paramName + "," + to_string(value), true, 100);
+	sendCmd("DEV" + to_string(devNum) + ":SETP " + paramName + "," + to_string(value));
+	printf("Param %s of dev %d set to %.3f\n", paramName.c_str(), devNum, (float)value);
 }
 
 void DeviceManager::setParameterValues(int devNum, const vector<uint16_t>& idList, const vector<double>& list)
@@ -156,11 +171,11 @@ void DeviceManager::updateFirmware(const fstream& file)
 // Return true if timeout occurred
 bool DeviceManager::waitAnswer(unsigned long period_ms)
 {
-	requestTimeout = period_ms * 100;
+	requestTimeout = period_ms * 200;
 	while ((sentCmdId != CmdQueryID::Invalid) && requestTimeout)
 	{
 		requestTimeout--;
-		usleep(10);
+		usleep(5);
 	}
 	if (requestTimeout == 0)
 		printf("Timeout while waiting for answer from server at port %d.\n", port());
@@ -256,9 +271,14 @@ void DeviceManager::parseReceivedData(const vector<uint8_t>& data)
 	case DeviceManager::UPOS:
 		devices[queryArgs[0]].axisPos = strtod((char*)data.data(), NULL);
 		break;
+	case DeviceManager::UFORWLIM:
+		devices[queryArgs[0]].axisLimitMax = strtod((char*)data.data(), NULL);
+		break;
+	case DeviceManager::UBACKLIM:
+		devices[queryArgs[0]].axisLimitMin = strtod((char*)data.data(), NULL);
+		break;
 	default:
 		break;
 	}
 	sentCmdId = CmdQueryID::Invalid;
-	queryArgs.clear();
 }

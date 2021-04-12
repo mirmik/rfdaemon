@@ -177,16 +177,16 @@ public:
 		return bufferLength;
 	}
 	virtual void parseReceivedData(const std::vector<uint8_t>& data) = 0;
-	void sendCmd(const std::string& cmd, bool wait = false, int timeoutMs = 0)
+	void sendCmd(const std::string& cmd, bool wait = true, unsigned long timeoutMs = 100U)
 	{
 		pthread_mutex_lock(&mtxQueue);
 		txQueue.insert(txQueue.begin(), cmd.c_str(), cmd.c_str() + cmd.length());
 		pthread_mutex_unlock(&mtxQueue);
-		requestTimeout = timeoutMs * 100UL;
+		requestTimeout = timeoutMs * 200UL;
 		while (!txQueue.empty() && requestTimeout)
 		{
 			requestTimeout--;
-			usleep(10);
+			usleep(5);
 		}
 	}
 	uint16_t port()

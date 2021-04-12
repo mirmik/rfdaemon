@@ -98,11 +98,9 @@ vector<uint8_t> RFDaemonServer::getDevErrLogs(const uint8_t* data, uint32_t size
 
 vector<uint8_t> RFDaemonServer::getCurrentDevValue(const uint8_t* data, uint32_t size)
 {
-	uint8_t devCnt = devMgr->getDevCount();
-	vector<uint8_t> answer(devCnt * sizeof(double) + 1);
-	answer[0] = devCnt;
-	for (int i = 0; i < devCnt; i++)
-		*(double*)(answer.data() + 1 + i * sizeof(double)) = devMgr->getMeasuredValue(i);
+	vector<uint8_t> answer(sizeof(double) + 1);
+	answer[0] = data[0];
+	*(double*)(answer.data() + 1) = devMgr->getAxisPos(data[0]);  //devMgr->getMeasuredValue(i);
 	return answer;
 }
 
@@ -225,15 +223,16 @@ vector<uint8_t> RFDaemonServer::setParams(const uint8_t* data, uint32_t size)
 		pParamNumList = (uint16_t*)(data + 4);
 		requestedParamCount = *(uint16_t*)(data + 2);
 		pValList = (double*)(data + 4 + requestedParamCount * sizeof(uint16_t));
+		startParamId = pParamNumList[0];
 	}
 
-	for (size_t i = startParamId; (i < devParamCount) && (i < requestedParamCount); i++)
+	for (size_t i = startParamId, j = 0; (i < devParamCount) && (j < requestedParamCount); i++)
 	{
-		bool include = setAllParameters ? true : (pParamNumList[i] == i);
-		if (include)
+		if (setAllParameters ? true : (pParamNumList[j] == i))
 		{
 			paramIdList.push_back(i);
-			paramValList.push_back(*pValList);
+			paramValList.push_back(pValList[j]);
+			j++;
 		}
 	}
 	if (setAllParameters)
@@ -265,7 +264,7 @@ vector<uint8_t> RFDaemonServer::homeAxis(const uint8_t* data, uint32_t size)
 
 vector<uint8_t> RFDaemonServer::setAxisPos(const uint8_t* data, uint32_t size)
 {
-	devMgr->setAxisPosition(data[0], *(double*)(data + 1));
+	devMgr->setAxisAbsPosition(data[0], *(double*)(data + 1));
 	return vector<uint8_t>();
 }
 
