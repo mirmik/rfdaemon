@@ -85,6 +85,7 @@ public:
 		{
 			if (!connectionAccepted)
 			{
+				usleep(1000);
 				connDesc = accept(socketDesc, 0, 0);
 				if (connDesc < 0)
 				{
@@ -229,6 +230,8 @@ public:
 						printf("Socket send error.\n");
 				}
 			}
+			else
+				usleep(1000);
 			if (terminate)
 				break;
 		}
@@ -245,6 +248,10 @@ public:
 	size_t getBufferSize() const
 	{
 		return bufferLength;
+	}
+	bool clientConnected()
+	{
+		return connectionAccepted;
 	}
 	virtual std::vector<uint8_t> parseReceivedData(const std::vector<uint8_t>& data) = 0;
 private:

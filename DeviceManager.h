@@ -7,6 +7,7 @@
 #include <fstream>
 #include <stdint.h>
 #include "Device.h"
+#include "Axis.h"
 
 class DeviceManager : public TcpClient
 {
@@ -18,22 +19,28 @@ public:
 		UPOS,
 		UFORWLIM,
 		UBACKLIM,
+		AXESTOT,
+		DEVSTOT,
+		TORQUE
 	};
 	DeviceManager(const std::string& devDescFileName);
-	const std::vector<std::string> getDevList() const;
-	uint32_t getDevCount() const;
+	const std::vector<Device>& getDevList() const;
+	const std::vector<Axis>& getAxesList() const;
+	uint32_t devCount() const;
+	uint32_t axesCount() const;
 	const std::string& getLogFile() const;
-	double getMeasuredValue(int devNum);
-	void setMeasuredValue(int devNum, double val);
-	void setAxisLimits(int devNum, double min, double max);
-	void getAxisLimits(int devNum, double& min, double& max);
-	double getAxisPos(int devNum, bool inUnits = true);
+	void setAxisLimits(int axisNum, double min, double max);
+	void getAxisLimits(int axisNum, double& min, double& max);
+	void getActualAxesNum();
+	void getActualDevsNum();
+	double getAxisPos(int axisNum, bool inUnits = true);
+	void getSensorData(int devNum);
 	void setAllAxesToZero();
-	void setDevAxisToZero(int devNum);
+	void setAxisToZero(int axisNum);
 	void moveAllAxesToHome();
-	void moveDevAxisToHome(int devNum);
-	void setAxisAbsPosition(int devNum, double pos);
-	void stopDevAxis(int devNum);
+	void moveAxisToHome(int axisNum);
+	void setAxisAbsPosition(int axisNum, double pos);
+	void stopAxis(int axisNum);
 	void stopAllAxes();
 	void jogAxis(int devNum, double offset);
 	const std::vector<Parameter>& getParameterList(int devNum);
@@ -48,8 +55,8 @@ private:
 	void parseDeviceDescriptionFile(std::fstream& file);
 	virtual void parseReceivedData(const std::vector<uint8_t>& data) override;
 	std::vector<Device> devices;
+	std::vector<Axis> axes;
 	std::string logFileStr;
-	std::vector<double> measuredValues;
 	std::fstream devDescFile;
 	std::string devDescFileStr;
 	CmdQueryID sentCmdId = CmdQueryID::Invalid;

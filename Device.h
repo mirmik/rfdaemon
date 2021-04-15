@@ -5,23 +5,34 @@
 #include "parameter.h"
 
 class DeviceManager;
+class Axis;
 
 class Device
 {
 	friend class DeviceManager;
 public:
-	Device(const std::string& name, const std::string& type, const std::vector<Parameter>& parameters);
-	const std::vector<Parameter>& getParameters() const;
-	void setParameterValue(uint16_t id, double value);
-	const std::string& getName() const;
-	double axisPosition();
+	enum Type
+	{
+		ServoTypeA,
+		ServoTypeB,
+		Sync,
+		Unknown
+	};
+	Device(const std::string& name, Type type, const std::vector<Parameter>& parameters);
+	const std::vector<Parameter>& parameters() const;
+	const std::string& name() const;
+	Axis* axis() const;
+	Type type() const;
+	double sensorValue() const;
+
 protected:
-	double axisPos = 0;
-	double prevAxisPos = 0;
-	double axisLimitMin = 0;
-	double axisLimitMax = 0;
+	void setParameterValue(uint16_t id, double value);
+	void setAxis(Axis* axis);
+	void updateSensorValue(double value);
 private:
+	double _sensorValue = 0;
+	Axis* _axis = 0;
 	std::string _name;
-	std::string _type;
+	Type _type;
 	std::vector<Parameter> _parameters;
 };

@@ -83,6 +83,7 @@
   <ItemGroup>
     <ClCompile Include="..\igris\igris\util\crc.c" />
     <ClCompile Include="AppManager.cpp" />
+    <ClCompile Include="Axis.cpp" />
     <ClCompile Include="config_json_default.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="DeviceManager.cpp" />
@@ -98,6 +99,7 @@
   <ItemGroup>
     <ClInclude Include="..\igris\igris\util\crc.h" />
     <ClInclude Include="AppManager.h" />
+    <ClInclude Include="Axis.h" />
     <ClInclude Include="config_json_default.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="DeviceManager.h" />

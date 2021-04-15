@@ -365,7 +365,7 @@ const char* defaultParams[2][6][52][6] = {
 	},
 };
 
-const char** getDefaultParam(DeviceType type, ParamGroup group, int paramId)
+const char** getDefaultParam(Device::Type type, ParamGroup group, int paramId)
 {
 	return defaultParams[type][group][paramId];
 }

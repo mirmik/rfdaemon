@@ -24,10 +24,10 @@ public:
         SERVICES_STOP,
         SERVICES_RESTART,
         GET_DEVICES,
+        GET_AXES,
         GET_DEV_LOGS,
-        GET_CURR_MEAS_VALUE,
+        GET_MEASUREMENTS,
         AXES_LIMITS_SET,
-        AXES_LIMITS_GET,
         UPDATE_IMG,
         UPDATE_FIRMWARE,
         PARAMS_READ,
@@ -47,10 +47,10 @@ public:
     std::vector<uint8_t> stopAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> restartAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getAllDevices(const uint8_t* data, uint32_t size);
+    std::vector<uint8_t> getAllAxes(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getDevErrLogs(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getCurrentDevValue(const uint8_t* data, uint32_t size);
+    std::vector<uint8_t> getDevSensorValues(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setAxesLimits(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getAxesLimits(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateSysImg(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateControllerFW(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getParams(const uint8_t* data, uint32_t size);

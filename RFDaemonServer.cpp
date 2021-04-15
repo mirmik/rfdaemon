@@ -1,6 +1,7 @@
 #include "RFDaemonServer.h"
 #include "AppManager.h"
 #include "DeviceManager.h"
+#include "Axis.h"
 #include <fstream>
 
 using namespace std;
@@ -12,10 +13,10 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(SERVICES_STOP, Func(this, &RFDaemonServer::stopAllApps));
 	addCmd(SERVICES_RESTART, Func(this, &RFDaemonServer::restartAllApps));
 	addCmd(GET_DEVICES, Func(this, &RFDaemonServer::getAllDevices));
+	addCmd(GET_AXES, Func(this, &RFDaemonServer::getAllAxes));
 	addCmd(GET_DEV_LOGS, Func(this, &RFDaemonServer::getDevErrLogs));
-	addCmd(GET_CURR_MEAS_VALUE, Func(this, &RFDaemonServer::getCurrentDevValue));
+	addCmd(GET_MEASUREMENTS, Func(this, &RFDaemonServer::getDevSensorValues));
 	addCmd(AXES_LIMITS_SET, Func(this, &RFDaemonServer::setAxesLimits));
-	addCmd(AXES_LIMITS_GET, Func(this, &RFDaemonServer::getAxesLimits));
 	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
 	addCmd(UPDATE_FIRMWARE, Func(this, &RFDaemonServer::updateControllerFW));
 	addCmd(PARAMS_READ, Func(this, &RFDaemonServer::getParams));
@@ -81,10 +82,31 @@ vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t* data, uint32_t siz
 vector<uint8_t> RFDaemonServer::getAllDevices(const uint8_t* data, uint32_t size)
 {
 	vector<uint8_t> answer(1);
-	vector<string> devNamesList = devMgr->getDevList();
-	answer[0] = devMgr->getDevCount();
-	for (auto& d : devNamesList)
-		answer.insert(answer.end(), d.c_str(), d.c_str() + d.length() + 1);
+	const vector<Device>& devList = devMgr->getDevList();
+	answer[0] = devMgr->devCount();
+	for (auto& d : devList)
+	{
+		answer.push_back((unsigned char)d.type());
+		const string& name = d.name();
+		answer.insert(answer.end(), name.c_str(), name.c_str() + name.length() + 1);
+	}
+	return answer;
+}
+
+vector<uint8_t> RFDaemonServer::getAllAxes(const uint8_t* data, uint32_t size)
+{
+	vector<uint8_t> answer(1);
+	const vector<Axis>& axesList = devMgr->getAxesList();
+	answer[0] = axesList.size();
+	for (auto& ax : axesList)
+	{
+		answer.push_back((unsigned char)ax.type());
+		answer.push_back((unsigned char)ax.motionType());
+		double limits[2] = {ax.minLimit(), ax.maxLimit() };
+		answer.insert(answer.end(), (char*)limits, (char*)limits + sizeof(limits));
+		const string& name = ax.name();
+		answer.insert(answer.end(), name.c_str(), name.c_str() + name.length() + 1);
+	}
 	return answer;
 }
 
@@ -96,32 +118,32 @@ vector<uint8_t> RFDaemonServer::getDevErrLogs(const uint8_t* data, uint32_t size
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getCurrentDevValue(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getDevSensorValues(const uint8_t* data, uint32_t size)
 {
-	vector<uint8_t> answer(sizeof(double) + 1);
+	vector<uint8_t> answer(2 + sizeof(double) * 2);
+	uint8_t devNum = data[0];
+	uint8_t axisNum = data[1];
 	answer[0] = data[0];
-	*(double*)(answer.data() + 1) = devMgr->getAxisPos(data[0]);  //devMgr->getMeasuredValue(i);
+	answer[1] = data[1];
+	double* pData = (double*)(answer.data() + 2);
+	if (devNum < devMgr->devCount())
+		pData[0] = devMgr->getDevList()[devNum].sensorValue();
+	else
+		pData[0] = 0;
+	if (axisNum < devMgr->axesCount())
+		pData[1] = devMgr->getAxesList()[axisNum].position();
+	else
+		pData[1] = 0;
 	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::setAxesLimits(const uint8_t* data, uint32_t size)
 {
-	size_t devCount = std::min<size_t>(data[0], devMgr->getDevCount());
+	size_t devCount = std::min<size_t>(data[0], devMgr->devCount());
 	double* value = (double*)(data + 1);
 	for (size_t i = 0; i < devCount; i++)
 		devMgr->setAxisLimits(i, value[i * 2], value[i * 2 + 1]);
 	return vector<uint8_t>();
-}
-
-vector<uint8_t> RFDaemonServer::getAxesLimits(const uint8_t* data, uint32_t size)
-{
-	size_t devCount = devMgr->getDevCount();
-	vector<uint8_t> answer(1 + 2 * devCount * sizeof(double));
-	answer[0] = devCount;
-	double* value = (double*)(answer.data() + 1);
-	for (size_t i = 0; i < devCount; i++)
-		devMgr->getAxisLimits(i, value[i * 2], value[i * 2 + 1]);
-	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::updateSysImg(const uint8_t* data, uint32_t size)
@@ -249,7 +271,7 @@ vector<uint8_t> RFDaemonServer::setAxisPosToZero(const uint8_t* data, uint32_t s
 	if (data[0] == 0xFF)
 		devMgr->setAllAxesToZero();
 	else
-		devMgr->setDevAxisToZero(data[0]);
+		devMgr->setAxisToZero(data[0]);
 	return vector<uint8_t>();
 }
 
@@ -258,7 +280,7 @@ vector<uint8_t> RFDaemonServer::homeAxis(const uint8_t* data, uint32_t size)
 	if (data[0] == 0xFF)
 		devMgr->moveAllAxesToHome();
 	else
-		devMgr->moveDevAxisToHome(data[0]);
+		devMgr->moveAxisToHome(data[0]);
 	return vector<uint8_t>();
 }
 
@@ -273,7 +295,7 @@ vector<uint8_t> RFDaemonServer::stopAxis(const uint8_t* data, uint32_t size)
 	if (data[0] == 0xFF)
 		devMgr->stopAllAxes();
 	else
-		devMgr->stopDevAxis(data[0]);
+		devMgr->stopAxis(data[0]);
 	return vector<uint8_t>();
 }
 

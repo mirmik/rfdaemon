@@ -1,11 +1,6 @@
 #pragma once
 
-enum DeviceType
-{
-	None = 0,
-	TypeA,
-	TypeB
-};
+#include "Device.h"
 
 enum ParamGroup
 {
@@ -56,4 +51,4 @@ constexpr unsigned int devtypeB_PD_size = 15;
 constexpr unsigned int devtypeB_PE_size = 9;
 constexpr unsigned int devtypeB_PF_size = 9;
 
-const char** getDefaultParam(DeviceType type, ParamGroup group, int paramId);
+const char** getDefaultParam(Device::Type type, ParamGroup group, int paramId);

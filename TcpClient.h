@@ -114,6 +114,8 @@ public:
 				if (terminate)
 					return 0;
 			}
+			else
+				usleep(1000);
 		}
 		return 0;
 	}
@@ -158,6 +160,8 @@ public:
 					if (result < 0)
 						printf("Socket send error.\n");
 				}
+				else
+					usleep(1000);
 			}
 			if (terminate)
 				break;

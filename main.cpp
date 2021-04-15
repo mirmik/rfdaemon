@@ -194,25 +194,33 @@ void* userIOThread(void* arg)
     while (1)
     {
         sleep(3);
-        devManager->setAxisAbsPosition(0, 5);
-        for (int i = 0; i < 50; i++)
-        {
-            usleep(100000);
-            printf("%.3f\n", devManager->getAxisPos(0));
-        }
+        //devManager->setAxisAbsPosition(0, 5);
+        //for (uint32_t i = 0; i < devManager->axesCount(); i++)
+        //{
+        //    usleep(500000);
+        //    printf("%.3f\n", devManager->getAxisPos(i));
+        //}
         while (true)
         {
-            devManager->setMeasuredValue(0, (rand() % 1000) / 1000.0 + 3);
-            devManager->setMeasuredValue(1, (rand() % 1000) / 1000.0 + 6);
-            devManager->setMeasuredValue(2, (rand() % 1000) / 1000.0 + 8);
-            devManager->setMeasuredValue(3, (rand() % 1000) / 1000.0 + 11);
-            usleep(1000);
+            if (srv)
+            {
+                if (srv->clientConnected())
+                {
+                    for (uint32_t i = 0; i < devManager->devCount(); i++)
+                    {
+                        devManager->getSensorData(i);
+                        usleep(20000);
+                    }
+                    for (uint32_t i = 0; i < devManager->axesCount(); i++)
+                    {
+                        devManager->getAxisPos(i);
+                        usleep(20000);
+                    }
+                }
+                else
+                    usleep(1000);
+            }
         }
-        //printf("Shutting down in 3 seconds...\n");
-        //sleep(3);
-        //devManager->disconnect();
-        //appManager.closeApps();
-        break;
     }
     return &userIORetCode;
 }

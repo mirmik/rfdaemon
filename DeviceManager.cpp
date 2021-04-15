@@ -29,17 +29,24 @@ DeviceManager::DeviceManager(const string& devDescFileName)
 	parseDeviceDescriptionFile(devDescFile);
 }
 
-const vector<string> DeviceManager::getDevList() const
+const vector<Device>& DeviceManager::getDevList() const
 {
-	vector<string> devNames;
-	for (auto& d : devices)
-		devNames.push_back(d.getName());
-	return devNames;
+	return devices;
 }
 
-uint32_t DeviceManager::getDevCount() const
+const std::vector<Axis>& DeviceManager::getAxesList() const
+{
+	return axes;
+}
+
+uint32_t DeviceManager::devCount() const
 {
 	return devices.size();
+}
+
+uint32_t DeviceManager::axesCount() const
+{
+	return axes.size();
 }
 
 const string& DeviceManager::getLogFile() const
@@ -47,79 +54,97 @@ const string& DeviceManager::getLogFile() const
 	return logFileStr;
 }
 
-double DeviceManager::getMeasuredValue(int devNum)
+void DeviceManager::setAxisLimits(int axisNum, double min, double max)
 {
-	return measuredValues[devNum];
+	axes[axisNum].setMinLimit(min);
+	axes[axisNum].setMaxLimit(max);
+	sendCmd("AXIS" + to_string(axisNum) + ":SETTINGS:ULIMITS " + to_string(min) + ", " + to_string(max) +"\n");
 }
 
-void DeviceManager::setMeasuredValue(int devNum, double val)
+void DeviceManager::getAxisLimits(int axisNum, double& min, double& max)
 {
-	measuredValues[devNum] = val;
-}
-
-void DeviceManager::setAxisLimits(int devNum, double min, double max)
-{
-	devices[devNum].axisLimitMin = min;
-	devices[devNum].axisLimitMax = max;
-	sendCmd("AXIS" + to_string(devNum) + ":SETTINGS:ULIMITS " + to_string(min) + ", " + to_string(max) +"\n");
-}
-
-void DeviceManager::getAxisLimits(int devNum, double& min, double& max)
-{
-	queryArgs[0] = devNum;
+	queryArgs[0] = axisNum;
 	sentCmdId = CmdQueryID::UBACKLIM;
-	sendCmd("AXIS" + to_string(devNum) + ":SETTINGS:UBACKLIM?\n");
+	sendCmd("AXIS" + to_string(axisNum) + ":SETTINGS:UBACKLIM?\n");
 	waitAnswer();
 	sentCmdId = CmdQueryID::UFORWLIM;
-	sendCmd("AXIS" + to_string(devNum) + ":SETTINGS:UFORWLIM?\n");
+	sendCmd("AXIS" + to_string(axisNum) + ":SETTINGS:UFORWLIM?\n");
 	waitAnswer();
-	min = devices[devNum].axisLimitMin;
-	max = devices[devNum].axisLimitMax;
+	min = axes[axisNum].minLimit();
+	max = axes[axisNum].maxLimit();
 }
 
-double DeviceManager::getAxisPos(int devNum, bool inUnits)
+void DeviceManager::getActualAxesNum()
+{
+	sentCmdId = CmdQueryID::AXESTOT;
+	sendCmd("SYST:AXESTOT?\n");
+	waitAnswer();
+}
+
+void DeviceManager::getActualDevsNum()
+{
+	sentCmdId = CmdQueryID::DEVSTOT;
+	sendCmd("SYST:DEVSTOT?\n");
+	waitAnswer();
+}
+
+double DeviceManager::getAxisPos(int axisNum, bool inUnits)
 {
 	string cmd = inUnits ? "UPOS" : "POS";
 	sentCmdId = inUnits ? CmdQueryID::UPOS : CmdQueryID::POS;
-	queryArgs[0] = devNum;
-	sendCmd("AXIS" + to_string(devNum) + ":STAT:"+ cmd +"?\n");
+	queryArgs[0] = axisNum;
+	sendCmd("AXIS" + to_string(axisNum) + ":STAT:"+ cmd +"?\n");
 	if (waitAnswer())
-		devices[devNum].axisPos = devices[devNum].prevAxisPos;
+		axes[axisNum].pos = axes[axisNum].prevPos;
 	else
-		devices[devNum].prevAxisPos = devices[devNum].axisPos;
-	return devices[devNum].axisPos;
+		axes[axisNum].prevPos = axes[axisNum].pos;
+	return axes[axisNum].pos;
+}
+
+void DeviceManager::getSensorData(int devNum)
+{
+	// Quering shaft torque value if device is servoamplifier with connected motor
+	if (devices[devNum].type() == Device::Type::ServoTypeA &&
+		devices[devNum].type() == Device::Type::ServoTypeB)
+	{
+		//sentCmdId = CmdQueryID::TORQUE;
+		//queryArgs[0] = devNum;
+		//sendCmd("DEV" + to_string(devNum) + ":TORQUE?\n");
+		//waitAnswer();
+		devices[devNum].updateSensorValue((rand() % 10000) / 10000.0 + devNum);
+	}
 }
 
 void DeviceManager::setAllAxesToZero()
 {
-	for (size_t i = 0; i < devices.size(); i++)
-		setDevAxisToZero(i);
+	for (size_t i = 0; i < axes.size(); i++)
+		setAxisToZero(i);
 }
 
-void DeviceManager::setDevAxisToZero(int devNum)
+void DeviceManager::setAxisToZero(int axisNum)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":SETZER\n");
+	sendCmd("AXIS" + to_string(axisNum) + ":SETZER\n");
 }
 
 void DeviceManager::moveAllAxesToHome()
 {
-	for (size_t i = 0; i < devices.size(); i++)
+	for (size_t i = 0; i < axes.size(); i++)
 		setAxisAbsPosition(i, 0);
 }
 
-void DeviceManager::moveDevAxisToHome(int devNum)
+void DeviceManager::moveAxisToHome(int axisNum)
 {
-	setAxisAbsPosition(devNum, 0);
+	setAxisAbsPosition(axisNum, 0);
 }
 
-void DeviceManager::setAxisAbsPosition(int devNum, double pos)
+void DeviceManager::setAxisAbsPosition(int axisNum, double pos)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":UMOV:ABS " + to_string(pos) +"\n");
+	sendCmd("AXIS" + to_string(axisNum) + ":UMOV:ABS " + to_string(pos) +"\n");
 }
 
-void DeviceManager::stopDevAxis(int devNum)
+void DeviceManager::stopAxis(int axisNum)
 {
-	sendCmd("AXIS" + to_string(devNum) + ":STOP\n");
+	sendCmd("AXIS" + to_string(axisNum) + ":STOP\n");
 }
 
 void DeviceManager::stopAllAxes()
@@ -134,18 +159,18 @@ void DeviceManager::jogAxis(int devNum, double offset)
 
 const vector<Parameter>& DeviceManager::getParameterList(int devNum)
 {
-	return devices[devNum].getParameters();
+	return devices[devNum].parameters();
 }
 
 const double DeviceManager::getParameterValue(int devNum, int paramId)
 {
-	return devices[devNum].getParameters()[paramId].getValue();
+	return devices[devNum].parameters()[paramId].getValue();
 }
 
 void DeviceManager::setParameterValue(int devNum, uint16_t paramId, double value)
 {
 	devices[devNum].setParameterValue(paramId, value);
-	string paramName = devices[devNum].getParameters()[paramId].name();
+	string paramName = devices[devNum].parameters()[paramId].name();
 	sendCmd("DEV" + to_string(devNum) + ":SETP " + paramName + "," + to_string(value));
 	printf("Param %s of dev %d set to %.3f\n", paramName.c_str(), devNum, (float)value);
 }
@@ -158,7 +183,7 @@ void DeviceManager::setParameterValues(int devNum, const vector<uint16_t>& idLis
 
 void DeviceManager::setParameterValues(int devNum, const vector<double>& list)
 {
-	size_t minParamCount = min(list.size(), devices[devNum].getParameters().size());
+	size_t minParamCount = min(list.size(), devices[devNum].parameters().size());
 	for (size_t i = 0; i < minParamCount; i++)
 		setParameterValue(devNum, i, list[i]);
 }
@@ -193,9 +218,11 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 		if (Json::parseFromStream(builder, file, &root, &errs))
 		{
 			int devicesCount = root["devices"].size();
-			measuredValues.resize(devicesCount);
+			if (!devices.empty())
+				devices.clear();
+
 			string name, type, range, valueStr, minStr, maxStr;
-			DeviceType devtype = DeviceType::None;
+			Device::Type devtype = Device::Type::Unknown;
 			vector<Parameter> params;
 
 			for (int i = 0; i < devicesCount; i++)
@@ -205,57 +232,89 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 				name = dev["name"].asString();
 				type = dev["type"].asString();
 				
-				if (type.find("mitsuservo") != string::npos)
-					devtype = (type.find("type_B") != string::npos) ? DeviceType::TypeB : DeviceType::TypeA;
-				else
-					devtype = DeviceType::None;
+				if (type.find("servo") != string::npos)
+					devtype = (type.find("type_B") != string::npos) ? Device::Type::ServoTypeB : Device::Type::ServoTypeA;
+				else if (type.find("sync") != string::npos)
+					devtype = Device::Type::Sync;
 
 				// Iterate parameter groups (from 'A' to ... symbol)
-				for (char paramGroup[] = "PA"; !dev[paramGroup].isNull(); paramGroup[1]++)
+				if (devtype == Device::Type::ServoTypeA || devtype == Device::Type::ServoTypeB)
 				{
-					int paramCount = dev[paramGroup].size();
-					for (int j = 0; j < paramCount; j++)
+					for (char paramGroup[] = "PA"; !dev[paramGroup].isNull(); paramGroup[1]++)
 					{
-						const char** paramDataDefault = getDefaultParam(devtype, (ParamGroup)(paramGroup[1] - 'A'), j);
-						range = string(paramDataDefault[3]);
-						valueStr = dev[paramGroup][j]["value"].asString();
-
-						// Divide range record "xxx-yyy" to 2 values: minimum (xxx) and maximum (yyy)
-						// Note that if xxx < 0, then there is 2 hyphen signs and we must skip first
-						size_t hyphenStartSearchPos = (paramDataDefault[3][0] == '-') ? 1 : 0;
-						size_t hyphenPos = range.find('-', hyphenStartSearchPos);
-						Parameter::Type type = Parameter::Type::Int;
-						double min = 0, max = 0, value = 0;
-						minStr = range.substr(0, hyphenPos);
-						maxStr = range.substr(hyphenPos + 1);
-						const char* fppos = strchr(paramDataDefault[3] + hyphenPos, '.');
-
-						if (fppos)
+						int paramCount = dev[paramGroup].size();
+						for (int j = 0; j < paramCount; j++)
 						{
-							int precision = strlen(fppos) - 2;
-							type = (Parameter::Type)(Parameter::Type::FracPoint1 + precision);
-							min = stod(minStr);
-							max = stod(maxStr);
-							value = stod(valueStr); //value = stod(string(paramData[4]), &pos);
-						}
-						else
-						{
-							int base = 10;
-							if (!strncmp(paramDataDefault[5], "HEX", 3))
+							const char** paramDataDefault = getDefaultParam(devtype, (ParamGroup)(paramGroup[1] - 'A'), j);
+							range = string(paramDataDefault[3]);
+							valueStr = dev[paramGroup][j]["value"].asString();
+
+							// Divide range record "xxx-yyy" to 2 values: minimum (xxx) and maximum (yyy)
+							// Note that if xxx < 0, then there is 2 hyphen signs and we must skip first
+							size_t hyphenStartSearchPos = (paramDataDefault[3][0] == '-') ? 1 : 0;
+							size_t hyphenPos = range.find('-', hyphenStartSearchPos);
+							Parameter::Type type = Parameter::Type::Int;
+							double min = 0, max = 0, value = 0;
+							minStr = range.substr(0, hyphenPos);
+							maxStr = range.substr(hyphenPos + 1);
+							const char* fppos = strchr(paramDataDefault[3] + hyphenPos, '.');
+
+							if (fppos)
 							{
-								base = 16;
-								type = Parameter::Type::Hex;
+								int precision = strlen(fppos) - 2;
+								type = (Parameter::Type)(Parameter::Type::FracPoint1 + precision);
+								min = stod(minStr);
+								max = stod(maxStr);
+								value = stod(valueStr); //value = stod(string(paramData[4]), &pos);
 							}
+							else
+							{
+								int base = 10;
+								if (!strncmp(paramDataDefault[5], "HEX", 3))
+								{
+									base = 16;
+									type = Parameter::Type::Hex;
+								}
 
-							min = stoll(minStr, NULL, base);
-							max = stoll(maxStr, NULL, base);
-							value = stoll(valueStr, NULL, base); //value = stoll(string(paramData[4]), &pos, base);
+								min = stoll(minStr, NULL, base);
+								max = stoll(maxStr, NULL, base);
+								value = stoll(valueStr, NULL, base); //value = stoll(string(paramData[4]), &pos, base);
+							}
+							params.push_back({ paramDataDefault[0], paramDataDefault[1], paramDataDefault[2], value, min, max, type });
 						}
-						params.push_back({paramDataDefault[0], paramDataDefault[1], paramDataDefault[2], value, min, max, type});
 					}
 				}
-				devices.push_back({name, type, params});
-				measuredValues[i] = 0;
+				devices.push_back({name, devtype, params});
+			}
+
+			int axesCount = root["axes"].size();
+			if (!axes.empty())
+				axes.clear();
+
+			for (int i = 0; i < axesCount; i++)
+			{
+				auto& axRecord = root["axes"][i];
+
+				Axis::Type type = (axRecord["type"].asString() == "simple") ?
+					Axis::Type::Simple : Axis::Type::Sync;
+				Axis::Motion motion = (axRecord["motionType"].asString() == "round") ?
+					Axis::Motion::Round : Axis::Motion::Linear;
+				Axis axis = Axis(axRecord["name"].asString(), type, motion);
+				string syncDev = "";
+				string name = axRecord["servo"].asString();
+
+				if (type == Axis::Type::Sync)
+					syncDev = axRecord["syncro"].asString();
+
+				for (auto& dev : devices)
+				{
+					if (dev.name() == name)
+						axis.linkDevice(&dev);
+					if (type == Axis::Type::Sync)
+						if (dev.name() == syncDev)
+							axis.setSyncDevice(&dev);
+				}
+				axes.push_back(axis);
 			}
 		}
 	}
@@ -263,19 +322,27 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 
 void DeviceManager::parseReceivedData(const vector<uint8_t>& data)
 {
+	double answer = strtod((char*)data.data(), NULL);
 	switch (sentCmdId)
 	{
 	case DeviceManager::Invalid:
 		break;
 	case DeviceManager::POS:
 	case DeviceManager::UPOS:
-		devices[queryArgs[0]].axisPos = strtod((char*)data.data(), NULL);
+		axes[queryArgs[0]].pos = answer;
 		break;
 	case DeviceManager::UFORWLIM:
-		devices[queryArgs[0]].axisLimitMax = strtod((char*)data.data(), NULL);
+		axes[queryArgs[0]].setMinLimit(answer);
 		break;
 	case DeviceManager::UBACKLIM:
-		devices[queryArgs[0]].axisLimitMin = strtod((char*)data.data(), NULL);
+		axes[queryArgs[0]].setMaxLimit(answer);
+		break;
+	case DeviceManager::AXESTOT:
+		break;
+	case DeviceManager::DEVSTOT:
+		break;
+	case DeviceManager::TORQUE:
+		devices[queryArgs[0]].updateSensorValue(answer);
 		break;
 	default:
 		break;

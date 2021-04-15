@@ -1,25 +1,46 @@
 #include "Device.h"
+#include "Axis.h"
 
 using namespace std;
 
-Device::Device(const string& name, const std::string& type, const vector<Parameter>& parameters)
+Device::Device(const string& name, Type type, const vector<Parameter>& parameters)
 {
     _name = name;
     _parameters = parameters;
     _type = type;
 }
 
-const string& Device::getName() const
+const string& Device::name() const
 {
     return _name;
 }
 
-double Device::axisPosition()
+Axis* Device::axis() const
 {
-    return axisPos;
+    return _axis;
 }
 
-const vector<Parameter>& Device::getParameters() const
+Device::Type Device::type() const
+{
+    return _type;
+}
+
+double Device::sensorValue() const
+{
+    return _sensorValue;
+}
+
+void Device::setAxis(Axis* axis)
+{
+    _axis = axis;
+}
+
+void Device::updateSensorValue(double value)
+{
+    _sensorValue = value;
+}
+
+const vector<Parameter>& Device::parameters() const
 {
     return _parameters;
 }

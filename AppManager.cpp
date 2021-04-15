@@ -149,7 +149,10 @@ void AppManager::runApps()
             exit(status);
         }
         else if (pid > 0)
+        {
             pids.push_back(pid);
+            appRunningStatusList[i] = 1;
+        }
         else
             cout << "Error: failed to start process " << appCmdList[i] << "." << endl;
         cout << pid << " " << "parent: " << getpid() << endl;
@@ -287,7 +290,8 @@ const vector<uint64_t> AppManager::getAppUptimeList() const
         string file = "/proc/" + to_string(appPidList[i]) + "/stat";
         struct stat attrib;
         stat(file.c_str(), &attrib);
-        uptimes.push_back(attrib.st_mtime);
+
+        uptimes.push_back(time(NULL) - attrib.st_mtime);
     }
     return uptimes;
 }
