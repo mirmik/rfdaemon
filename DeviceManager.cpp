@@ -193,6 +193,39 @@ void DeviceManager::updateFirmware(const fstream& file)
 
 }
 
+vector<uint8_t> DeviceManager::getDevDescFileRaw()
+{
+	vector<uint8_t> data;
+	devDescFile.open(devDescFileStr);
+	if (devDescFile.is_open())
+	{
+		stringstream buffer;
+		buffer << devDescFile.rdbuf();
+		string s = buffer.str();
+		data.assign(s.begin(), s.end());
+		if (data.size() < 40000)
+			printf("ababa");
+		devDescFile.close();
+	}
+	return data;
+}
+
+bool DeviceManager::updateDevDescFile(const char* data, uint32_t size)
+{
+	bool error = true;
+	devDescFile.open(devDescFileStr);
+
+	if (devDescFile.is_open())
+	{
+		devDescFile.seekp(0);
+		devDescFile.write(data, size);
+		error = (devDescFile.rdstate() & (ios::failbit | ios::badbit)) != 0;
+		devDescFile.flush();
+		devDescFile.close();
+	}
+	return error;
+}
+
 // Return true if timeout occurred
 bool DeviceManager::waitAnswer(unsigned long period_ms)
 {
@@ -317,6 +350,7 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 				axes.push_back(axis);
 			}
 		}
+		file.close();
 	}
 }
 

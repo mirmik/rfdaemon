@@ -23,8 +23,8 @@ public:
         SERVICES_START,
         SERVICES_STOP,
         SERVICES_RESTART,
-        GET_DEVICES,
-        GET_AXES,
+        GET_CONFIG,
+        SET_CONFIG,
         GET_DEV_LOGS,
         GET_MEASUREMENTS,
         AXES_LIMITS_SET,
@@ -46,8 +46,8 @@ public:
     std::vector<uint8_t> startAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> stopAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> restartAllApps(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getAllDevices(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getAllAxes(const uint8_t* data, uint32_t size);
+    std::vector<uint8_t> getConfig(const uint8_t* data, uint32_t size);
+    std::vector<uint8_t> setConfig(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getDevErrLogs(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getDevSensorValues(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setAxesLimits(const uint8_t* data, uint32_t size);

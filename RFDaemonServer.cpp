@@ -12,8 +12,8 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(SERVICES_START, Func(this, &RFDaemonServer::startAllApps));
 	addCmd(SERVICES_STOP, Func(this, &RFDaemonServer::stopAllApps));
 	addCmd(SERVICES_RESTART, Func(this, &RFDaemonServer::restartAllApps));
-	addCmd(GET_DEVICES, Func(this, &RFDaemonServer::getAllDevices));
-	addCmd(GET_AXES, Func(this, &RFDaemonServer::getAllAxes));
+	addCmd(GET_CONFIG, Func(this, &RFDaemonServer::getConfig));
+	addCmd(SET_CONFIG, Func(this, &RFDaemonServer::setConfig));
 	addCmd(GET_DEV_LOGS, Func(this, &RFDaemonServer::getDevErrLogs));
 	addCmd(GET_MEASUREMENTS, Func(this, &RFDaemonServer::getDevSensorValues));
 	addCmd(AXES_LIMITS_SET, Func(this, &RFDaemonServer::setAxesLimits));
@@ -79,34 +79,19 @@ vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t* data, uint32_t siz
 	return vector<uint8_t>();
 }
 
-vector<uint8_t> RFDaemonServer::getAllDevices(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 {
-	vector<uint8_t> answer(1);
-	const vector<Device>& devList = devMgr->getDevList();
-	answer[0] = devMgr->devCount();
-	for (auto& d : devList)
-	{
-		answer.push_back((unsigned char)d.type());
-		const string& name = d.name();
-		answer.insert(answer.end(), name.c_str(), name.c_str() + name.length() + 1);
-	}
+	vector<uint8_t> answer(4);
+	vector<uint8_t> file = devMgr->getDevDescFileRaw();
+	*((uint32_t*)answer.data()) = file.size();
+	answer.insert(answer.end(), file.begin(), file.end());
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getAllAxes(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
 {
 	vector<uint8_t> answer(1);
-	const vector<Axis>& axesList = devMgr->getAxesList();
-	answer[0] = axesList.size();
-	for (auto& ax : axesList)
-	{
-		answer.push_back((unsigned char)ax.type());
-		answer.push_back((unsigned char)ax.motionType());
-		double limits[2] = {ax.minLimit(), ax.maxLimit() };
-		answer.insert(answer.end(), (char*)limits, (char*)limits + sizeof(limits));
-		const string& name = ax.name();
-		answer.insert(answer.end(), name.c_str(), name.c_str() + name.length() + 1);
-	}
+	answer[0] = devMgr->updateDevDescFile((const char*)data, size);
 	return answer;
 }
 

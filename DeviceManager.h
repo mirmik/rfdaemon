@@ -49,6 +49,8 @@ public:
 	void setParameterValues(int devNum, const std::vector<uint16_t>& idList, const std::vector<double>& list);
 	void setParameterValues(int devNum, const std::vector<double>& list);
 	void updateFirmware(const std::fstream& file);
+	std::vector<uint8_t> getDevDescFileRaw();
+	bool updateDevDescFile(const char* data, uint32_t size);
 private:
 	// Return true if timeout occurred
 	bool waitAnswer(unsigned long period_ms = 100UL);
