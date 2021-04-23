@@ -18,8 +18,7 @@ AppManager appManager;
 DeviceManager* devManager = NULL;
 RFDaemonServer* srv = NULL;
 int srvSendRetCode = 0, srvRecvRetCode = 0,
-clientSendRetCode = 0, clientRecvRetCode = 0,
-appWatcherRetCode = 0, userIORetCode = 0;
+clientSendRetCode = 0, clientRecvRetCode = 0, userIORetCode = 0;
 
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
@@ -39,10 +38,10 @@ int main(int argc, char* argv[])
     pid_t daemonPid = 0;
     uint32_t srvSendThreadArg = 0, srvRecvThreadArg = 0,
         clientSendThreadArg = 0, clientRecvThreadArg = 0,
-        appWatcherThreadArg = 0, userIOThreadArg = 0;
+        userIOThreadArg = 0;
     pthread_t hSrvSendThread = 0, hSrvRecvThread = 0,
         hClientSendThread = 0, hClientRecvThread = 0,
-        hAppWatcherThread = 0, hUserIOThread = 0;
+        hUserIOThread = 0;
 
     system("pkill rfmeas");
     system("pkill dataproxy");
@@ -83,7 +82,6 @@ int main(int argc, char* argv[])
         pthread_create(&hSrvSendThread, NULL, tcpServerSendThread, &srvSendThreadArg);
         pthread_create(&hClientRecvThread, NULL, tcpClientReceiveThread, &clientRecvThreadArg);
         pthread_create(&hClientSendThread, NULL, tcpClientSendThread, &clientSendThreadArg);
-        pthread_create(&hAppWatcherThread, NULL, appWatcherThread, &appWatcherThreadArg);
         if (terminalMode)
         {
             pthread_create(&hUserIOThread, NULL, userIOThread, &userIOThreadArg);
@@ -93,13 +91,11 @@ int main(int argc, char* argv[])
         pthread_join(hSrvSendThread, NULL);
         pthread_join(hClientRecvThread, NULL);
         pthread_join(hClientSendThread, NULL);
-        pthread_join(hAppWatcherThread, NULL);
-        if (srvSendRetCode || srvRecvRetCode || clientSendRetCode || clientRecvRetCode || appWatcherRetCode || userIORetCode)
+        if (srvSendRetCode || srvRecvRetCode || clientSendRetCode || clientRecvRetCode || userIORetCode)
             cerr << srvSendRetCode << " "
             << srvRecvRetCode << " "
             << clientSendRetCode << " "
             << clientRecvRetCode << " "
-            << appWatcherRetCode << " "
             << userIORetCode << endl;
     }
     return 0;
@@ -183,12 +179,6 @@ void* tcpClientReceiveThread(void* arg)
     usleep(1000);
     clientRecvRetCode = devManager->receiveThread();
     return &clientRecvRetCode;
-}
-
-void* appWatcherThread(void* arg)
-{
-    appWatcherRetCode = appManager.thread();
-    return &appWatcherRetCode;
 }
 
 void* userIOThread(void* arg)

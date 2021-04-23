@@ -6,12 +6,35 @@
 #include "jsoncpp/json/json.h"
 #include "AppManager.h"
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 using namespace std;
+
+vector<int> AppManager::watchingThreadsRet;
+vector<int> AppManager::watchingThreadsArgs;
+vector<pthread_t> AppManager::watchingThreads;
+vector<int> AppManager::appRestartEnableList;
+vector<uint8_t> AppManager::appRunningStatusList;
+vector<int> AppManager::appRestartAttempts;
+vector<pid_t> AppManager::appPidList;
+vector<string> AppManager::appList, AppManager::appCmdList;
+vector<vector<string>> AppManager::appCmdArgList;
+bool AppManager::appsIsRunningFlag = false;
+string AppManager::logFileStr;
+string AppManager::cfgFileName;
+string AppManager::devDescFileName;
+ifstream AppManager::appConfFile;
+ifstream AppManager::devDescFile;
+ifstream AppManager::appLogFile;
+pthread_mutex_t AppManager::stdOutputMutex;
+pthread_mutex_t AppManager::threadArrayMutex;
+pid_t AppManager::lastLaunchPidResult = 0;
 
 AppManager::AppManager()
 {
     devDescFileName = "";
+    pthread_mutex_init(&stdOutputMutex, NULL);
+    pthread_mutex_init(&threadArrayMutex, NULL);
 }
 
 bool AppManager::openConfigFile(const string& filename)
@@ -130,117 +153,124 @@ void AppManager::runApps()
     vector<vector<const char*>> args(cmdCount);
     vector<pid_t> pids;
 
+    pthread_mutex_lock(&threadArrayMutex);
     for (size_t i = 0; i < cmdCount; i++)
     {
         for (auto& item : appCmdArgList[i])
             args[i].push_back(item.c_str());
         args[i].push_back(NULL);
+        watchingThreads.push_back(0);
+        watchingThreadsRet.push_back(0);
+        watchingThreadsArgs.push_back(i);
     }
-
+    pthread_mutex_unlock(&threadArrayMutex);
     for (size_t i = 0; i < cmdCount; i++)
-    {
-        pid_t pid = fork();
-        if (pid == 0)
-        {
-            int status = execve(appCmdList[i].c_str(), (char**)args[i].data(), NULL);
-            cout << "App \"" << appCmdList[i] << "\" exit status: " << status << endl;
-            exit(status);
-        }
-        else if (pid > 0)
-        {
-            pids.push_back(pid);
-            appRunningStatusList[i] = 1;
-        }
-        else
-            cout << "Error: failed to start process " << appCmdList[i] << "." << endl;
-        cout << pid << " " << "parent: " << getpid() << endl;
-    }
+        pthread_create(&watchingThreads[i], NULL, appWatchThread, &watchingThreadsArgs[i]);
     appsIsRunningFlag = cmdCount > 0;
     appPidList = pids;
 }
 
-pid_t AppManager::runApp(const string& name, const string& cmd, const vector<string>& args)
+pid_t AppManager::runNewApp(const string& name, const string& cmd, const vector<string>& args)
 {
+    int result = 0;
     vector<const char*> argsStr;
-    pid_t pid = 0;
-
     for (auto& item : args)
         argsStr.push_back(item.c_str());
     argsStr.push_back(NULL);
 
+    pthread_mutex_lock(&threadArrayMutex);
     appCmdArgList.push_back(args);
     appCmdList.push_back(cmd);
     appList.push_back(name);
-
-    pid = fork();
-    if (pid == 0)
-    {
-        int status = execvp(cmd.c_str(), (char**)argsStr.data());
-        cout << "App \"" << cmd << "\" exit status: " << status << endl;
-        exit(status);
-    }
-    else if (pid < 0)
-        cout << "Error: failed to start process " << cmd << "." << endl;
-    cout << pid << " " << "parent: " << getpid() << endl;
-    appPidList.push_back(pid);
-    return pid;
+    watchingThreads.push_back(0);
+    watchingThreadsRet.push_back(0);
+    watchingThreadsArgs.push_back(appList.size() - 1);
+    pthread_mutex_unlock(&threadArrayMutex);
+    pthread_create(&watchingThreads.back(), NULL, appWatchThread, &watchingThreadsArgs.back());
+    if (lastLaunchPidResult > 0)
+        result = appPidList.back();
+    else
+        result = lastLaunchPidResult;
+    return result;
 }
 
 void AppManager::closeApps()
 {
-    for (auto& p : appPidList)
-        kill(p, SIGTERM);
+    for (size_t i = 0; i < appPidList.size(); i++)
+    {
+        pthread_mutex_lock(&threadArrayMutex);
+        appRestartEnableList[i] = 0;
+        pthread_mutex_unlock(&threadArrayMutex);
+        kill(appPidList[i], SIGTERM);
+    }
+    pthread_mutex_lock(&threadArrayMutex);
     appPidList.clear();
+    pthread_mutex_unlock(&threadArrayMutex);
+    pthread_mutex_lock(&stdOutputMutex);
     cout << "All created processes have just been killed." << endl;
+    cout.flush();
+    pthread_mutex_unlock(&stdOutputMutex);
 }
 
 AppManager::~AppManager()
 {
-}
-
-int AppManager::thread()
-{
-    while (1)
-    {
-        int sumAttempts = 0;
-        for (auto& a : appRestartAttempts)
-            sumAttempts += a;
-
-        usleep(APP_CHECK_INTERVAL_US + sumAttempts * APP_CHECK_INTERVAL_US);
-
-        for (size_t i = 0; i < appPidList.size(); i++)
-        {
-            if (appRestartEnableList[i] != 0)
-            {
-                if (kill(appPidList[i], 0) == -1)
-                {
-                    appRunningStatusList[i] = 0;
-                    appPidList[i] = runApp(appList[i], appCmdList[i], appCmdArgList[i]);
-                    if (appPidList[i] == -1)
-                    {
-                        if (appRestartAttempts[i] < APP_MAX_RESTART_ATTEMPTS)
-                            appRestartAttempts[i]++;
-                        else
-                        {
-                            appRestartEnableList[i] = 0;
-                            appRestartAttempts[i] = 0;
-                        }
-                    }
-                    else
-                    {
-                        appRestartAttempts[i] = 0;
-                        appRunningStatusList[i] = 1;
-                    }
-                }
-            }
-        }
-    }
-    return 0;
+    pthread_mutex_destroy(&stdOutputMutex);
+    pthread_mutex_destroy(&threadArrayMutex);
 }
 
 const string& AppManager::getDeviceDescFilename() const
 {
     return devDescFileName;
+}
+
+void* AppManager::appWatchThread(void* arg)
+{
+    const int& threadNum = *(int*)arg;
+    vector<char*> args;
+    for (auto& item : appCmdArgList[threadNum])
+        args.push_back((char*)item.c_str());
+
+    while (1)
+    {
+        if (!appRunningStatusList[threadNum])
+        {
+            pid_t pid = fork();
+            if (pid == 0)
+            {
+                int status = execv(appCmdList[threadNum].c_str(), args.data());
+                pthread_mutex_lock(&stdOutputMutex);
+                cout << "Process \"" << appCmdList[threadNum] << "\" exit status: " << status << endl;
+                cout.flush();
+                pthread_mutex_unlock(&stdOutputMutex);
+            }
+            else if (pid > 0)
+            {
+                pthread_mutex_lock(&threadArrayMutex);
+                lastLaunchPidResult = pid;
+                appPidList.push_back(pid);
+                pthread_mutex_unlock(&threadArrayMutex);
+                appRunningStatusList[threadNum] = 1;
+                wait(&watchingThreadsRet[threadNum]);
+            }
+            else
+            {
+                lastLaunchPidResult = pid;
+                pthread_mutex_lock(&stdOutputMutex);
+                cout << "Error: failed to start process \"" << appCmdList[threadNum] << "\"." << endl;
+                cout.flush();
+                pthread_mutex_unlock(&stdOutputMutex);
+            }
+            pthread_mutex_lock(&stdOutputMutex);
+            cout << pid << " " << "parent: " << getpid() << endl;
+            cout.flush();
+            pthread_mutex_unlock(&stdOutputMutex);
+        }
+        appRunningStatusList[threadNum] = 0;
+        if (!appRestartEnableList[threadNum])
+            break;
+        usleep(1000);
+    }
+    return &watchingThreadsRet[threadNum];
 }
 
 void AppManager::restartApps()

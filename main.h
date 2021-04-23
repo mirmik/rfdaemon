@@ -14,5 +14,4 @@ void* tcpServerSendThread(void* arg);
 void* tcpServerReceiveThread(void* arg);
 void* tcpClientSendThread(void* arg);
 void* tcpClientReceiveThread(void* arg);
-void* appWatcherThread(void* arg);
 void* userIOThread(void* arg);
