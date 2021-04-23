@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parameter.cpp" />
-    <ClCompile Include="RFDaemon.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp">
       <Filter>jsoncpp\src</Filter>
     </ClCompile>
@@ -20,7 +19,6 @@
     <ClCompile Include="AppManager.cpp" />
     <ClCompile Include="DeviceManager.cpp" />
     <ClCompile Include="Device.cpp" />
-    <ClCompile Include="string_constants.cpp" />
     <ClCompile Include="config_json_default.cpp" />
     <ClCompile Include="Axis.cpp" />
   </ItemGroup>
@@ -29,9 +27,6 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="parameter.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="RFDaemon.h">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="jsoncpp\json\allocator.h">
@@ -89,9 +84,6 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="string_constants.h">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="config_json_default.h">

@@ -60,6 +60,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
     <RemoteCopyIncludeDirectories>$(RemoteCopyIncludeDirectories)</RemoteCopyIncludeDirectories>
+    <PlatformToolset>Remote_GCC_1_0</PlatformToolset>
+    <RemoteRootDir>~/project</RemoteRootDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -92,9 +94,7 @@
     <ClCompile Include="jsoncpp\src\lib_json\json_writer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parameter.cpp" />
-    <ClCompile Include="RFDaemon.cpp" />
     <ClCompile Include="RFDaemonServer.cpp" />
-    <ClCompile Include="string_constants.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\igris\igris\util\crc.h" />
@@ -117,9 +117,7 @@
     <ClInclude Include="jsoncpp\src\lib_json\json_tool.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="parameter.h" />
-    <ClInclude Include="RFDaemon.h" />
     <ClInclude Include="RFDaemonServer.h" />
-    <ClInclude Include="string_constants.h" />
     <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpServer.h" />
   </ItemGroup>
@@ -134,7 +132,7 @@
       <CppAdditionalWarning>switch;no-deprecated-declarations;empty-body;return-type;parentheses;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable</CppAdditionalWarning>
     </ClCompile>
     <Link>
-      <LibraryDependencies>pthread;jsoncpp</LibraryDependencies>
+      <LibraryDependencies>pthread</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

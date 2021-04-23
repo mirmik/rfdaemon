@@ -3,10 +3,9 @@
 
 using namespace std;
 
-Device::Device(const string& name, Type type, const vector<Parameter>& parameters)
+Device::Device(const string& name, Type type)
 {
     _name = name;
-    _parameters = parameters;
     _type = type;
 }
 
@@ -38,17 +37,4 @@ void Device::setAxis(Axis* axis)
 void Device::updateSensorValue(double value)
 {
     _sensorValue = value;
-}
-
-const vector<Parameter>& Device::parameters() const
-{
-    return _parameters;
-}
-
-void Device::setParameterValue(uint16_t id, double value)
-{
-    if (_parameters.size() > id)
-        _parameters[id].setValue(value);
-    else
-        printf("Unknown parameter id: %d\n", id);
 }

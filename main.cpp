@@ -5,7 +5,6 @@
 #include <atomic>
 #include <unistd.h>
 #include <signal.h>
-#include "RFDaemon.h"
 #include "main.h"
 #include "pthread.h"
 #include "RFDaemonServer.h"
@@ -45,7 +44,10 @@ int main(int argc, char* argv[])
         hClientSendThread = 0, hClientRecvThread = 0,
         hAppWatcherThread = 0, hUserIOThread = 0;
 
-    system("pkill rfmeas"); system("pkill dataproxy"); system("pkill ctrans"); system("pkill crowker");
+    system("pkill rfmeas");
+    system("pkill dataproxy");
+    // system("pkill ctrans");
+    // system("pkill crowker");
     //system("pkill ConsoleApp");
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
@@ -175,9 +177,10 @@ void* tcpClientSendThread(void* arg)
 
 void* tcpClientReceiveThread(void* arg)
 {
-    usleep(1000000);
+    usleep(500000);
     while (!devManager);
     devManager->connectToPort("localhost", RFMEASK_TCP_PORT);
+    usleep(1000);
     clientRecvRetCode = devManager->receiveThread();
     return &clientRecvRetCode;
 }
@@ -193,7 +196,7 @@ void* userIOThread(void* arg)
     srand(2341234);
     while (1)
     {
-        sleep(3);
+        sleep(5);
         //devManager->setAxisAbsPosition(0, 5);
         //for (uint32_t i = 0; i < devManager->axesCount(); i++)
         //{
@@ -208,12 +211,12 @@ void* userIOThread(void* arg)
                 {
                     for (uint32_t i = 0; i < devManager->devCount(); i++)
                     {
-                        devManager->getSensorData(i);
+                        //devManager->readSensorData(i);
                         usleep(20000);
                     }
                     for (uint32_t i = 0; i < devManager->axesCount(); i++)
                     {
-                        devManager->getAxisPos(i);
+                        //devManager->readAxisPos(i);
                         usleep(20000);
                     }
                 }

@@ -76,7 +76,6 @@ private:
     std::vector<uint8_t> txBuf;
     std::vector<Limits> limitsList;
     std::vector<uint8_t> bigFileData;
-    std::vector<std::vector<Parameter>> parameters;
     uint16_t bufferLength = 0;
     bool terminate = false;
 };

@@ -16,17 +16,22 @@ public:
 		ServoTypeA,
 		ServoTypeB,
 		Sync,
+		Simulator,
+		SimulatorSync,
 		Unknown
 	};
-	Device(const std::string& name, Type type, const std::vector<Parameter>& parameters);
-	const std::vector<Parameter>& parameters() const;
+	enum EncoderType
+	{
+		Internal = 0,
+		External
+	};
+	Device(const std::string& name, Type type);
 	const std::string& name() const;
 	Axis* axis() const;
 	Type type() const;
 	double sensorValue() const;
 
 protected:
-	void setParameterValue(uint16_t id, double value);
 	void setAxis(Axis* axis);
 	void updateSensorValue(double value);
 private:
@@ -34,5 +39,4 @@ private:
 	Axis* _axis = 0;
 	std::string _name;
 	Type _type;
-	std::vector<Parameter> _parameters;
 };

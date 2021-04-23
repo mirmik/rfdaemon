@@ -91,7 +91,7 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
 {
 	vector<uint8_t> answer(1);
-	answer[0] = devMgr->updateDevDescFile((const char*)data, size);
+	answer[0] = devMgr->updateDevDescFile((const char*)data + 4, size - 4);
 	return answer;
 }
 
@@ -127,7 +127,7 @@ vector<uint8_t> RFDaemonServer::setAxesLimits(const uint8_t* data, uint32_t size
 	size_t devCount = std::min<size_t>(data[0], devMgr->devCount());
 	double* value = (double*)(data + 1);
 	for (size_t i = 0; i < devCount; i++)
-		devMgr->setAxisLimits(i, value[i * 2], value[i * 2 + 1]);
+		devMgr->writeAxisLimits(i, value[i * 2], value[i * 2 + 1]);
 	return vector<uint8_t>();
 }
 
@@ -158,96 +158,94 @@ vector<uint8_t> RFDaemonServer::updateControllerFW(const uint8_t* data, uint32_t
 	return vector<uint8_t>();
 }
 
+/*
+Request (>6 bytes):
+[0] - device id
+[1-2] - requested number of parameters
+[3-x] - names of parameters
+
+Answer (>16 bytes):
+[0] - device id
+[1-2] - requested number of parameters
+[3-4] - actual number of read parameters
+[5-y] - values of read parameters
+[y-z] - names of read parameters
+*/
 vector<uint8_t> RFDaemonServer::getParams(const uint8_t* data, uint32_t size)
 {
 	uint8_t devId = data[0];
-	bool getAllParameters = data[1] != 0;
-	const vector<Parameter>& parameters = devMgr->getParameterList(devId);
-	uint16_t requestedParamCount = parameters.size();
-	size_t startParamId = 0;
-
-	vector<uint8_t> answer(4);
-	answer.reserve(answer.size() + parameters.size() * (sizeof(uint16_t) + sizeof(Parameter)));
+	uint16_t requestedParamCount = *(uint16_t*)(data + 1);
+	vector<uint8_t> answer(5);
+	answer.reserve(answer.size() + requestedParamCount * (sizeof(double) + 5));
 	answer[0] = devId;
-	answer[1] = getAllParameters;
-	uint16_t* pParamNumAnsList = NULL, *pParamNumList = NULL;
-	
-	if (getAllParameters)
-		*(uint16_t*)(answer.data() + 2) = parameters.size();
-	else
+	*(uint16_t*)(answer.data() + 1) = requestedParamCount;
+	vector<string> paramNames;
+	paramNames.reserve(requestedParamCount * 5);
+	const uint8_t* pName = data + 3;
+
+	string paramName;
+	size_t paramsRead = 0;
+
+	size_t len;
+	for (size_t i = 0; i < requestedParamCount; i++)
 	{
-		requestedParamCount = *(uint16_t*)(data + 2);
-		*(uint16_t*)(answer.data() + 2) = requestedParamCount;
-
-		if (requestedParamCount <= parameters.size())
+		len = strnlen((char*)pName, 5);
+		paramName = string((char*)pName, len);
+		
+		bool success;
+		double value = devMgr->readParameterValue(devId, paramName, success);
+		if (success)
 		{
-			pParamNumList = (uint16_t*)(data + 4);
-			pParamNumAnsList = (uint16_t*)(answer.data() + 4);
-			startParamId = pParamNumList[0];
-			answer.resize(answer.size() + requestedParamCount * sizeof(uint16_t));
-			for (size_t i = 0; i < requestedParamCount; i++)
-				pParamNumAnsList[i] = pParamNumList[i];
+			paramNames.push_back(paramName);
+			answer.insert(answer.end(), (uint8_t*)&value, (uint8_t*)&value + sizeof(double));
+			paramsRead++;
 		}
-	}
-
-	for (size_t i = startParamId; (i < parameters.size()) && (i < requestedParamCount); i++)
-	{
-		bool include = getAllParameters ? true : (pParamNumAnsList[i] == i);
-		if (include)
-		{
-			const string& name = parameters[i].name();
-			const string& desc = parameters[i].description();
-			const string& unit = parameters[i].unit();
-			double vals[] = { parameters[i].getValue(), parameters[i].getRangeMin(), parameters[i].getRangeMax() };
-
-			answer.insert(answer.end(), name.c_str(), name.c_str() + name.length() + 1);
-			answer.insert(answer.end(), desc.c_str(), desc.c_str() + desc.length() + 1);
-			answer.insert(answer.end(), unit.c_str(), unit.c_str() + unit.length() + 1);
-			answer.push_back((unsigned char)(parameters[i].getType()));
-			answer.insert(answer.end(), (char*)vals, (char*)vals + sizeof(vals));
-		}
-	}
+		pName += len + 1;
+	}	
+	*(uint16_t*)(answer.data() + 3) = paramsRead;
+	for (size_t i = 0; i < paramsRead; i++)
+		answer.insert(answer.end(), paramNames[i].c_str(), paramNames[i].c_str() + paramNames[i].length() + 1);
 	return answer;
 }
 
+/*
+Request (>12 bytes):
+[0] - device id
+[1-2] - requested number of parameters
+[3-x] - values of parameters
+[x-y] - names of parameters
+
+Answer (5 bytes):
+[0] - device id
+[1-2] - requested number of parameters
+[3-4] - actual number of written parameters
+*/
 vector<uint8_t> RFDaemonServer::setParams(const uint8_t* data, uint32_t size)
 {
 	uint8_t devId = data[0];
-	bool setAllParameters = data[1] != 0;
-	size_t startParamId = 0;
-	size_t devParamCount = devMgr->getParameterList(devId).size();
-	uint16_t requestedParamCount = devParamCount;
-	vector<uint8_t> answer(4);
-	answer[0] = devId;
-	answer[1] = setAllParameters;
-	uint16_t* pParamNumList = NULL;
-	vector<uint16_t> paramIdList;
-	vector<double> paramValList;
-	double* pValList = (double*)(data + 4);
-
-	if (!setAllParameters)
+	vector<uint8_t> answer(5);
+	if (devId < devMgr->devCount())
 	{
-		pParamNumList = (uint16_t*)(data + 4);
-		requestedParamCount = *(uint16_t*)(data + 2);
-		pValList = (double*)(data + 4 + requestedParamCount * sizeof(uint16_t));
-		startParamId = pParamNumList[0];
-	}
+		uint16_t requestedParamCount = *(uint16_t*)(data + 1);
+		answer[0] = devId;
+		*(uint16_t*)(answer.data() + 1) = requestedParamCount;
+		vector<string> paramNames;
+		vector<double> paramValues;
+		double* pValue = (double*)data + 3;
+		const uint8_t* pName = (uint8_t*)pValue + sizeof(double) * requestedParamCount;
 
-	for (size_t i = startParamId, j = 0; (i < devParamCount) && (j < requestedParamCount); i++)
-	{
-		if (setAllParameters ? true : (pParamNumList[j] == i))
+		size_t len;
+		for (size_t i = 0; i < requestedParamCount; i++)
 		{
-			paramIdList.push_back(i);
-			paramValList.push_back(pValList[j]);
-			j++;
+			len = strnlen((char*)pName, 5);
+			paramNames.push_back(string((char*)pName, len));
+			paramValues.push_back(pValue[i]);
+			pName += len + 1;
 		}
+
+		size_t paramsWritten = devMgr->writeParameterValues(devId, paramNames, paramValues);
+		*(uint16_t*)(answer.data() + 3) = paramsWritten;
 	}
-	if (setAllParameters)
-		devMgr->setParameterValues(devId, paramValList);
-	else
-		devMgr->setParameterValues(devId, paramIdList, paramValList);
-	
-	*(uint16_t*)(answer.data() + 2) = paramValList.size();
 	return answer;
 }
 

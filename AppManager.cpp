@@ -44,58 +44,56 @@ bool AppManager::openConfigFile(const string& filename)
             cout << "No apps found in file \"" + filename + "\".\n";
             error = true;
         }
-        for (int i = 0; i < arraySize; i++)
+        else
         {
-            appList.push_back(root["apps"][i]["name"].asString());
-            appCmdList.push_back(root["apps"][i]["command"].asString());
-        }
-        if (appList.empty())
-        {
-            cout << "No apps found in file \"" + filename + "\"\n";
-            error = true;
-        }
-        if (appList.size() != appCmdList.size())
-        {
-            cout << "Property 'command' missing in file \"" + filename + "\".\n";
-            error = true;
-        }
-
-        for (auto& s : appCmdList)
-        {
-            if (!s.empty())
+            for (int i = 0; i < arraySize; i++)
             {
-                // Replace username in command string to actual
-                size_t homePathPos = s.find("/home/");
-                size_t homePathEnd = s.find('/', homePathPos + 7);
-                while ((homePathPos != string::npos) && (homePathEnd != string::npos) && (homePathEnd > homePathPos))
-                {
-                    s.replace(homePathPos, homePathEnd - homePathPos, homedir);
-                    homePathPos = s.find("/home/", homePathEnd);
-                    homePathEnd = s.find('/', homePathPos + 7);
-                }
-
-                // Split string to command and arguments
-                size_t argsBegin = s.find_first_of(' ');
-                vector<string> args = { s.substr(0, argsBegin) };
-
-                if (argsBegin != string::npos)
-                {
-                    string argstr = s.substr(argsBegin);
-
-                    char* p = strtok((char*)argstr.c_str(), " ");
-                    while (p)
-                    {
-                        args.push_back(p);
-                        p = strtok(NULL, " ");
-                    }
-                }
-                s = s.substr(0, argsBegin);
-                appCmdArgList.push_back(args);
+                appList.push_back(root["apps"][i]["name"].asString());
+                appCmdList.push_back(root["apps"][i]["command"].asString());
             }
-            appRestartEnableList.push_back(1);
+            if (appList.size() != appCmdList.size())
+            {
+                cout << "Property 'command' missing in file \"" + filename + "\".\n";
+                error = true;
+            }
+
+            for (auto& s : appCmdList)
+            {
+                if (!s.empty())
+                {
+                    // Replace username in command string to actual
+                    size_t homePathPos = s.find("/home/");
+                    size_t homePathEnd = s.find('/', homePathPos + 7);
+                    while ((homePathPos != string::npos) && (homePathEnd != string::npos) && (homePathEnd > homePathPos))
+                    {
+                        s.replace(homePathPos, homePathEnd - homePathPos, homedir);
+                        homePathPos = s.find("/home/", homePathEnd);
+                        homePathEnd = s.find('/', homePathPos + 7);
+                    }
+
+                    // Split string to command and arguments
+                    size_t argsBegin = s.find_first_of(' ');
+                    vector<string> args = { s.substr(0, argsBegin) };
+
+                    if (argsBegin != string::npos)
+                    {
+                        string argstr = s.substr(argsBegin);
+
+                        char* p = strtok((char*)argstr.c_str(), " ");
+                        while (p)
+                        {
+                            args.push_back(p);
+                            p = strtok(NULL, " ");
+                        }
+                    }
+                    s = s.substr(0, argsBegin);
+                    appCmdArgList.push_back(args);
+                }
+                appRestartEnableList.push_back(1);
+            }
+            appRestartAttempts.resize(arraySize);
+            appRunningStatusList.resize(arraySize);
         }
-        appRestartAttempts.resize(arraySize);
-        appRunningStatusList.resize(arraySize);
     }
     if (!error)
     {

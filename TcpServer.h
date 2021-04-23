@@ -180,7 +180,7 @@ public:
 				if (!txQueue.empty())
 				{
 					// Transmission queue not null
-					size_t dataOffset = 0;
+					int headerOffset = 0;
 					ssize_t result = 0;
 					pthread_mutex_lock(&mtxQueue);
 
@@ -193,7 +193,7 @@ public:
 						h->size = txQueue.size();
 						h->crc32 = crc32(txQueue.data(), h->size, 0);
 						txQueuePos = 0;
-						dataOffset = sizeof(PacketHeader);
+						headerOffset = sizeof(PacketHeader);
 					}
 
 					// Header and first part has been sent, transmit next parts
@@ -202,17 +202,18 @@ public:
 						if (txQueuePos < txQueue.size())
 						{
 							// Multipacket transmission not finished, copy next data part to buffer
-							size_t packetSize = std::min(txQueue.size() - txQueuePos + dataOffset, bufferLength);
-							memcpy(txBufferPtr + dataOffset, txQueue.data() + txQueuePos, packetSize - dataOffset);
+							size_t packetSize = std::min(txQueue.size() - txQueuePos + headerOffset, bufferLength);
+							memcpy(txBufferPtr + headerOffset, txQueue.data() + txQueuePos,
+								packetSize - headerOffset);
 							
 							// Send next data part
 							result = send(connDesc, txBufferPtr, packetSize, 0);
 							if (result > 0)
-								txQueuePos += result;
+								txQueuePos += result - headerOffset;
 							else if (result < 0)
 							{
 								// In case of error at header transfer, reset header include flag
-								if (dataOffset)
+								if (headerOffset)
 									txQueueActive = false;
 								printf("Server packet header send error.\n");
 							}

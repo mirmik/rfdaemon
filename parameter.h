@@ -11,31 +11,15 @@
 class Parameter
 {
 public:
-    enum Type : unsigned char
-    {
-        Int = 0,
-        FracPoint1,
-        FracPoint2,
-        FracPoint3,
-        FracPoint4,
-        Hex
-    };
-    Parameter();
-    Parameter(const std::string& name, const std::string& desc, const std::string& units, double value, double min, double max, Type type = Type::Int);
+    Parameter(const std::string& name, double value);
     Parameter& operator=(double d);
     const std::string& name() const;
-    const std::string& description() const;
-    const std::string& unit() const;
-    Type getType() const;
     double getValue() const;
     void setValue(double value);
-    double getRangeMin() const;
-    double getRangeMax() const;
     size_t byteSize() const;
 private:
-    std::string _name, _description, _unit;
-    Type _type;
-    double _value, rangeMin, rangeMax;
+    std::string _name;
+    double _value;
 };
 
 #endif // PARAMETER_H

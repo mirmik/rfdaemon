@@ -184,7 +184,7 @@ public:
 	void sendCmd(const std::string& cmd, bool wait = true, unsigned long timeoutMs = 100U)
 	{
 		pthread_mutex_lock(&mtxQueue);
-		txQueue.insert(txQueue.begin(), cmd.c_str(), cmd.c_str() + cmd.length());
+		txQueue.insert(txQueue.begin(), cmd.c_str(), cmd.c_str() + cmd.length() + 1);
 		pthread_mutex_unlock(&mtxQueue);
 		requestTimeout = timeoutMs * 200UL;
 		while (!txQueue.empty() && requestTimeout)

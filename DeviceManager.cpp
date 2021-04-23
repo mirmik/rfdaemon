@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <vector>
 #include <filesystem>
+#include <limits>
+#include <cmath>
 #include "DeviceManager.h"
 #include "jsoncpp/json/json.h"
-#include "string_constants.h"
 #include "config_json_default.h"
 
 using namespace std;
@@ -19,6 +20,7 @@ DeviceManager::DeviceManager(const string& devDescFileName)
 	}
 	else
 	{
+		errors.push_back(ErrorID::CONF_FILE_MISSING);
 		devDescFileNotFound = true;
 		devDescFile = fstream(devDescFileName, fstream::in | fstream::out | fstream::trunc);
 		devDescFile.seekp(0);
@@ -34,7 +36,7 @@ const vector<Device>& DeviceManager::getDevList() const
 	return devices;
 }
 
-const std::vector<Axis>& DeviceManager::getAxesList() const
+const vector<Axis>& DeviceManager::getAxesList() const
 {
 	return axes;
 }
@@ -54,63 +56,71 @@ const string& DeviceManager::getLogFile() const
 	return logFileStr;
 }
 
-void DeviceManager::setAxisLimits(int axisNum, double min, double max)
+void DeviceManager::writeAxisLimits(int axisNum, double min, double max)
 {
 	axes[axisNum].setMinLimit(min);
 	axes[axisNum].setMaxLimit(max);
 	sendCmd("AXIS" + to_string(axisNum) + ":SETTINGS:ULIMITS " + to_string(min) + ", " + to_string(max) +"\n");
 }
 
-void DeviceManager::getAxisLimits(int axisNum, double& min, double& max)
+void DeviceManager::readAxisLimits(int axisNum, double& min, double& max)
 {
 	queryArgs[0] = axisNum;
 	sentCmdId = CmdQueryID::UBACKLIM;
 	sendCmd("AXIS" + to_string(axisNum) + ":SETTINGS:UBACKLIM?\n");
-	waitAnswer();
+	lastCmdTimeout = waitAnswer();
 	sentCmdId = CmdQueryID::UFORWLIM;
 	sendCmd("AXIS" + to_string(axisNum) + ":SETTINGS:UFORWLIM?\n");
-	waitAnswer();
+	lastCmdTimeout = waitAnswer();
 	min = axes[axisNum].minLimit();
 	max = axes[axisNum].maxLimit();
 }
 
-void DeviceManager::getActualAxesNum()
+size_t DeviceManager::readActualAxesNum()
 {
 	sentCmdId = CmdQueryID::AXESTOT;
 	sendCmd("SYST:AXESTOT?\n");
-	waitAnswer();
+	lastCmdTimeout = waitAnswer();
+	return axes.size();
 }
 
-void DeviceManager::getActualDevsNum()
+size_t DeviceManager::readActualDevsNum()
 {
 	sentCmdId = CmdQueryID::DEVSTOT;
 	sendCmd("SYST:DEVSTOT?\n");
-	waitAnswer();
+	lastCmdTimeout = waitAnswer();
+	return devices.size();
 }
 
-double DeviceManager::getAxisPos(int axisNum, bool inUnits)
+double DeviceManager::readAxisPos(int axisNum, bool inUnits)
 {
 	string cmd = inUnits ? "UPOS" : "POS";
 	sentCmdId = inUnits ? CmdQueryID::UPOS : CmdQueryID::POS;
 	queryArgs[0] = axisNum;
 	sendCmd("AXIS" + to_string(axisNum) + ":STAT:"+ cmd +"?\n");
 	if (waitAnswer())
+	{
 		axes[axisNum].pos = axes[axisNum].prevPos;
+		lastCmdTimeout = true;
+	}
 	else
+	{
 		axes[axisNum].prevPos = axes[axisNum].pos;
+		lastCmdTimeout = false;
+	}
 	return axes[axisNum].pos;
 }
 
-void DeviceManager::getSensorData(int devNum)
+void DeviceManager::readSensorData(int devNum)
 {
 	// Quering shaft torque value if device is servoamplifier with connected motor
-	if (devices[devNum].type() == Device::Type::ServoTypeA &&
-		devices[devNum].type() == Device::Type::ServoTypeB)
+	Device::Type type = devices[devNum].type();
+	if (type != Device::Type::Sync && type != Device::Type::SimulatorSync)
 	{
 		//sentCmdId = CmdQueryID::TORQUE;
 		//queryArgs[0] = devNum;
 		//sendCmd("DEV" + to_string(devNum) + ":TORQUE?\n");
-		//waitAnswer();
+		//lastCmdTimeout = waitAnswer();
 		devices[devNum].updateSensorValue((rand() % 10000) / 10000.0 + devNum);
 	}
 }
@@ -157,35 +167,34 @@ void DeviceManager::jogAxis(int devNum, double offset)
 	printf("\"JOG\" command not implemented.\n");
 }
 
-const vector<Parameter>& DeviceManager::getParameterList(int devNum)
+double DeviceManager::readParameterValue(int devNum, string name, bool& success)
 {
-	return devices[devNum].parameters();
+	((int*)&queryArgs)[0] = devNum;
+	sentCmdId = CmdQueryID::PARAM;
+	sendCmd("DEV" + to_string(devNum) + ":PARAM? \"" + name + "\"");
+	lastCmdTimeout = waitAnswer();
+	double value = *(double*)answerBuffer;
+	printf("Value of param %s of dev %d is %.3f\n", name.c_str(), devNum, (float)value);
+	success = lastCmdTimeout || lastCmdErr;
+	return value;
 }
 
-const double DeviceManager::getParameterValue(int devNum, int paramId)
+bool DeviceManager::writeParameterValue(int devNum, string name, double value)
 {
-	return devices[devNum].parameters()[paramId].getValue();
+	sendCmd("DEV" + to_string(devNum) + ":PARAM \"" + name + "\"," + to_string(value));
+	printf("Param %s of dev %d set to %.3f\n", name.c_str(), devNum, (float)value);
+	return true;
 }
 
-void DeviceManager::setParameterValue(int devNum, uint16_t paramId, double value)
+size_t DeviceManager::writeParameterValues(int devNum, const vector<string>& names, const vector<double>& values)
 {
-	devices[devNum].setParameterValue(paramId, value);
-	string paramName = devices[devNum].parameters()[paramId].name();
-	sendCmd("DEV" + to_string(devNum) + ":SETP " + paramName + "," + to_string(value));
-	printf("Param %s of dev %d set to %.3f\n", paramName.c_str(), devNum, (float)value);
-}
-
-void DeviceManager::setParameterValues(int devNum, const vector<uint16_t>& idList, const vector<double>& list)
-{
-	for (size_t i = 0; i < idList.size(); i++)
-		setParameterValue(devNum, idList[i], list[i]);
-}
-
-void DeviceManager::setParameterValues(int devNum, const vector<double>& list)
-{
-	size_t minParamCount = min(list.size(), devices[devNum].parameters().size());
-	for (size_t i = 0; i < minParamCount; i++)
-		setParameterValue(devNum, i, list[i]);
+	int paramsWritten = 0;
+	for (size_t i = 0; i < names.size(); i++)
+	{
+		if (writeParameterValue(devNum, names[i], values[i]))
+			paramsWritten++;
+	}
+	return paramsWritten;
 }
 
 void DeviceManager::updateFirmware(const fstream& file)
@@ -196,15 +205,13 @@ void DeviceManager::updateFirmware(const fstream& file)
 vector<uint8_t> DeviceManager::getDevDescFileRaw()
 {
 	vector<uint8_t> data;
-	devDescFile.open(devDescFileStr);
+	devDescFile.open(devDescFileStr, fstream::in);
 	if (devDescFile.is_open())
 	{
 		stringstream buffer;
 		buffer << devDescFile.rdbuf();
 		string s = buffer.str();
 		data.assign(s.begin(), s.end());
-		if (data.size() < 40000)
-			printf("ababa");
 		devDescFile.close();
 	}
 	return data;
@@ -213,14 +220,14 @@ vector<uint8_t> DeviceManager::getDevDescFileRaw()
 bool DeviceManager::updateDevDescFile(const char* data, uint32_t size)
 {
 	bool error = true;
-	devDescFile.open(devDescFileStr);
-
+	devDescFile.open(devDescFileStr, fstream::out | fstream::trunc);
 	if (devDescFile.is_open())
 	{
 		devDescFile.seekp(0);
 		devDescFile.write(data, size);
 		error = (devDescFile.rdstate() & (ios::failbit | ios::badbit)) != 0;
 		devDescFile.flush();
+		parseDeviceDescriptionFile(devDescFile);
 		devDescFile.close();
 	}
 	return error;
@@ -256,68 +263,26 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 
 			string name, type, range, valueStr, minStr, maxStr;
 			Device::Type devtype = Device::Type::Unknown;
-			vector<Parameter> params;
 
 			for (int i = 0; i < devicesCount; i++)
 			{
-				params.clear();
 				const auto& dev = root["devices"][i];
 				name = dev["name"].asString();
 				type = dev["type"].asString();
-				
-				if (type.find("servo") != string::npos)
-					devtype = (type.find("type_B") != string::npos) ? Device::Type::ServoTypeB : Device::Type::ServoTypeA;
-				else if (type.find("sync") != string::npos)
-					devtype = Device::Type::Sync;
 
-				// Iterate parameter groups (from 'A' to ... symbol)
-				if (devtype == Device::Type::ServoTypeA || devtype == Device::Type::ServoTypeB)
-				{
-					for (char paramGroup[] = "PA"; !dev[paramGroup].isNull(); paramGroup[1]++)
-					{
-						int paramCount = dev[paramGroup].size();
-						for (int j = 0; j < paramCount; j++)
-						{
-							const char** paramDataDefault = getDefaultParam(devtype, (ParamGroup)(paramGroup[1] - 'A'), j);
-							range = string(paramDataDefault[3]);
-							valueStr = dev[paramGroup][j]["value"].asString();
-
-							// Divide range record "xxx-yyy" to 2 values: minimum (xxx) and maximum (yyy)
-							// Note that if xxx < 0, then there is 2 hyphen signs and we must skip first
-							size_t hyphenStartSearchPos = (paramDataDefault[3][0] == '-') ? 1 : 0;
-							size_t hyphenPos = range.find('-', hyphenStartSearchPos);
-							Parameter::Type type = Parameter::Type::Int;
-							double min = 0, max = 0, value = 0;
-							minStr = range.substr(0, hyphenPos);
-							maxStr = range.substr(hyphenPos + 1);
-							const char* fppos = strchr(paramDataDefault[3] + hyphenPos, '.');
-
-							if (fppos)
-							{
-								int precision = strlen(fppos) - 2;
-								type = (Parameter::Type)(Parameter::Type::FracPoint1 + precision);
-								min = stod(minStr);
-								max = stod(maxStr);
-								value = stod(valueStr); //value = stod(string(paramData[4]), &pos);
-							}
-							else
-							{
-								int base = 10;
-								if (!strncmp(paramDataDefault[5], "HEX", 3))
-								{
-									base = 16;
-									type = Parameter::Type::Hex;
-								}
-
-								min = stoll(minStr, NULL, base);
-								max = stoll(maxStr, NULL, base);
-								value = stoll(valueStr, NULL, base); //value = stoll(string(paramData[4]), &pos, base);
-							}
-							params.push_back({ paramDataDefault[0], paramDataDefault[1], paramDataDefault[2], value, min, max, type });
-						}
-					}
-				}
-				devices.push_back({name, devtype, params});
+				if (type == "mitsuservo_type_A" || type == "mitsuservo")
+					devtype = Device::ServoTypeA;
+				else if (type == "mitsuservo_type_B")
+					devtype = Device::ServoTypeB;
+				else if (type == "sync")
+					devtype = Device::Sync;
+				else if (type == "simulator_servo")
+					devtype = Device::Simulator;
+				else if (type == "simulator_syncro")
+					devtype = Device::SimulatorSync;
+				else
+					devtype = Device::Unknown;
+				devices.push_back({name, devtype});
 			}
 
 			int axesCount = root["axes"].size();
@@ -348,38 +313,75 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 							axis.setSyncDevice(&dev);
 				}
 				axes.push_back(axis);
+				if (axes[i].linkedDevs()[0])
+					axes[i].linkedDevs()[0]->setAxis(&axes[i]);
 			}
 		}
+		else
+			errors.push_back(ErrorID::CONF_FILE_PARSING);
 		file.close();
 	}
 }
 
 void DeviceManager::parseReceivedData(const vector<uint8_t>& data)
 {
-	double answer = strtod((char*)data.data(), NULL);
+	double value = extractValue(data);
+	bool convSuccess = !isnan(value);
+	ErrorID err = NO_ERROR;
+
 	switch (sentCmdId)
 	{
 	case DeviceManager::Invalid:
 		break;
 	case DeviceManager::POS:
 	case DeviceManager::UPOS:
-		axes[queryArgs[0]].pos = answer;
+		if (convSuccess)
+			axes[queryArgs[0]].pos = value;
+		else
+			err = WRONG_ANSWER;
 		break;
 	case DeviceManager::UFORWLIM:
-		axes[queryArgs[0]].setMinLimit(answer);
+		if (convSuccess)
+			axes[queryArgs[0]].setMinLimit(value);
+		else
+			err = WRONG_ANSWER;
 		break;
 	case DeviceManager::UBACKLIM:
-		axes[queryArgs[0]].setMaxLimit(answer);
+		if (convSuccess)
+			axes[queryArgs[0]].setMaxLimit(value);
+		else
+			err = WRONG_ANSWER;
 		break;
 	case DeviceManager::AXESTOT:
-		break;
 	case DeviceManager::DEVSTOT:
 		break;
 	case DeviceManager::TORQUE:
-		devices[queryArgs[0]].updateSensorValue(answer);
+		if (convSuccess)
+			devices[queryArgs[0]].updateSensorValue(value);
+		else
+			err = WRONG_ANSWER;
+		break;
+	case DeviceManager::PARAM:
+		if (convSuccess)
+			*(double*)answerBuffer = value;
+		else
+			err = WRONG_ANSWER;
 		break;
 	default:
 		break;
 	}
+	lastCmdErr = err;
+	if (err)
+		errors.push_back(err);
 	sentCmdId = CmdQueryID::Invalid;
+}
+
+double DeviceManager::extractValue(const std::vector<uint8_t>& data)
+{
+	char* end;
+	double answer = strtod((char*)data.data(), &end);
+	if (end == (char*)data.data())
+		return numeric_limits<double>::quiet_NaN();
+	else
+		return answer;
 }
