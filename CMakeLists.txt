@@ -13,13 +13,11 @@ file(GLOB SOURCES
 	main.cpp
 	Device.cpp
 	Axis.cpp
+	App.cpp
 	AppManager.cpp
 	DeviceManager.cpp
 	parameter.cpp
-	AppManager.cpp
-	RFDaemon.cpp
 	RFDaemonServer.cpp
-	string_constants.cpp
 	config_json_default.cpp
 ) 
 
