@@ -46,8 +46,11 @@ void App::stop(bool atStart)
 // Call only in a separate thread
 pid_t App::appFork()
 {
-    beforeRunning();
-    cout << "START: " << _name << endl;
+    isStopped = false;
+    isFinished = false;
+    successStart = true;
+    _exitStatus = 0;
+    _restartAttempts++;
     pid_t pid = fork();
 
     if (pid == 0)
@@ -55,8 +58,8 @@ pid_t App::appFork()
         vector<char*> argsStr;
         argsStr.push_back((char*)"/bin/sh");
         argsStr.push_back((char*)"-c");
-        string c = command();
-        for (auto& item : args())
+        string c = _cmd;
+        for (auto& item : _args)
             c.append(" " + item);
         argsStr.push_back((char*)c.c_str());
         argsStr.push_back((char*)NULL);
@@ -64,19 +67,10 @@ pid_t App::appFork()
     }
     else if (pid > 0)
     {
-        setPid(pid);
+        _pid = pid;
         waitFinish();
     }
     return pid;
-}
-
-void App::beforeRunning()
-{
-    isStopped = false;
-    isFinished = false;
-    successStart = true;
-    _exitStatus = 0;
-    _restartAttempts++;
 }
 
 bool App::stopped() const
@@ -104,17 +98,17 @@ int App::pid() const
     return _pid;
 }
 
-const std::string& App::name() const
+const string& App::name() const
 {
     return _name;
 }
 
-const std::string& App::command() const
+const string& App::command() const
 {
     return _cmd;
 }
 
-const std::vector<std::string>& App::args() const
+const vector<string>& App::args() const
 {
     return _args;
 }
@@ -143,13 +137,12 @@ uint32_t App::restartAttempts() const
 
 pid_t App::waitFinish()
 {
-    wait(&_exitStatus);
+    waitpid(_pid, &_exitStatus, 0);
     isFinished = true;
-    cout << "FINISHED: " << this->_name << endl;
     return _pid;
 }
 
-volatile int App::watchFunc()
+void App::watchFunc()
 {
     while (1)
     {
@@ -163,7 +156,6 @@ volatile int App::watchFunc()
         if (!successStart)
             break;
     }
-    return _exitStatus;
 }
 
 void App::run()

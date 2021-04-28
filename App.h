@@ -17,7 +17,6 @@ public:
 	};
 	App(const std::string& name, const std::string& cmd, RestartMode mode);
 	void stop(bool atStart = false);
-	void beforeRunning();
 	bool stopped() const;
 	bool finished() const;
 	RestartMode restartMode() const;
@@ -33,7 +32,7 @@ public:
 	pid_t waitFinish();
 	void run();
 private:
-	volatile int watchFunc();
+	void watchFunc();
 	pid_t appFork();
 	std::thread* _thread = NULL;
 	int restartCount = 0;

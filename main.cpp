@@ -195,12 +195,7 @@ int userIOThread()
                     }
                 }
                 else
-                    usleep(1000);
-                auto& apps = appManager->getAppsList();
-                for (auto& d : apps)
-                    cout << d.name() << " " << d.restartAttempts() << " " << d.stopped() << " " << d.finished() << " " << endl;
-                cout << endl;
-                sleep(1);
+                    usleep(10000);
             }
         }
     }
