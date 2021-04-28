@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <functors.h>
 #include "igris/util/crc.h"
+#include <pthread.h>
 
 typedef struct
 {

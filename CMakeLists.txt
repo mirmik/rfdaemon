@@ -12,6 +12,8 @@ set(CMAKE_CC_STANDARD 11)
 file(GLOB SOURCES 
 	main.cpp
 	Device.cpp
+	Axis.cpp
+	AppManager.cpp
 	DeviceManager.cpp
 	parameter.cpp
 	AppManager.cpp
