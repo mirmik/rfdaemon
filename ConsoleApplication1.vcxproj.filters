@@ -21,6 +21,7 @@
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="config_json_default.cpp" />
     <ClCompile Include="Axis.cpp" />
+    <ClCompile Include="App.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -90,6 +91,9 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="Axis.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="App.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

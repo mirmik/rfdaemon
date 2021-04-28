@@ -1,8 +1,9 @@
+#include <fstream>
 #include "RFDaemonServer.h"
 #include "AppManager.h"
 #include "DeviceManager.h"
 #include "Axis.h"
-#include <fstream>
+#include "App.h"
 
 using namespace std;
 
@@ -15,7 +16,7 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(GET_CONFIG, Func(this, &RFDaemonServer::getConfig));
 	addCmd(SET_CONFIG, Func(this, &RFDaemonServer::setConfig));
 	addCmd(GET_DEV_LOGS, Func(this, &RFDaemonServer::getDevErrLogs));
-	addCmd(GET_MEASUREMENTS, Func(this, &RFDaemonServer::getDevSensorValues));
+	addCmd(GET_MEASUREMENTS, Func(this, &RFDaemonServer::getSystemMeasurements));
 	addCmd(AXES_LIMITS_SET, Func(this, &RFDaemonServer::setAxesLimits));
 	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
 	addCmd(UPDATE_FIRMWARE, Func(this, &RFDaemonServer::updateControllerFW));
@@ -44,32 +45,29 @@ vector<uint8_t> RFDaemonServer::getAppInfo(const uint8_t* data, uint32_t size)
 	vector<uint8_t> answer(1);
 	answer[0] = appMgr->getAppCount();
 
-	vector<uint64_t> uptimes = appMgr->getAppUptimeList();
+	const vector<App>& apps = appMgr->getAppsList();
 
-	for (size_t i = 0; i < appMgr->getAppCount(); i++)
+	for (const auto& a : apps)
 	{
 		uint8_t arr[13];
-		arr[0] = appMgr->getAppStatusList()[i];
-		*(int32_t*)(arr + 1) = appMgr->getAppPids()[i];
-		*(uint64_t*)(arr + 5) = uptimes[i];
+		arr[0] = !a.stopped();
+		*(int32_t*)(arr + 1) = a.pid();
+		*(uint64_t*)(arr + 5) = a.uptime();
 		answer.insert(answer.end(), arr, arr + sizeof(arr));
-		const string& appName = appMgr->getAppNames()[i];
-		answer.insert(answer.end(), appName.c_str(), appName.c_str() + appName.length() + 1);
+		answer.insert(answer.end(), a.name().c_str(), a.name().c_str() + a.name().length() + 1);
 	}
 	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::startAllApps(const uint8_t* data, uint32_t size)
 {
-	if (!appMgr->appsIsRunning())
-		appMgr->runApps();
+	appMgr->runApps();
 	return vector<uint8_t>();
 }
 
 vector<uint8_t> RFDaemonServer::stopAllApps(const uint8_t* data, uint32_t size)
 {
-	if (appMgr->appsIsRunning())
-		appMgr->closeApps();
+	appMgr->closeApps();
 	return vector<uint8_t>();
 }
 
@@ -103,14 +101,19 @@ vector<uint8_t> RFDaemonServer::getDevErrLogs(const uint8_t* data, uint32_t size
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getDevSensorValues(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getSystemMeasurements(const uint8_t* data, uint32_t size)
 {
-	vector<uint8_t> answer(2 + sizeof(double) * 2);
+	int appCount = appMgr->getAppCount();
+	vector<uint8_t> answer(2 + sizeof(double) * 2 + (sizeof(int64_t) + 1) * appCount * 2 + 1);
 	uint8_t devNum = data[0];
 	uint8_t axisNum = data[1];
 	answer[0] = data[0];
 	answer[1] = data[1];
 	double* pData = (double*)(answer.data() + 2);
+	uint8_t* pAppCount = answer.data() + 2 + sizeof(double) * 2;
+	uint8_t* pAppState = answer.data() + 2 + sizeof(double) * 2 + 1;
+	uint8_t* pAppStartSuccess = answer.data() + 2 + sizeof(double) * 2 + appCount + 1;
+	int64_t* pUptime = (int64_t*)(answer.data() + 2 + sizeof(double) * 2 + appCount * 2 + 1);
 	if (devNum < devMgr->devCount())
 		pData[0] = devMgr->getDevList()[devNum].sensorValue();
 	else
@@ -119,6 +122,15 @@ vector<uint8_t> RFDaemonServer::getDevSensorValues(const uint8_t* data, uint32_t
 		pData[1] = devMgr->getAxesList()[axisNum].position();
 	else
 		pData[1] = 0;
+
+	pAppCount[0] = appCount;
+
+	for (int i = 0; i < appCount; i++)
+	{
+		pAppState[i] = !appMgr->getAppsList()[i].stopped();
+		pAppStartSuccess[i] = appMgr->getAppsList()[i].successfulStart();
+		pUptime[i] = appMgr->getAppsList()[i].uptime();
+	}
 	return answer;
 }
 

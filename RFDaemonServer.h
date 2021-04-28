@@ -49,7 +49,7 @@ public:
     std::vector<uint8_t> getConfig(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setConfig(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getDevErrLogs(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getDevSensorValues(const uint8_t* data, uint32_t size);
+    std::vector<uint8_t> getSystemMeasurements(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setAxesLimits(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateSysImg(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateControllerFW(const uint8_t* data, uint32_t size);

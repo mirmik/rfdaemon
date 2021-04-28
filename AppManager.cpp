@@ -1,60 +1,29 @@
 #include <iostream>
 #include <fstream>
+#include <mutex>
 #include <unistd.h>
-#include <signal.h>
 #include <pwd.h>
 #include "jsoncpp/json/json.h"
 #include "AppManager.h"
-#include <sys/stat.h>
-#include <sys/wait.h>
 
 using namespace std;
-
-vector<int> AppManager::watchingThreadsRet;
-vector<int> AppManager::watchingThreadsArgs;
-vector<pthread_t> AppManager::watchingThreads;
-vector<int> AppManager::appRestartEnableList;
-vector<uint8_t> AppManager::appRunningStatusList;
-vector<int> AppManager::appRestartAttempts;
-vector<pid_t> AppManager::appPidList;
-vector<string> AppManager::appList, AppManager::appCmdList;
-vector<vector<string>> AppManager::appCmdArgList;
-bool AppManager::appsIsRunningFlag = false;
-string AppManager::logFileStr;
-string AppManager::cfgFileName;
-string AppManager::devDescFileName;
-ifstream AppManager::appConfFile;
-ifstream AppManager::devDescFile;
-ifstream AppManager::appLogFile;
-pthread_mutex_t AppManager::stdOutputMutex;
-pthread_mutex_t AppManager::threadArrayMutex;
-pid_t AppManager::lastLaunchPidResult = 0;
-
-AppManager::AppManager()
-{
-    devDescFileName = "";
-    pthread_mutex_init(&stdOutputMutex, NULL);
-    pthread_mutex_init(&threadArrayMutex, NULL);
-}
+std::mutex AppManager::ioMutex;
 
 bool AppManager::openConfigFile(const string& filename)
 {
     Json::Value root;
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
-    bool error = false;
-    appConfFile = ifstream(filename);
+    appFile = ifstream(filename);
+    appFileName = filename;
+    bool error = !appFile.is_open();
     string homedir = string(getpwuid(getuid())->pw_dir);
-
-    if (!appConfFile.is_open())
-    {
+    if (error)
         cout << "RFDaemon configuration file \"" + filename + "\" missing.\n";
-        error = true;
-    }
     else
         cout << "RFDaemon configuration file \"" + filename + "\" found.\n";
 
-    if (!parseFromStream(builder, appConfFile, &root, &errs))
+    if (!parseFromStream(builder, appFile, &root, &errs))
     {
         cout << "Errors in configuration file \"" + filename + "\"[" << errs << "].\n";
         error = true;
@@ -71,206 +40,128 @@ bool AppManager::openConfigFile(const string& filename)
         {
             for (int i = 0; i < arraySize; i++)
             {
-                appList.push_back(root["apps"][i]["name"].asString());
-                appCmdList.push_back(root["apps"][i]["command"].asString());
-            }
-            if (appList.size() != appCmdList.size())
-            {
-                cout << "Property 'command' missing in file \"" + filename + "\".\n";
-                error = true;
-            }
-
-            for (auto& s : appCmdList)
-            {
-                if (!s.empty())
+                string name = root["apps"][i]["name"].asString();
+                string cmd = root["apps"][i]["command"].asString();
+                if (!cmd.empty() && !name.empty())
                 {
                     // Replace username in command string to actual
-                    size_t homePathPos = s.find("/home/");
-                    size_t homePathEnd = s.find('/', homePathPos + 7);
+                    size_t homePathPos = cmd.find("/home/"), homePathEnd = cmd.find('/', homePathPos + 7);
                     while ((homePathPos != string::npos) && (homePathEnd != string::npos) && (homePathEnd > homePathPos))
                     {
-                        s.replace(homePathPos, homePathEnd - homePathPos, homedir);
-                        homePathPos = s.find("/home/", homePathEnd);
-                        homePathEnd = s.find('/', homePathPos + 7);
+                        cmd.replace(homePathPos, homePathEnd - homePathPos, homedir);
+                        homePathPos = cmd.find("/home/", homePathEnd);
+                        homePathEnd = cmd.find('/', homePathPos + 7);
                     }
-
-                    // Split string to command and arguments
-                    size_t argsBegin = s.find_first_of(' ');
-                    vector<string> args = { s.substr(0, argsBegin) };
-
-                    if (argsBegin != string::npos)
-                    {
-                        string argstr = s.substr(argsBegin);
-
-                        char* p = strtok((char*)argstr.c_str(), " ");
-                        while (p)
-                        {
-                            args.push_back(p);
-                            p = strtok(NULL, " ");
-                        }
-                    }
-                    s = s.substr(0, argsBegin);
-                    appCmdArgList.push_back(args);
+                    App::RestartMode restartMode;
+                    if (root["apps"][i]["restart"].asString() == "error")
+                        restartMode = App::RestartMode::ERROR;
+                    else if (root["apps"][i]["restart"].asString() == "never")
+                        restartMode = App::RestartMode::NEVER;
+                    else
+                        restartMode = App::RestartMode::ALWAYS; // "always" and other values
+                    App app(name, cmd, restartMode);
+                    apps.push_back(app);
                 }
-                appRestartEnableList.push_back(1);
+                else
+                {
+                    error = true;
+                    break;
+                }
             }
-            appRestartAttempts.resize(arraySize);
-            appRunningStatusList.resize(arraySize);
         }
     }
     if (!error)
     {
         bool configFound = false;
-        cfgFileName = filename;
+        bool runtimeSettingsFound = false;
+        bool rfmeasFound = false;
 
-        size_t i = 0, j = 0;
-        for (; i < appCmdList.size(); i++)
+        // Search for config.json and runtime.json filepaths in rfmeas cmd string
+        size_t i = 0, j = 0, k = 0;
+        for (; i < apps.size(); i++)
         {
-            if (appCmdList[i].find("rfmeas") != string::npos)
-                break;
-        }
-        for (;j < appCmdArgList[i].size(); j++)
-        {
-            if (appCmdArgList[i][j].find("--config") != string::npos)
+            if (apps[i].command().find("rfmeas") != string::npos)
             {
-                configFound = true;
+                rfmeasFound = true;
                 break;
             }
         }
-
-        if (configFound && !appCmdArgList[i][j + 1].empty())
-            devDescFileName = appCmdArgList[i][j + 1];
+        if (rfmeasFound)
+        {
+            for (; j < apps[i].args().size(); j++)
+            {
+                if (apps[i].args()[j].find("--config") != string::npos)
+                {
+                    configFound = true;
+                    break;
+                }
+            }
+            for (; k < apps[i].args().size(); k++)
+            {
+                if (apps[i].args()[j].find("--runtime") != string::npos)
+                {
+                    runtimeSettingsFound = true;
+                    break;
+                }
+            }
+        }
+        if (configFound && runtimeSettingsFound &&
+            !apps[i].args()[j + 1].empty() && !apps[i].args()[k + 1].empty())
+        {
+            devDescFileName = apps[i].args()[j + 1];
+            runtimeSettingsFileName = apps[i].args()[k + 1];
+        }
         else
+        {
             devDescFileName = homedir + "/settings.json";
+            runtimeSettingsFileName = homedir + "/runtime.json";
+        }
     }
     return error;
 }
 
 void AppManager::runApps()
 {
-    appPidList.clear();
-    size_t cmdCount = appCmdList.size();
-    vector<vector<const char*>> args(cmdCount);
-    vector<pid_t> pids;
-
-    pthread_mutex_lock(&threadArrayMutex);
-    for (size_t i = 0; i < cmdCount; i++)
+    appRestartWatchThread = thread(&AppManager::restartWatchFunc, this);
+    for (size_t i = 0; i < apps.size(); i++)//(auto& a : apps)
     {
-        for (auto& item : appCmdArgList[i])
-            args[i].push_back(item.c_str());
-        args[i].push_back(NULL);
-        watchingThreads.push_back(0);
-        watchingThreadsRet.push_back(0);
-        watchingThreadsArgs.push_back(i);
+        if (!apps[i].stopped())
+            apps[i].run();
     }
-    pthread_mutex_unlock(&threadArrayMutex);
-    for (size_t i = 0; i < cmdCount; i++)
-        pthread_create(&watchingThreads[i], NULL, appWatchThread, &watchingThreadsArgs[i]);
-    appsIsRunningFlag = cmdCount > 0;
-    appPidList = pids;
-}
-
-pid_t AppManager::runNewApp(const string& name, const string& cmd, const vector<string>& args)
-{
-    int result = 0;
-    vector<const char*> argsStr;
-    for (auto& item : args)
-        argsStr.push_back(item.c_str());
-    argsStr.push_back(NULL);
-
-    pthread_mutex_lock(&threadArrayMutex);
-    appCmdArgList.push_back(args);
-    appCmdList.push_back(cmd);
-    appList.push_back(name);
-    watchingThreads.push_back(0);
-    watchingThreadsRet.push_back(0);
-    watchingThreadsArgs.push_back(appList.size() - 1);
-    pthread_mutex_unlock(&threadArrayMutex);
-    pthread_create(&watchingThreads.back(), NULL, appWatchThread, &watchingThreadsArgs.back());
-    if (lastLaunchPidResult > 0)
-        result = appPidList.back();
-    else
-        result = lastLaunchPidResult;
-    return result;
 }
 
 void AppManager::closeApps()
 {
-    for (size_t i = 0; i < appPidList.size(); i++)
-    {
-        pthread_mutex_lock(&threadArrayMutex);
-        appRestartEnableList[i] = 0;
-        pthread_mutex_unlock(&threadArrayMutex);
-        kill(appPidList[i], SIGTERM);
-    }
-    pthread_mutex_lock(&threadArrayMutex);
-    appPidList.clear();
-    pthread_mutex_unlock(&threadArrayMutex);
-    pthread_mutex_lock(&stdOutputMutex);
+    appRestartWatchThread.join();
+    for (auto& a : apps)
+        a.stop();
+    ioMutex.lock();
     cout << "All created processes have just been killed." << endl;
     cout.flush();
-    pthread_mutex_unlock(&stdOutputMutex);
+    ioMutex.unlock();
 }
 
-AppManager::~AppManager()
+int AppManager::restartWatchFunc()
 {
-    pthread_mutex_destroy(&stdOutputMutex);
-    pthread_mutex_destroy(&threadArrayMutex);
-}
-
-const string& AppManager::getDeviceDescFilename() const
-{
-    return devDescFileName;
-}
-
-void* AppManager::appWatchThread(void* arg)
-{
-    const int& threadNum = *(int*)arg;
-    vector<char*> args;
-    for (auto& item : appCmdArgList[threadNum])
-        args.push_back((char*)item.c_str());
-
-    while (1)
+    for (int i = 0; i < 100000; i++)
     {
-        if (!appRunningStatusList[threadNum])
+        this_thread::sleep_for(10ms);
+        for (size_t j = 0; j < apps.size(); j++)
         {
-            pid_t pid = fork();
-            if (pid == 0)
+            if (!apps[j].stopped())
             {
-                int status = execv(appCmdList[threadNum].c_str(), args.data());
-                pthread_mutex_lock(&stdOutputMutex);
-                cout << "Process \"" << appCmdList[threadNum] << "\" exit status: " << status << endl;
-                cout.flush();
-                pthread_mutex_unlock(&stdOutputMutex);
+                if (apps[j].restartAttempts() > 2)
+                {
+                    apps[j].stop(true);
+                    ioMutex.lock();
+                    cout << "Process \"" << apps[j].name() << "\" did too many restarts and won't restart anymore." << endl;
+                    cout.flush();
+                    ioMutex.unlock();
+                }
             }
-            else if (pid > 0)
-            {
-                pthread_mutex_lock(&threadArrayMutex);
-                lastLaunchPidResult = pid;
-                appPidList.push_back(pid);
-                pthread_mutex_unlock(&threadArrayMutex);
-                appRunningStatusList[threadNum] = 1;
-                wait(&watchingThreadsRet[threadNum]);
-            }
-            else
-            {
-                lastLaunchPidResult = pid;
-                pthread_mutex_lock(&stdOutputMutex);
-                cout << "Error: failed to start process \"" << appCmdList[threadNum] << "\"." << endl;
-                cout.flush();
-                pthread_mutex_unlock(&stdOutputMutex);
-            }
-            pthread_mutex_lock(&stdOutputMutex);
-            cout << pid << " " << "parent: " << getpid() << endl;
-            cout.flush();
-            pthread_mutex_unlock(&stdOutputMutex);
         }
-        appRunningStatusList[threadNum] = 0;
-        if (!appRestartEnableList[threadNum])
-            break;
-        usleep(1000);
     }
-    return &watchingThreadsRet[threadNum];
+    return 0;
 }
 
 void AppManager::restartApps()
@@ -280,14 +171,9 @@ void AppManager::restartApps()
     runApps();
 }
 
-uint32_t AppManager::getAppCount() const
+size_t AppManager::getAppCount() const
 {
-    return appPidList.size();
-}
-
-bool AppManager::appsIsRunning() const
-{
-    return appsIsRunningFlag;
+    return apps.size();
 }
 
 void AppManager::updateConfigFile(const string& newContent)
@@ -296,50 +182,20 @@ void AppManager::updateConfigFile(const string& newContent)
 
 ifstream& AppManager::getAppConfigFile()
 {
-    return appConfFile;
+    return appFile;
 }
 
-const vector<pid_t>& AppManager::getAppPids() const
+const vector<App>& AppManager::getAppsList() const
 {
-    return appPidList;
-}
-
-const vector<uint8_t>& AppManager::getAppStatusList() const
-{
-    return appRunningStatusList;
-}
-
-const vector<uint64_t> AppManager::getAppUptimeList() const
-{
-    vector<uint64_t> uptimes;
-
-    for (size_t i = 0; i < appList.size(); i++)
-    {
-        string file = "/proc/" + to_string(appPidList[i]) + "/stat";
-        struct stat attrib;
-        stat(file.c_str(), &attrib);
-
-        uptimes.push_back(time(NULL) - attrib.st_mtime);
-    }
-    return uptimes;
-}
-
-const vector<string>& AppManager::getAppNames() const
-{
-    return appList;
-}
-
-const vector<string>& AppManager::getAppCmds() const
-{
-    return appCmdList;
-}
-
-const vector<vector<string>>& AppManager::getAppArgs() const
-{
-    return appCmdArgList;
+    return apps;
 }
 
 ifstream& AppManager::getLogFile()
 {
-    return appLogFile;
+    return logFile;
+}
+
+const string& AppManager::getDeviceDescFilename() const
+{
+    return devDescFileName;
 }

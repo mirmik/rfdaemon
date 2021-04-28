@@ -5,8 +5,8 @@
 #include <atomic>
 #include <unistd.h>
 #include <signal.h>
+#include <thread>
 #include "main.h"
-#include "pthread.h"
 #include "RFDaemonServer.h"
 #include "AppManager.h"
 #include "DeviceManager.h"
@@ -14,11 +14,14 @@
 using namespace std;
 
 uint16_t port = DEFAULT_TCP_PORT;
-AppManager appManager;
+AppManager* appManager = NULL;
 DeviceManager* devManager = NULL;
 RFDaemonServer* srv = NULL;
-int srvSendRetCode = 0, srvRecvRetCode = 0,
-clientSendRetCode = 0, clientRecvRetCode = 0, userIORetCode = 0;
+thread srvRxThread;
+thread srvTxThread;
+thread clRxThread;
+thread clTxThread;
+thread userThread;
 
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
@@ -32,21 +35,14 @@ clientSendRetCode = 0, clientRecvRetCode = 0, userIORetCode = 0;
 */
 int main(int argc, char* argv[])
 {
-    string configFileName = "";
-    uint8_t terminalMode = 0;
-    bool serverOnlyMode = false;
+    string configFileName;
+    bool terminalMode = false, serverOnlyMode = false;
     pid_t daemonPid = 0;
-    uint32_t srvSendThreadArg = 0, srvRecvThreadArg = 0,
-        clientSendThreadArg = 0, clientRecvThreadArg = 0,
-        userIOThreadArg = 0;
-    pthread_t hSrvSendThread = 0, hSrvRecvThread = 0,
-        hClientSendThread = 0, hClientRecvThread = 0,
-        hUserIOThread = 0;
 
     system("pkill rfmeas");
     system("pkill dataproxy");
-    // system("pkill ctrans");
-    // system("pkill crowker");
+    system("pkill ctrans");
+    system("pkill crowker");
     //system("pkill ConsoleApp");
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
@@ -63,45 +59,39 @@ int main(int argc, char* argv[])
         daemonPid = fork();
     if (daemonPid == -1) // main process code part
         cout << "Error: RFDaemon process fork failed.";
-    else if (!daemonPid) // fork process code part
+    else if (daemonPid == 0) // fork process code part
     {
         signal(SIGINT, exitHandler);
         signal(SIGTERM, exitHandler);
         signal(SIGQUIT, exitHandler);
-        if (appManager.openConfigFile(configFileName))
+        srv = new RFDaemonServer(port);
+        appManager = new AppManager;
+        if (appManager->openConfigFile(configFileName))
         {
             serverOnlyMode = true;
             cout << "Run server-only mode.\n";
         }
         if (!serverOnlyMode)
-            appManager.runApps();
-        //sleep(1);
-        //closeApps(appPidList);
+            appManager->runApps();
 
-        pthread_create(&hSrvRecvThread, NULL, tcpServerReceiveThread, &srvRecvThreadArg);
-        pthread_create(&hSrvSendThread, NULL, tcpServerSendThread, &srvSendThreadArg);
-        pthread_create(&hClientRecvThread, NULL, tcpClientReceiveThread, &clientRecvThreadArg);
-        pthread_create(&hClientSendThread, NULL, tcpClientSendThread, &clientSendThreadArg);
+        srvRxThread = thread(tcpServerReceiveThread);
+        srvTxThread = thread(tcpServerSendThread);
+        clRxThread = thread(tcpClientReceiveThread);
+        clTxThread = thread(tcpClientSendThread);
         if (terminalMode)
         {
-            pthread_create(&hUserIOThread, NULL, userIOThread, &userIOThreadArg);
-            pthread_join(hUserIOThread, NULL);
+            userThread = thread(userIOThread);
+            userThread.join();
         }
-        pthread_join(hSrvRecvThread, NULL);
-        pthread_join(hSrvSendThread, NULL);
-        pthread_join(hClientRecvThread, NULL);
-        pthread_join(hClientSendThread, NULL);
-        if (srvSendRetCode || srvRecvRetCode || clientSendRetCode || clientRecvRetCode || userIORetCode)
-            cerr << srvSendRetCode << " "
-            << srvRecvRetCode << " "
-            << clientSendRetCode << " "
-            << clientRecvRetCode << " "
-            << userIORetCode << endl;
+        clTxThread.join();
+        clRxThread.join();
+        srvTxThread.join();
+        srvRxThread.join();
     }
     return 0;
 }
 
-bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileName, uint8_t& terminalMode)
+bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileName, bool& terminalMode)
 {
     int opt = 0, len = 0, portArgLen = 0;
     bool wrongArg = false;
@@ -146,42 +136,36 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
     return (wrongArg || !len);
 }
 
-void* tcpServerSendThread(void* arg)
+int tcpServerSendThread()
 {
-    auto s = new RFDaemonServer(port);
     while (!devManager);
-    s->setAppManager(&appManager);
-    s->setDeviceManager(devManager);
-    srv = s;
-    srvSendRetCode = srv->sendThread();
-    return &srvSendRetCode;
+    srv->setAppManager(appManager);
+    srv->setDeviceManager(devManager);
+    return srv->sendThread();
 }
 
-void* tcpServerReceiveThread(void* arg)
+int tcpServerReceiveThread()
 {
     while (!srv);
-    srvRecvRetCode = srv->receiveThread();
-    return &srvRecvRetCode;
+    return srv->receiveThread();
 }
 
-void* tcpClientSendThread(void* arg)
+int tcpClientSendThread()
 {
-    devManager = new DeviceManager(appManager.getDeviceDescFilename());
-    clientSendRetCode = devManager->sendThread();
-    return &clientSendRetCode;
+    devManager = new DeviceManager(appManager->getDeviceDescFilename());
+    return devManager->sendThread();
 }
 
-void* tcpClientReceiveThread(void* arg)
+int tcpClientReceiveThread()
 {
     usleep(500000);
     while (!devManager);
     devManager->connectToPort("localhost", RFMEASK_TCP_PORT);
     usleep(1000);
-    clientRecvRetCode = devManager->receiveThread();
-    return &clientRecvRetCode;
+    return devManager->receiveThread();
 }
 
-void* userIOThread(void* arg)
+int userIOThread()
 {
     srand(2341234);
     while (1)
@@ -212,14 +196,19 @@ void* userIOThread(void* arg)
                 }
                 else
                     usleep(1000);
+                auto& apps = appManager->getAppsList();
+                for (auto& d : apps)
+                    cout << d.name() << " " << d.restartAttempts() << " " << d.stopped() << " " << d.finished() << " " << endl;
+                cout << endl;
+                sleep(1);
             }
         }
     }
-    return &userIORetCode;
+    return 0;
 }
 
 void exitHandler(int sig)
 {
-    appManager.closeApps();
+    appManager->closeApps();
     exit(sig);
 }

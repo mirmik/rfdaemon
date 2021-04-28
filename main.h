@@ -9,9 +9,9 @@
 #define RFMEASK_TCP_PORT		5025
 
 void exitHandler(int sig);
-bool checkRunArgs(int argc, char* argv[], uint16_t& port, std::string& appListFileName, uint8_t& terminalMode);
-void* tcpServerSendThread(void* arg);
-void* tcpServerReceiveThread(void* arg);
-void* tcpClientSendThread(void* arg);
-void* tcpClientReceiveThread(void* arg);
-void* userIOThread(void* arg);
+bool checkRunArgs(int argc, char* argv[], uint16_t& port, std::string& appListFileName, bool& terminalMode);
+int tcpServerSendThread();
+int tcpServerReceiveThread();
+int tcpClientSendThread();
+int tcpClientReceiveThread();
+int userIOThread();
