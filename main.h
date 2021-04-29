@@ -10,6 +10,4 @@ void exitHandler(int sig);
 bool checkRunArgs(int argc, char* argv[], uint16_t& port, std::string& appListFileName, bool& terminalMode);
 int tcpServerSendThread();
 int tcpServerReceiveThread();
-int tcpClientSendThread();
-int tcpClientReceiveThread();
 int userIOThread();

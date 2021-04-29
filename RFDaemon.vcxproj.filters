@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="parameter.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp">
       <Filter>jsoncpp\src</Filter>
     </ClCompile>
@@ -17,17 +16,11 @@
     </ClCompile>
     <ClCompile Include="RFDaemonServer.cpp" />
     <ClCompile Include="AppManager.cpp" />
-    <ClCompile Include="DeviceManager.cpp" />
-    <ClCompile Include="Device.cpp" />
-    <ClCompile Include="config_json_default.cpp" />
-    <ClCompile Include="Axis.cpp" />
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="TcpServer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="parameter.h">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="jsoncpp\json\allocator.h">
@@ -76,21 +69,6 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="AppManager.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="TcpClient.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="DeviceManager.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="Device.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="config_json_default.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="Axis.h">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="App.h">

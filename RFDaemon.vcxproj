@@ -86,25 +86,17 @@
     <ClCompile Include="..\igris\igris\util\crc.c" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="AppManager.cpp" />
-    <ClCompile Include="Axis.cpp" />
-    <ClCompile Include="config_json_default.cpp" />
-    <ClCompile Include="Device.cpp" />
-    <ClCompile Include="DeviceManager.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_value.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_writer.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="parameter.cpp" />
     <ClCompile Include="RFDaemonServer.cpp" />
+    <ClCompile Include="TcpServer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\igris\igris\util\crc.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="AppManager.h" />
-    <ClInclude Include="Axis.h" />
-    <ClInclude Include="config_json_default.h" />
-    <ClInclude Include="Device.h" />
-    <ClInclude Include="DeviceManager.h" />
     <ClInclude Include="functors.h" />
     <ClInclude Include="jsoncpp\json\allocator.h" />
     <ClInclude Include="jsoncpp\json\assertions.h" />
@@ -118,9 +110,7 @@
     <ClInclude Include="jsoncpp\json\writer.h" />
     <ClInclude Include="jsoncpp\src\lib_json\json_tool.h" />
     <ClInclude Include="main.h" />
-    <ClInclude Include="parameter.h" />
     <ClInclude Include="RFDaemonServer.h" />
-    <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpServer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -136,6 +126,11 @@
     <Link>
       <LibraryDependencies>pthread</LibraryDependencies>
     </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

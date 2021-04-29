@@ -59,8 +59,7 @@ bool AppManager::openConfigFile(const string& filename)
                         restartMode = App::RestartMode::NEVER;
                     else
                         restartMode = App::RestartMode::ALWAYS; // "always" and other values
-                    App app(name, cmd, restartMode);
-                    apps.push_back(app);
+                    apps.push_back({ name, cmd, restartMode });
                 }
                 else
                 {
@@ -215,4 +214,9 @@ ifstream& AppManager::getLogFile()
 const string& AppManager::getDeviceDescFilename() const
 {
     return devDescFileName;
+}
+
+std::list<uint8_t>& AppManager::errors()
+{
+    return errorList;
 }

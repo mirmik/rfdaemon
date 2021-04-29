@@ -1,21 +1,20 @@
-﻿#include <iostream>
+﻿#include "main.h"
+#include <getopt.h>
+#include <unistd.h>
+#include <string.h>
+#include <iostream>
 #include <signal.h>
 #include <thread>
-#include "main.h"
 #include "RFDaemonServer.h"
 #include "AppManager.h"
-#include "DeviceManager.h"
 
 using namespace std;
 
 uint16_t port = DEFAULT_TCP_PORT;
 AppManager* appManager = NULL;
-DeviceManager* devManager = NULL;
 RFDaemonServer* srv = NULL;
 thread srvRxThread;
 thread srvTxThread;
-thread clRxThread;
-thread clTxThread;
 thread userThread;
 
 /*
@@ -71,15 +70,11 @@ int main(int argc, char* argv[])
 
         srvRxThread = thread(tcpServerReceiveThread);
         srvTxThread = thread(tcpServerSendThread);
-        clRxThread = thread(tcpClientReceiveThread);
-        clTxThread = thread(tcpClientSendThread);
         if (terminalMode)
         {
             userThread = thread(userIOThread);
             userThread.join();
         }
-        clTxThread.join();
-        clRxThread.join();
         srvTxThread.join();
         srvRxThread.join();
     }
@@ -133,9 +128,7 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
 
 int tcpServerSendThread()
 {
-    while (!devManager);
     srv->setAppManager(appManager);
-    srv->setDeviceManager(devManager);
     return srv->sendThread();
 }
 
@@ -145,47 +138,11 @@ int tcpServerReceiveThread()
     return srv->receiveThread();
 }
 
-int tcpClientSendThread()
-{
-    devManager = new DeviceManager(appManager->getDeviceDescFilename());
-    return devManager->sendThread();
-}
-
-int tcpClientReceiveThread()
-{
-    usleep(500000);
-    while (!devManager);
-    devManager->connectToPort("localhost", RFMEASK_TCP_PORT);
-    usleep(1000);
-    return devManager->receiveThread();
-}
-
 int userIOThread()
 {
     while (1)
     {
         sleep(5);
-        while (true)
-        {
-            if (srv)
-            {
-                if (srv->clientConnected())
-                {
-                    for (uint32_t i = 0; i < devManager->devCount(); i++)
-                    {
-                        //devManager->readSensorData(i);
-                        usleep(20000);
-                    }
-                    for (uint32_t i = 0; i < devManager->axesCount(); i++)
-                    {
-                        //devManager->readAxisPos(i);
-                        usleep(20000);
-                    }
-                }
-                else
-                    usleep(10000);
-            }
-        }
     }
     return 0;
 }

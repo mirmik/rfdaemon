@@ -3,8 +3,11 @@
 #include <string>
 #include <vector>
 #include <mutex>
-#include <thread>
-#include <atomic>
+
+namespace std
+{
+	class thread;
+}
 
 class App
 {

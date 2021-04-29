@@ -20,7 +20,7 @@ DeviceManager::DeviceManager(const string& devDescFileName)
 	}
 	else
 	{
-		errors.push_back(ErrorID::CONF_FILE_MISSING);
+		errorsList.push_back(ErrorID::CONF_FILE_MISSING);
 		devDescFileNotFound = true;
 		devDescFile = fstream(devDescFileName, fstream::in | fstream::out | fstream::trunc);
 		devDescFile.seekp(0);
@@ -233,6 +233,11 @@ bool DeviceManager::updateDevDescFile(const char* data, uint32_t size)
 	return error;
 }
 
+list<uint8_t>& DeviceManager::errors()
+{
+	return errorsList;
+}
+
 // Return true if timeout occurred
 bool DeviceManager::waitAnswer(unsigned long period_ms)
 {
@@ -318,7 +323,7 @@ void DeviceManager::parseDeviceDescriptionFile(std::fstream& file)
 			}
 		}
 		else
-			errors.push_back(ErrorID::CONF_FILE_PARSING);
+			errorsList.push_back(ErrorID::CONF_FILE_PARSING);
 		file.close();
 	}
 }
@@ -372,7 +377,7 @@ void DeviceManager::parseReceivedData(const vector<uint8_t>& data)
 	}
 	lastCmdErr = err;
 	if (err)
-		errors.push_back(err);
+		errorsList.push_back(err);
 	sentCmdId = CmdQueryID::Invalid;
 }
 
