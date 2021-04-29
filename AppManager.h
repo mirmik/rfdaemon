@@ -8,8 +8,7 @@
 #include <chrono>
 #include "App.h"
 
-#define APP_CHECK_INTERVAL_US       200000
-#define APP_MAX_RESTART_ATTEMPTS    5
+constexpr auto APP_MAX_RESTART_ATTEMPTS = 3;
 
 class AppManager
 {
@@ -26,7 +25,10 @@ public:
     std::ifstream& getLogFile();
     const std::string& getDeviceDescFilename() const; // rfmeask "config.json" file with path
 private:
+    void stopRestartWatcher();
     int restartWatchFunc();
+    bool cancelWatchRestart = false;
+    bool restartWatcherActive = false;
     std::vector<App> apps;
     std::thread appRestartWatchThread;
     std::string logFileStr;

@@ -26,7 +26,6 @@ public:
 	const std::string& command() const;
 	const std::vector<std::string>& args() const;
 	int exitStatus() const;
-	void setPid(int pid);
 	int64_t uptime() const;
 	uint32_t restartAttempts() const;
 	pid_t waitFinish();
@@ -36,7 +35,7 @@ private:
 	pid_t appFork();
 	std::thread* _thread = NULL;
 	int restartCount = 0;
-	bool isStopped = false;
+	bool isStopped = true;
 	bool isFinished = false;
 	bool successStart = true;
 	uint32_t _restartAttempts = 0;
@@ -44,5 +43,5 @@ private:
 	RestartMode _restartMode = RestartMode::ALWAYS;
 	std::string _cmd, _name;
 	std::vector<std::string> _args;
-	int _pid = 0;
+	int _shPid = 0, _pid = 0;
 };

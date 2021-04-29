@@ -14,9 +14,9 @@
 #include <stdint.h>
 #include <signal.h>
 #include <algorithm>
+#include <mutex>
 #include <functors.h>
 #include "igris/util/crc.h"
-#include <pthread.h>
 
 typedef struct
 {
@@ -70,7 +70,6 @@ public:
 			close(socketDesc);
 			exit(EXIT_FAILURE);
 		}
-		pthread_mutex_init(&mtxQueue, NULL);
 	}
 	~TcpServer()
 	{
@@ -144,13 +143,13 @@ public:
 								if (crc32(rxQueue.data(), currentHeader.size, 0) == currentHeader.crc32)
 								{
 									while (txQueueActive);
-									pthread_mutex_lock(&mtxQueue);
+									mQueue.lock();
 									txQueue = parseReceivedData(rxQueue);
 									if (txQueue.empty())
 										lastQueryResult = QueryResult::AppRejected;
 									else
 										lastQueryResult = QueryResult::AllOk;
-									pthread_mutex_unlock(&mtxQueue);
+									mQueue.unlock();
 								}
 								else
 									lastQueryResult = QueryResult::CRCError;
@@ -183,7 +182,7 @@ public:
 					// Transmission queue not null
 					int headerOffset = 0;
 					ssize_t result = 0;
-					pthread_mutex_lock(&mtxQueue);
+					mQueue.lock();
 
 					// Header and first data part not sent yet
 					if (!txQueueActive)
@@ -227,7 +226,7 @@ public:
 							txQueueActive = false;
 						}
 					}
-					pthread_mutex_unlock(&mtxQueue);
+					mQueue.unlock();
 					if (result < 0)
 						printf("Socket send error.\n");
 				}
@@ -272,5 +271,5 @@ private:
 	int socketDesc = 0;
 	int connDesc = 0;
 	bool terminate = false;
-	pthread_mutex_t mtxQueue;
+	std::mutex mQueue;
 };

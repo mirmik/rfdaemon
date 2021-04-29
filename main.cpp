@@ -1,9 +1,4 @@
-﻿#include <string.h>
-#include <cstdio>
-#include <fstream>
-#include <iostream>
-#include <atomic>
-#include <unistd.h>
+﻿#include <iostream>
 #include <signal.h>
 #include <thread>
 #include "main.h"
@@ -167,16 +162,9 @@ int tcpClientReceiveThread()
 
 int userIOThread()
 {
-    srand(2341234);
     while (1)
     {
         sleep(5);
-        //devManager->setAxisAbsPosition(0, 5);
-        //for (uint32_t i = 0; i < devManager->axesCount(); i++)
-        //{
-        //    usleep(500000);
-        //    printf("%.3f\n", devManager->getAxisPos(i));
-        //}
         while (true)
         {
             if (srv)

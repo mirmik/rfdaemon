@@ -10,11 +10,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <string>
 #include <unistd.h>
 #include <stdint.h>
 #include <algorithm>
-#include <pthread.h>
+#include <mutex>
 
 class TcpClient
 {
@@ -25,6 +26,9 @@ public:
 		txBufferPtr = (uint8_t*)malloc(bufferSize);
 		bufferLength = bufferSize;
 
+		// Prevent crash due to broken socket pipe
+		signal(SIGPIPE, SIG_IGN);
+
 		socketDesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (socketDesc == -1)
 		{
@@ -33,7 +37,6 @@ public:
 		}
 		rxQueue.reserve(bufferSize);
 		txQueue.reserve(bufferSize);
-		pthread_mutex_init(&mtxQueue, NULL);
 	}
 	~TcpClient()
 	{
@@ -131,7 +134,7 @@ public:
 					// Transmission queue not null
 					size_t dataOffset = 0;
 					ssize_t result = 0;
-					pthread_mutex_lock(&mtxQueue);
+					mQueue.lock();
 
 					// Header and first part has been sent, transmit next parts
 					if (txQueuePos < txQueue.size())
@@ -156,7 +159,7 @@ public:
 						txQueue.clear();
 						txQueuePos = 0;
 					}
-					pthread_mutex_unlock(&mtxQueue);
+					mQueue.unlock();
 					if (result < 0)
 						printf("Socket send error.\n");
 				}
@@ -183,9 +186,9 @@ public:
 	virtual void parseReceivedData(const std::vector<uint8_t>& data) = 0;
 	void sendCmd(const std::string& cmd, bool wait = true, unsigned long timeoutMs = 100U)
 	{
-		pthread_mutex_lock(&mtxQueue);
+		mQueue.lock();
 		txQueue.insert(txQueue.begin(), cmd.c_str(), cmd.c_str() + cmd.length() + 1);
-		pthread_mutex_unlock(&mtxQueue);
+		mQueue.unlock();
 		requestTimeout = timeoutMs * 200UL;
 		while (!txQueue.empty() && requestTimeout)
 		{
@@ -209,6 +212,6 @@ private:
 	int socketDesc = 0;
 	int connDesc = 0;
 	bool terminate = false;
-	pthread_mutex_t mtxQueue;
 	uint16_t connectionPort = 0;
+	std::mutex mQueue;
 };

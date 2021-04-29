@@ -103,33 +103,39 @@ vector<uint8_t> RFDaemonServer::getDevErrLogs(const uint8_t* data, uint32_t size
 
 vector<uint8_t> RFDaemonServer::getSystemMeasurements(const uint8_t* data, uint32_t size)
 {
-	int appCount = appMgr->getAppCount();
-	vector<uint8_t> answer(2 + sizeof(double) * 2 + (sizeof(int64_t) + 1) * appCount * 2 + 1);
+	struct __attribute__((packed)) SensorData
+	{
+		uint8_t device;
+		uint8_t axis;
+		double value;
+		double axisPos;
+	};
+	struct __attribute__((packed)) AppData
+	{
+		uint8_t state;
+		uint8_t startSuccess;
+		int32_t pid;
+		int64_t uptime;
+	};
+
+	uint8_t appCount = appMgr->getAppCount();
 	uint8_t devNum = data[0];
 	uint8_t axisNum = data[1];
-	answer[0] = data[0];
-	answer[1] = data[1];
-	double* pData = (double*)(answer.data() + 2);
-	uint8_t* pAppCount = answer.data() + 2 + sizeof(double) * 2;
-	uint8_t* pAppState = answer.data() + 2 + sizeof(double) * 2 + 1;
-	uint8_t* pAppStartSuccess = answer.data() + 2 + sizeof(double) * 2 + appCount + 1;
-	int64_t* pUptime = (int64_t*)(answer.data() + 2 + sizeof(double) * 2 + appCount * 2 + 1);
-	if (devNum < devMgr->devCount())
-		pData[0] = devMgr->getDevList()[devNum].sensorValue();
-	else
-		pData[0] = 0;
-	if (axisNum < devMgr->axesCount())
-		pData[1] = devMgr->getAxesList()[axisNum].position();
-	else
-		pData[1] = 0;
+	vector<uint8_t> answer(sizeof(SensorData) + 1 + appCount * sizeof(AppData));
+	SensorData* pSensorData = (SensorData*)answer.data();
+	pSensorData->device = data[0];
+	pSensorData->axis = data[1];
+	pSensorData->value = devNum < devMgr->devCount() ? devMgr->getDevList()[devNum].sensorValue() : 0;
+	pSensorData->axisPos = axisNum < devMgr->axesCount() ? devMgr->getAxesList()[axisNum].position() : 0;
+	answer[sizeof(SensorData)] = appCount;
 
-	pAppCount[0] = appCount;
-
+	AppData* pAppData = (AppData*)(answer.data() + sizeof(SensorData) + 1);
 	for (int i = 0; i < appCount; i++)
 	{
-		pAppState[i] = !appMgr->getAppsList()[i].stopped();
-		pAppStartSuccess[i] = appMgr->getAppsList()[i].successfulStart();
-		pUptime[i] = appMgr->getAppsList()[i].uptime();
+		pAppData[i].state = !appMgr->getAppsList()[i].stopped();
+		pAppData[i].startSuccess = appMgr->getAppsList()[i].successfulStart();
+		pAppData[i].uptime = appMgr->getAppsList()[i].uptime();
+		pAppData[i].pid = appMgr->getAppsList()[i].pid();
 	}
 	return answer;
 }

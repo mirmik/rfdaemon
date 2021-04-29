@@ -2,11 +2,33 @@
 #include <string.h>
 #include "unistd.h"
 #include "signal.h"
+#include "time.h"
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <iostream>
-#include <filesystem>
 
 using namespace std;
+
+string GetStdoutFromCommand(string cmd) {
+
+    string data;
+    FILE* stream;
+    const int max_buffer = 256;
+    char buffer[max_buffer];
+    cmd.append(" 2>&1");
+
+    stream = popen(cmd.c_str(), "r");
+    if (stream)
+    {
+        while (!feof(stream))
+        {
+            if (fgets(buffer, max_buffer, stream) != NULL)
+                data.append(buffer);
+        }
+        pclose(stream);
+    }
+    return data;
+}
 
 App::App(const string& name, const string& cmd, RestartMode mode)
 {
@@ -33,7 +55,11 @@ void App::stop(bool atStart)
     isStopped = true;
     if (atStart)
         successStart = false;
-    kill(_pid, SIGTERM);
+    if (_pid)
+        kill(_pid, SIGTERM);
+    if (_shPid)
+        kill(_shPid, SIGTERM);
+    _restartAttempts = 0;
     if (_thread)
     {
         if (_thread->joinable())
@@ -46,7 +72,6 @@ void App::stop(bool atStart)
 // Call only in a separate thread
 pid_t App::appFork()
 {
-    isStopped = false;
     isFinished = false;
     successStart = true;
     _exitStatus = 0;
@@ -67,7 +92,18 @@ pid_t App::appFork()
     }
     else if (pid > 0)
     {
-        _pid = pid;
+        _shPid = pid;
+        usleep(1000);
+        if (kill(_shPid, 0) == 0)
+        {
+            string out = GetStdoutFromCommand("pstree -pls " + to_string(_shPid));
+            size_t procNameStart = out.find(_name);
+            size_t pidNameStart = out.find('(', procNameStart);
+            if (procNameStart != string::npos && pidNameStart != string::npos)
+                _pid = std::atoi(out.c_str() + pidNameStart + 1);
+        }
+        else
+            _pid = pid;
         waitFinish();
     }
     return pid;
@@ -118,16 +154,14 @@ int App::exitStatus() const
     return _exitStatus;
 }
 
-void App::setPid(int pid)
-{
-    _pid = pid;
-}
-
 int64_t App::uptime() const
 {
-    string file = "/proc/" + to_string(_pid) + "/stat";
-    auto time = filesystem::last_write_time(file);
-    return time.time_since_epoch().count();
+    string file = "/proc/" + to_string(_shPid) + "/stat";
+    struct stat buf;
+    int64_t result = 0;
+    if (!stat(file.c_str(), &buf))
+        result = time(NULL) - buf.st_mtim.tv_sec;
+    return result;
 }
 
 uint32_t App::restartAttempts() const
@@ -137,9 +171,9 @@ uint32_t App::restartAttempts() const
 
 pid_t App::waitFinish()
 {
-    waitpid(_pid, &_exitStatus, 0);
+    waitpid(_shPid, &_exitStatus, 0);
     isFinished = true;
-    return _pid;
+    return _shPid;
 }
 
 void App::watchFunc()
@@ -149,6 +183,8 @@ void App::watchFunc()
         this_thread::sleep_for(10ms);
         if (!isStopped)
             appFork();
+        else
+            return;
         if (_restartMode == RestartMode::NEVER)
             break;
         if (_restartMode == RestartMode::ERROR && !_exitStatus)
@@ -160,6 +196,7 @@ void App::watchFunc()
 
 void App::run()
 {
+    isStopped = false;
     if (!_thread)
         _thread = new thread(&App::watchFunc, this);
 }
