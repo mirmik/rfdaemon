@@ -11,14 +11,10 @@ set(CMAKE_CC_STANDARD 11)
 
 file(GLOB SOURCES 
 	main.cpp
-	Device.cpp
-	Axis.cpp
 	App.cpp
 	AppManager.cpp
-	DeviceManager.cpp
-	parameter.cpp
+	TcpServer.cpp
 	RFDaemonServer.cpp
-	config_json_default.cpp
 ) 
 
 add_executable(rfdaemon ${SOURCES})
