@@ -24,21 +24,19 @@ public:
         APPS_RESTART,
         GET_CONFIG,
         SET_CONFIG,
-        GET_DEV_LOGS,
         UPDATE_IMG,
         UPDATE_FIRMWARE,
         GET_APPS_LOGS,
         GET_APPS_LIST,
-        SET_APPS_LIST,
+        SET_APPS_LIST
     } CmdId;
     RFDaemonServer(uint16_t port);
-    std::vector<uint8_t> getAppInfo(const uint8_t* data, uint32_t size);
+    std::vector<uint8_t> getAppsInfo(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> startAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> stopAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> restartAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getConfig(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setConfig(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getDevLogs(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateSysImg(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateControllerFW(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getAppLogs(const uint8_t* data, uint32_t size);

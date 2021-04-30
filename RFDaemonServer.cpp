@@ -10,13 +10,12 @@ using namespace std;
 
 RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 {
-	addCmd(GET_APPS_INFO, Func(this, &RFDaemonServer::getAppInfo));
+	addCmd(GET_APPS_INFO, Func(this, &RFDaemonServer::getAppsInfo));
 	addCmd(APPS_START, Func(this, &RFDaemonServer::startAllApps));
 	addCmd(APPS_STOP, Func(this, &RFDaemonServer::stopAllApps));
 	addCmd(APPS_RESTART, Func(this, &RFDaemonServer::restartAllApps));
 	addCmd(GET_CONFIG, Func(this, &RFDaemonServer::getConfig));
 	addCmd(SET_CONFIG, Func(this, &RFDaemonServer::setConfig));
-	addCmd(GET_DEV_LOGS, Func(this, &RFDaemonServer::getDevLogs));
 	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
 	addCmd(UPDATE_FIRMWARE, Func(this, &RFDaemonServer::updateControllerFW));
 	addCmd(GET_APPS_LOGS, Func(this, &RFDaemonServer::getAppLogs));
@@ -86,21 +85,14 @@ vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getDevLogs(const uint8_t* data, uint32_t size)
-{
-	vector<uint8_t> answer(4);
-#warning "TODO: add code"
-	*(uint32_t*)answer.data() = 0;
-	return answer;
-}
-
-vector<uint8_t> RFDaemonServer::getAppInfo(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t* data, uint32_t size)
 {
 	struct __attribute__((packed)) AppData
 	{
 		uint8_t state;
 		uint8_t startSuccess;
 		uint8_t nameLength;
+		int8_t error;
 		int32_t pid;
 		int64_t uptime;
 	};
@@ -118,16 +110,20 @@ vector<uint8_t> RFDaemonServer::getAppInfo(const uint8_t* data, uint32_t size)
 		answer[1] = 0;
 
 	AppData* pAppData = (AppData*)(answer.data() + 2);
-	const auto& apps = appMgr->getAppsList();
+	auto& apps = appMgr->getAppsList();
 	for (int i = 0; i < appCount; i++)
 	{
 		pAppData[i].state = !apps[i].stopped();
 		pAppData[i].startSuccess = apps[i].successfulStart();
 		pAppData[i].uptime = apps[i].uptime();
 		pAppData[i].pid = apps[i].pid();
+		if (apps[i].errors().size())
+		{
+			pAppData[i].error = apps[i].errors().front();
+			apps[i].errors().pop();
+		}
 		answer.insert(answer.end(), apps[i].name().c_str(), apps[i].name().c_str() + apps[i].name().length() + 1);
 	}
-	
 	return answer;
 }
 

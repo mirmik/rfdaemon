@@ -1,6 +1,6 @@
 #include "App.h"
 #include <string.h>
-#include "unistd.h"
+#include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <iostream>
@@ -172,6 +172,10 @@ pid_t App::waitFinish()
 {
     waitpid(_shPid, &_exitStatus, 0);
     isFinished = true;
+    if (_exitStatus)
+        _errors.push(_exitStatus);
+    if (_errors.size() > 100)
+        _errors.pop();
     return _shPid;
 }
 
@@ -198,4 +202,9 @@ void App::run()
     isStopped = false;
     if (!_thread)
         _thread = new thread(&App::watchFunc, this);
+}
+
+std::queue<int8_t>& App::errors()
+{
+    return _errors;
 }

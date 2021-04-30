@@ -21,7 +21,7 @@ public:
     void restartApps();
     void updateConfigFile(const std::string& newContent);
     std::ifstream& getAppConfigFile();
-    const std::vector<App>& getAppsList() const;
+    std::vector<App>& getAppsList();
     size_t getAppCount() const;
     std::ifstream& getLogFile();
     const std::string& getDeviceDescFilename() const; // rfmeask "config.json" file with path

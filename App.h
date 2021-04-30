@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <queue>
 
 namespace std
 {
@@ -33,6 +34,7 @@ public:
 	uint32_t restartAttempts() const;
 	pid_t waitFinish();
 	void run();
+	std::queue<int8_t>& errors();
 private:
 	void watchFunc();
 	pid_t appFork();
@@ -46,5 +48,6 @@ private:
 	RestartMode _restartMode = RestartMode::ALWAYS;
 	std::string _cmd, _name;
 	std::vector<std::string> _args;
+	std::queue<int8_t> _errors;
 	int _shPid = 0, _pid = 0;
 };

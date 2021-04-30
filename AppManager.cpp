@@ -201,7 +201,7 @@ ifstream& AppManager::getAppConfigFile()
     return appFile;
 }
 
-const vector<App>& AppManager::getAppsList() const
+vector<App>& AppManager::getAppsList()
 {
     return apps;
 }
