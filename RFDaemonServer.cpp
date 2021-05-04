@@ -31,6 +31,22 @@ void RFDaemonServer::addCmd(uint32_t code, const Func<RFDaemonServer, vector<uin
 	commands.push_back(c);
 }
 
+bool RFDaemonServer::writeFile(const std::string& filename, const uint8_t* data, uint32_t size)
+{
+	bool error = false;
+	fstream f;
+	f.open(filename, fstream::out | fstream::trunc);
+	if (f.is_open())
+	{
+		f.seekp(0);
+		f.write((const char*)data, size);
+		error = (f.rdstate() & (ios::failbit | ios::badbit)) != 0;
+		f.flush();
+		f.close();
+	}
+	return error;
+}
+
 vector<uint8_t> RFDaemonServer::startAllApps(const uint8_t* data, uint32_t size)
 {
 	appMgr->runApps();
@@ -51,35 +67,48 @@ vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t* data, uint32_t siz
 
 vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 {
-	vector<uint8_t> answer(4);
-
-	fstream f;
-	f.open(appMgr->getDeviceDescFilename(), fstream::in);
-	if (f.is_open())
+	vector<uint8_t> answer(9);
+	fstream cfg, runtime;
+	cfg.open(appMgr->getDeviceDescFilename(), fstream::in);
+	if (cfg.is_open())
 	{
-		stringstream buffer;
-		buffer << f.rdbuf();
-		string s = buffer.str();
-		*(int*)answer.data() = s.length() + 1;
-		answer.insert(answer.end(), s.begin(), s.end() + 1);
-		f.close();
+		answer[0]++;
+		stringstream cfgBuf;
+		cfgBuf << cfg.rdbuf();
+		string s = cfgBuf.str();
+		*(uint32_t*)(answer.data() + 1) = s.length();
+		answer.insert(answer.end(), s.begin(), s.end());
+		cfg.close();
+
+		runtime.open(appMgr->getDeviceRuntimeFilename(), fstream::in);
+		if (runtime.is_open())
+		{
+			answer[0]++;
+			stringstream runtimeBuf;
+			runtimeBuf << runtime.rdbuf();
+			s = runtimeBuf.str();
+			*(uint32_t*)(answer.data() + 5) = s.length();
+			answer.insert(answer.end(), s.begin(), s.end());
+			runtime.close();
+		}
 	}
 	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
 {
+	uint8_t fileCount = data[0];
 	bool error = false;
 	vector<uint8_t> answer(1);
-	fstream f;
-	f.open(appMgr->getDeviceDescFilename(), fstream::out | fstream::trunc);
-	if (f.is_open())
+	if (fileCount--)
 	{
-		f.seekp(0);
-		f.write((char*)data, size);
-		error = (f.rdstate() & (ios::failbit | ios::badbit)) != 0;
-		f.flush();
-		f.close();
+		uint32_t cfgSize = *(uint32_t*)(data + 1);
+		error = writeFile(appMgr->getDeviceDescFilename(), data + 9, cfgSize);
+		if (fileCount--)
+		{
+			uint32_t runtimeSize = *(uint32_t*)(data + 5);
+			error = error || writeFile(appMgr->getDeviceRuntimeFilename(), data + 9 + cfgSize, runtimeSize);
+		}
 	}
 	answer[0] = error;
 	return answer;
@@ -91,7 +120,6 @@ vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t* data, uint32_t size)
 	{
 		uint8_t state;
 		uint8_t startSuccess;
-		uint8_t nameLength;
 		int8_t error;
 		int32_t pid;
 		int64_t uptime;
@@ -122,47 +150,39 @@ vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t* data, uint32_t size)
 			pAppData[i].error = apps[i].errors().front();
 			apps[i].errors().pop();
 		}
-		answer.insert(answer.end(), apps[i].name().c_str(), apps[i].name().c_str() + apps[i].name().length() + 1);
 	}
 	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::updateSysImg(const uint8_t* data, uint32_t size)
 {
-	auto f = new fstream("new_docker_img.tgz", fstream::out);
-	if (f->is_open())
-	{
-		f->write((const char*)data, size);
-		f->flush();
-		f->close();
-	}
-	delete f;
-	return vector<uint8_t>();
+	vector<uint8_t> answer(1);
+	answer[0] = writeFile("new_docker_img.tgz", data, size);
+	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::updateControllerFW(const uint8_t* data, uint32_t size)
 {
-	auto f = new fstream("new_controller_fw.bin", fstream::out);
-	if (f->is_open())
-	{
-		f->write((const char*)data, size);
-		f->flush();
-		f->close();
-	}
-	delete f;
-	return vector<uint8_t>();
+	vector<uint8_t> answer(1);
+	answer[0] = writeFile("new_controller_fw.bin", data, size);
+	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::setAppsList(const uint8_t* data, uint32_t size)
 {
-	string s = string((char*)data, size);
-	appMgr->updateConfigFile(s);
-	return vector<uint8_t>();
+	vector<uint8_t> answer(1);
+	answer[0] = writeFile(appMgr->getAppConfigFilename(), data, size);
+	if (!answer[0])
+	{
+		appMgr->loadConfigFile();
+		appMgr->runApps();
+	}
+	return answer;
 }
 
 vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 {
-	ifstream& f = appMgr->getAppConfigFile();
+	ifstream f = ifstream(appMgr->getAppConfigFilename(), ifstream::in);
 	string s(istreambuf_iterator<char>{f}, {});
 	uint32_t strSize = s.length() + 1;
 	vector<uint8_t> answer(strSize);
@@ -172,7 +192,7 @@ vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 
 vector<uint8_t> RFDaemonServer::getAppLogs(const uint8_t* data, uint32_t size)
 {
-	ifstream& f = appMgr->getLogFile();
+	ifstream f = ifstream(appMgr->getLogFilename(), ifstream::in);
 	string s(istreambuf_iterator<char>{f}, {});
 	uint32_t strSize = s.length() + 1;
 	vector<uint8_t> answer(strSize);

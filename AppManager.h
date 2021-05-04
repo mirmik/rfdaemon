@@ -14,17 +14,17 @@ constexpr auto APP_MAX_RESTART_ATTEMPTS = 3;
 class AppManager
 {
 public:
-    AppManager() {};
-    bool openConfigFile(const std::string& filename);
+    AppManager(const std::string& appListFileName);
+    bool loadConfigFile();
     void runApps();
     void closeApps();
     void restartApps();
-    void updateConfigFile(const std::string& newContent);
-    std::ifstream& getAppConfigFile();
     std::vector<App>& getAppsList();
     size_t getAppCount() const;
-    std::ifstream& getLogFile();
+    const std::string& getAppConfigFilename();
+    const std::string& getLogFilename();
     const std::string& getDeviceDescFilename() const; // rfmeask "config.json" file with path
+    const std::string& getDeviceRuntimeFilename() const; // rfmeask "runtime.json" file with path
     std::list<uint8_t>& errors();
 private:
     void stopRestartWatcher();
@@ -34,13 +34,9 @@ private:
     std::vector<App> apps;
     std::list<uint8_t> errorList;
     std::thread appRestartWatchThread;
-    std::string logFileStr;
-    std::string appFileName;
-    std::string devDescFileName;
-    std::string runtimeSettingsFileName;
-    std::ifstream logFile;
-    std::ifstream appFile;
-    std::ifstream devDescFile;
-    std::ifstream runtimeSettingsFile;
+    std::string logFilename;
+    std::string appFilename;
+    std::string settingsFilename;
+    std::string runtimeSettingsFilename;
     static std::mutex ioMutex;
 };

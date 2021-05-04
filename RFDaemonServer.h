@@ -45,6 +45,7 @@ public:
     void setAppManager(AppManager* manager);
     void addCmd(uint32_t code, const Func<RFDaemonServer, std::vector<uint8_t>, const uint8_t*, uint32_t>& cmd);
 private:
+    bool writeFile(const std::string& filename, const uint8_t* data, uint32_t size);
     std::vector<uint8_t> parseReceivedData(const std::vector<uint8_t>& data) final;
     AppManager* appMgr = NULL;
     std::vector<SrvCmd> commands;

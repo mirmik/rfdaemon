@@ -59,8 +59,8 @@ int main(int argc, char* argv[])
         signal(SIGTERM, exitHandler);
         signal(SIGQUIT, exitHandler);
         srv = new RFDaemonServer(port);
-        appManager = new AppManager;
-        if (appManager->openConfigFile(configFileName))
+        appManager = new AppManager(configFileName);
+        if (appManager->loadConfigFile())
         {
             serverOnlyMode = true;
             cout << "Run server-only mode.\n";

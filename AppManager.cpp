@@ -9,23 +9,27 @@
 using namespace std;
 std::mutex AppManager::ioMutex;
 
-bool AppManager::openConfigFile(const string& filename)
+AppManager::AppManager(const string& appListFileName)
+{
+    appFilename = appListFileName;
+}
+
+bool AppManager::loadConfigFile()
 {
     Json::Value root;
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
-    appFile = ifstream(filename);
-    appFileName = filename;
+    ifstream appFile = ifstream(appFilename);
     bool error = !appFile.is_open();
     string homedir = string(getpwuid(getuid())->pw_dir);
     if (error)
-        cout << "RFDaemon configuration file \"" + filename + "\" missing.\n";
+        cout << "RFDaemon configuration file \"" + appFilename + "\" missing.\n";
     else
-        cout << "RFDaemon configuration file \"" + filename + "\" found.\n";
+        cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
 
     if (!parseFromStream(builder, appFile, &root, &errs))
     {
-        cout << "Errors in configuration file \"" + filename + "\"[" << errs << "].\n";
+        cout << "Errors in configuration file \"" + appFilename + "\"[" << errs << "].\n";
         error = true;
     }
     else
@@ -33,11 +37,13 @@ bool AppManager::openConfigFile(const string& filename)
         int arraySize = root["apps"].size();
         if (!arraySize)
         {
-            cout << "No apps found in file \"" + filename + "\".\n";
+            cout << "No apps found in file \"" + appFilename + "\".\n";
             error = true;
         }
         else
         {
+            closeApps();
+            apps.clear();
             for (int i = 0; i < arraySize; i++)
             {
                 string name = root["apps"][i]["name"].asString();
@@ -107,13 +113,13 @@ bool AppManager::openConfigFile(const string& filename)
         if (configFound && runtimeSettingsFound &&
             !apps[i].args()[j + 1].empty() && !apps[i].args()[k + 1].empty())
         {
-            devDescFileName = apps[i].args()[j + 1];
-            runtimeSettingsFileName = apps[i].args()[k + 1];
+            settingsFilename = apps[i].args()[j + 1];
+            runtimeSettingsFilename = apps[i].args()[k + 1];
         }
         else
         {
-            devDescFileName = homedir + "/settings.json";
-            runtimeSettingsFileName = homedir + "/runtime.json";
+            settingsFilename = homedir + "/settings.json";
+            runtimeSettingsFilename = homedir + "/runtime.json";
         }
     }
     return error;
@@ -192,13 +198,9 @@ size_t AppManager::getAppCount() const
     return apps.size();
 }
 
-void AppManager::updateConfigFile(const string& newContent)
+const string& AppManager::getAppConfigFilename()
 {
-}
-
-ifstream& AppManager::getAppConfigFile()
-{
-    return appFile;
+    return appFilename;
 }
 
 vector<App>& AppManager::getAppsList()
@@ -206,14 +208,19 @@ vector<App>& AppManager::getAppsList()
     return apps;
 }
 
-ifstream& AppManager::getLogFile()
+const string& AppManager::getLogFilename()
 {
-    return logFile;
+    return logFilename;
 }
 
 const string& AppManager::getDeviceDescFilename() const
 {
-    return devDescFileName;
+    return settingsFilename;
+}
+
+const std::string& AppManager::getDeviceRuntimeFilename() const
+{
+    return runtimeSettingsFilename;
 }
 
 std::list<uint8_t>& AppManager::errors()
