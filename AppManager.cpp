@@ -16,12 +16,17 @@ AppManager::AppManager(const string& appListFileName)
 
 bool AppManager::loadConfigFile()
 {
+    bool configFound = false;
+    bool runtimeFound = false;
+    bool rfmeasFound = false;
     Json::Value root;
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
     ifstream appFile = ifstream(appFilename);
     bool error = false;
     string homedir = string(getpwuid(getuid())->pw_dir);
+    settingsFilename = homedir + "/settings.json";
+    runtimeSettingsFilename = homedir + "/runtime.json";
     if (appFile.is_open())
         cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
     else
@@ -82,10 +87,6 @@ bool AppManager::loadConfigFile()
     }
     if (!error)
     {
-        bool configFound = false;
-        bool runtimeFound = false;
-        bool rfmeasFound = false;
-
         // Search for config.json and runtime.json filepaths in rfmeas cmd string
         size_t i = 0, j = 0, k = 0;
         for (; i < apps.size(); i++)
@@ -114,21 +115,19 @@ bool AppManager::loadConfigFile()
                     break;
                 }
             }
-        }
-        if (configFound && runtimeFound &&
-            !apps[i].args()[j + 1].empty() && !apps[i].args()[k + 1].empty())
-        {
-            settingsFilename = apps[i].args()[j + 1];
-            runtimeSettingsFilename = apps[i].args()[k + 1];
-        }
-        else
-        {
-            settingsFilename = homedir + "/settings.json";
-            runtimeSettingsFilename = homedir + "/runtime.json";
-            if (!configFound)
-                pushError(Errors::AppListConfigPath);
-            if (!runtimeFound)
-                pushError(Errors::AppListRuntimePath);
+            if (configFound && runtimeFound &&
+                !apps[i].args()[j + 1].empty() && !apps[i].args()[k + 1].empty())
+            {
+                settingsFilename = apps[i].args()[j + 1];
+                runtimeSettingsFilename = apps[i].args()[k + 1];
+            }
+            else
+            {
+                if (!configFound)
+                    pushError(Errors::AppListConfigPath);
+                if (!runtimeFound)
+                    pushError(Errors::AppListRuntimePath);
+            }
         }
     }
     return error;
