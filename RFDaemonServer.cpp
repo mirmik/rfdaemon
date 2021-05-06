@@ -175,7 +175,7 @@ vector<uint8_t> RFDaemonServer::setAppsList(const uint8_t* data, uint32_t size)
 	if (!answer[0])
 	{
 		appMgr->loadConfigFile();
-		appMgr->runApps();
+		appMgr->restartApps();
 	}
 	return answer;
 }

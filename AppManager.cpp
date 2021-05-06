@@ -20,16 +20,21 @@ bool AppManager::loadConfigFile()
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
     ifstream appFile = ifstream(appFilename);
-    bool error = !appFile.is_open();
+    bool error = false;
     string homedir = string(getpwuid(getuid())->pw_dir);
-    if (error)
-        cout << "RFDaemon configuration file \"" + appFilename + "\" missing.\n";
-    else
+    if (appFile.is_open())
         cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
+    else
+    {
+        cout << "RFDaemon configuration file \"" + appFilename + "\" missing.\n";
+        pushError(Errors::AppListNotFound);
+        return true;
+    }
 
     if (!parseFromStream(builder, appFile, &root, &errs))
     {
         cout << "Errors in configuration file \"" + appFilename + "\"[" << errs << "].\n";
+        pushError(Errors::AppListSyntaxError);
         error = true;
     }
     else
@@ -78,7 +83,7 @@ bool AppManager::loadConfigFile()
     if (!error)
     {
         bool configFound = false;
-        bool runtimeSettingsFound = false;
+        bool runtimeFound = false;
         bool rfmeasFound = false;
 
         // Search for config.json and runtime.json filepaths in rfmeas cmd string
@@ -105,12 +110,12 @@ bool AppManager::loadConfigFile()
             {
                 if (apps[i].args()[j].find("--runtime") != string::npos)
                 {
-                    runtimeSettingsFound = true;
+                    runtimeFound = true;
                     break;
                 }
             }
         }
-        if (configFound && runtimeSettingsFound &&
+        if (configFound && runtimeFound &&
             !apps[i].args()[j + 1].empty() && !apps[i].args()[k + 1].empty())
         {
             settingsFilename = apps[i].args()[j + 1];
@@ -120,6 +125,10 @@ bool AppManager::loadConfigFile()
         {
             settingsFilename = homedir + "/settings.json";
             runtimeSettingsFilename = homedir + "/runtime.json";
+            if (!configFound)
+                pushError(Errors::AppListConfigPath);
+            if (!runtimeFound)
+                pushError(Errors::AppListRuntimePath);
         }
     }
     return error;
@@ -133,7 +142,10 @@ void AppManager::runApps()
     for (auto& a : apps)
     {
         if (a.stopped())
+        {
+            a.clearRestartAttempts();
             a.run();
+        }
     }
 }
 
@@ -168,6 +180,7 @@ int AppManager::restartWatchFunc()
                 if (apps[j].restartAttempts() >= APP_MAX_RESTART_ATTEMPTS)
                 {
                     apps[j].stop(true);
+                    pushError(Errors::AppAttemptsEmpty);
                     ioMutex.lock();
                     cout << "Process \"" << apps[j].name() << "\" did too many restarts and won't restart anymore." << endl;
                     ioMutex.unlock();
@@ -226,4 +239,11 @@ const std::string& AppManager::getDeviceRuntimeFilename() const
 std::list<uint8_t>& AppManager::errors()
 {
     return errorList;
+}
+
+void AppManager::pushError(Errors error)
+{
+    errorList.push_back((uint8_t)error);
+    if (errorList.size() > 100)
+        errorList.pop_front();
 }

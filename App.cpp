@@ -168,6 +168,11 @@ uint32_t App::restartAttempts() const
     return _restartAttempts;
 }
 
+void App::clearRestartAttempts()
+{
+    _restartAttempts = 0;
+}
+
 pid_t App::waitFinish()
 {
     waitpid(_shPid, &_exitStatus, 0);

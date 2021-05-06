@@ -14,6 +14,15 @@ constexpr auto APP_MAX_RESTART_ATTEMPTS = 3;
 class AppManager
 {
 public:
+    enum Errors
+    {
+        NoError = 0,
+        AppListNotFound,
+        AppListSyntaxError,
+        AppListConfigPath,
+        AppListRuntimePath,
+        AppAttemptsEmpty
+    };
     AppManager(const std::string& appListFileName);
     bool loadConfigFile();
     void runApps();
@@ -26,6 +35,7 @@ public:
     const std::string& getDeviceDescFilename() const; // rfmeask "config.json" file with path
     const std::string& getDeviceRuntimeFilename() const; // rfmeask "runtime.json" file with path
     std::list<uint8_t>& errors();
+    void pushError(Errors error);
 private:
     void stopRestartWatcher();
     int restartWatchFunc();

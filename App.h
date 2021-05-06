@@ -32,6 +32,7 @@ public:
 	int exitStatus() const;
 	int64_t uptime() const;
 	uint32_t restartAttempts() const;
+	void clearRestartAttempts();
 	pid_t waitFinish();
 	void run();
 	std::queue<int8_t>& errors();
