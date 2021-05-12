@@ -25,6 +25,8 @@ bool AppManager::loadConfigFile()
     ifstream appFile = ifstream(appFilename);
     bool error = false;
     string homedir = string(getpwuid(getuid())->pw_dir);
+    if (homedir == "root")
+        homedir = "rfmeas";
     settingsFilename = homedir + "/settings.json";
     runtimeSettingsFilename = homedir + "/runtime.json";
     if (appFile.is_open())
