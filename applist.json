@@ -1,20 +1,28 @@
 {
     "apps": [
         {
-            "name" : "crowker",
-            "command" : "crowker --udp 10009"
+            "command": "/home/user/projects/rfmeask/rfmeas --config /home/user/settings.json --runtime /home/user/runtime.json > /home/user/rfmeas_log",
+            "name": "rfmeas",
+            "order": 1,
+            "restart": "always"
         },
         {
-            "name" : "rfmeas",
-            "command" : "/home/rfmeas/project/rfmeask/rfmeas --config /home/rfmeas/settings.json --runtime /home/rfmeas/runtime.json > /home/rfmeas/rfmeas_log"
+            "command": "/usr/local/bin/crowker --udp 10009",
+            "name": "crowker",
+            "order": 2,
+            "restart": "always"
         },
         {
-            "name" : "ctrans",
-            "command" : "ctrans --udp 10014 --serial_v1 /dev/ttyS1 --noconsole"
+            "command": "/usr/local/bin/ctrans --udp 10014 --serial_v1 /dev/ttyS3 --noconsole",
+            "name": "ctrans",
+            "order": 3,
+            "restart": "always"
         },
         {
-            "name" : "dataproxy",
-            "command" : "/home/rfmeas/project/dataproxy/dataproxy"
+            "command": "/home/user/projects/rfmeask_dataproxy/dataproxy",
+            "name": "dataproxy",
+            "order": 4,
+            "restart": "always"
         }
     ]
 }

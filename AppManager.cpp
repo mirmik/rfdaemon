@@ -109,7 +109,7 @@ bool AppManager::loadConfigFile()
             }
             for (; k < apps[i].args().size(); k++)
             {
-                if (apps[i].args()[j].find("--runtime") != string::npos)
+                if (apps[i].args()[k].find("--runtime") != string::npos)
                 {
                     runtimeFound = true;
                     break;
