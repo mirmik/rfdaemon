@@ -192,11 +192,28 @@ vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 
 vector<uint8_t> RFDaemonServer::getAppLogs(const uint8_t* data, uint32_t size)
 {
-	ifstream f = ifstream(appMgr->getLogFilename(), ifstream::in);
-	string s(istreambuf_iterator<char>{f}, {});
-	uint32_t strSize = s.length() + 1;
-	vector<uint8_t> answer(strSize);
-	memcpy(answer.data(), s.c_str(), strSize);
+	int logsNum = appMgr->getLogFilesCount();
+	auto apps = appMgr->getAppsList();
+	vector<uint8_t> answer(1 + 5 * logsNum);
+	answer[0] = logsNum;
+	uint32_t* pLogSize = (uint32_t*)(answer.data() + 1 + logsNum);
+	uint8_t* pAppId = answer.data() + 1;
+	for (size_t i = 0, j = 0; i < apps.size(); i++)
+	{
+		string path = apps[i].logPath();
+		if (!path.empty())
+		{
+			ifstream f = ifstream(path, ifstream::in);
+			if (f.is_open())
+			{
+				string s(istreambuf_iterator<char>{f}, {});
+				pLogSize[j] = s.length();
+				pAppId[j++] = i;
+				answer.insert(answer.end(), s.begin(), s.end());
+				f.close();
+			}
+		}
+	}
 	return answer;
 }
 

@@ -33,9 +33,18 @@ App::App(const string& name, const string& cmd, RestartMode mode)
 {
     // Split string to command and arguments
     size_t argsBegin = cmd.find_first_of(' ');
+    size_t logPathBegin = cmd.find_first_of('>');
     _cmd = cmd.substr(0, argsBegin);
     _name = name;
-    if (mode != RestartMode::NEVER)
+    if (logPathBegin != string::npos && cmd.size() > (logPathBegin + 3))
+    {
+        do logPathBegin++;
+        while (cmd[logPathBegin] == ' ' && cmd[logPathBegin] != '\0');
+        size_t logPathEnd = cmd.find_first_of(' ', logPathBegin);
+        if (logPathEnd == string::npos)
+            logPathEnd = cmd.length();
+        _logPath = string(&cmd[logPathBegin], logPathEnd - logPathBegin);
+    }
     if (argsBegin != string::npos)
     {
         string argstr = cmd.substr(argsBegin);
@@ -207,6 +216,11 @@ void App::run()
     isStopped = false;
     if (!_thread)
         _thread = new thread(&App::watchFunc, this);
+}
+
+const std::string& App::logPath() const
+{
+    return _logPath;
 }
 
 std::queue<int8_t>& App::errors()

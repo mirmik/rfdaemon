@@ -35,6 +35,7 @@ public:
 	void clearRestartAttempts();
 	pid_t waitFinish();
 	void run();
+	const std::string& logPath() const;
 	std::queue<int8_t>& errors();
 private:
 	void watchFunc();
@@ -47,7 +48,7 @@ private:
 	uint32_t _restartAttempts = 0;
 	int _exitStatus = 0;
 	RestartMode _restartMode = RestartMode::ALWAYS;
-	std::string _cmd, _name;
+	std::string _cmd, _name, _logPath;
 	std::vector<std::string> _args;
 	std::queue<int8_t> _errors;
 	int _shPid = 0, _pid = 0;

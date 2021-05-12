@@ -25,7 +25,7 @@ bool AppManager::loadConfigFile()
     ifstream appFile = ifstream(appFilename);
     bool error = false;
     string homedir = string(getpwuid(getuid())->pw_dir);
-    if (homedir == "/home/root")
+    if (homedir == "/root")
         homedir = "/home/rfmeas";
     settingsFilename = homedir + "/settings.json";
     runtimeSettingsFilename = homedir + "/runtime.json";
@@ -212,6 +212,17 @@ size_t AppManager::getAppCount() const
     return apps.size();
 }
 
+size_t AppManager::getLogFilesCount() const
+{
+    size_t logCount = 0;
+    for (const auto& a : apps)
+    {
+        if (!a.logPath().empty())
+            logCount++;
+    }
+    return logCount;
+}
+
 const string& AppManager::getAppConfigFilename()
 {
     return appFilename;
@@ -220,11 +231,6 @@ const string& AppManager::getAppConfigFilename()
 vector<App>& AppManager::getAppsList()
 {
     return apps;
-}
-
-const string& AppManager::getLogFilename()
-{
-    return logFilename;
 }
 
 const string& AppManager::getDeviceDescFilename() const

@@ -30,8 +30,8 @@ public:
     void restartApps();
     std::vector<App>& getAppsList();
     size_t getAppCount() const;
+    size_t getLogFilesCount() const;
     const std::string& getAppConfigFilename();
-    const std::string& getLogFilename();
     const std::string& getDeviceDescFilename() const; // rfmeask "config.json" file with path
     const std::string& getDeviceRuntimeFilename() const; // rfmeask "runtime.json" file with path
     std::list<uint8_t>& errors();
@@ -44,7 +44,6 @@ private:
     std::vector<App> apps;
     std::list<uint8_t> errorList;
     std::thread appRestartWatchThread;
-    std::string logFilename;
     std::string appFilename;
     std::string settingsFilename;
     std::string runtimeSettingsFilename;
