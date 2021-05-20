@@ -74,6 +74,9 @@
     <ClInclude Include="App.h">
       <Filter>Include</Filter>
     </ClInclude>
+    <ClInclude Include="..\igris\igris\compiler.h">
+      <Filter>igris\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Include">

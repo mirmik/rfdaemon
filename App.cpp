@@ -8,6 +8,8 @@
 
 using namespace std;
 
+mutex App::ioMutex;
+
 string GetStdoutFromCommand(string cmd) {
 
     string data;
@@ -64,9 +66,39 @@ void App::stop(bool atStart)
     if (atStart)
         successStart = false;
     if (_pid)
-        kill(_pid, SIGTERM);
+    {
+        if (kill(_pid, SIGKILL) == 0)
+        {
+            lock_guard lock(ioMutex);
+            printf("Killed app with pid %d\n", _pid);
+        }
+        else
+        {
+            lock_guard lock(ioMutex);
+            printf("Failed to kill app with pid %d, ", _pid);
+            if (errno == ESRCH)
+                printf("no such process.\n");
+            else
+                printf("unknown error.\n");
+        }
+    }
     if (_shPid)
-        kill(_shPid, SIGTERM);
+    {
+        if (kill(_shPid, SIGKILL) == 0)
+        {
+            lock_guard lock(ioMutex);
+            printf("Killed sh with pid %d\n", _shPid);
+        }
+        else
+        {
+            lock_guard lock(ioMutex);
+            printf("Failed to kill sh with pid %d, ", _shPid);
+            if (errno == ESRCH)
+                printf("no such process.\n");
+            else
+                printf("unknown error.\n");
+        }
+    }
     _restartAttempts = 0;
     if (_thread)
     {

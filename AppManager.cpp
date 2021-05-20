@@ -142,11 +142,9 @@ void AppManager::runApps()
     appRestartWatchThread = thread(&AppManager::restartWatchFunc, this);
     for (auto& a : apps)
     {
+        a.clearRestartAttempts();
         if (a.stopped())
-        {
-            a.clearRestartAttempts();
             a.run();
-        }
     }
 }
 
@@ -154,10 +152,12 @@ void AppManager::closeApps()
 {
     stopRestartWatcher();
     for (auto& a : apps)
-        a.stop();
-    ioMutex.lock();
+    {
+        if (!a.stopped())
+            a.stop();
+    }
+    lock_guard lock(ioMutex);
     cout << "All created processes have just been killed." << endl;
-    ioMutex.unlock();
 }
 
 void AppManager::stopRestartWatcher()
@@ -182,9 +182,8 @@ int AppManager::restartWatchFunc()
                 {
                     apps[j].stop(true);
                     pushError(Errors::AppAttemptsEmpty);
-                    ioMutex.lock();
+                    lock_guard lock(ioMutex);
                     cout << "Process \"" << apps[j].name() << "\" did too many restarts and won't restart anymore." << endl;
-                    ioMutex.unlock();
                 }
             }
         }
@@ -194,9 +193,8 @@ int AppManager::restartWatchFunc()
             break;
         }
     }
-    ioMutex.lock();
+    lock_guard lock(ioMutex);
     cout << "Restart checker closed." << endl;
-    ioMutex.unlock();
     return 0;
 }
 

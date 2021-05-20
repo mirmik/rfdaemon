@@ -14,13 +14,16 @@ TcpServer::TcpServer(uint16_t port, size_t bufferSize)
 
     // Prevent crash due to broken socket pipe
     signal(SIGPIPE, SIG_IGN);
-
     socketDesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (socketDesc == -1)
     {
         perror("Socket creation error.\n");
         exit(EXIT_FAILURE);
     }
+    int reuse = 1;
+    if (setsockopt(socketDesc, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+        printf("setsockopt(SO_REUSEADDR) failed");
+
     memset(&sAddr, 0, sizeof(sAddr));
     sAddr.sin_family = PF_INET;
     sAddr.sin_port = htons(port);

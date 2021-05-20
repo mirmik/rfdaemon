@@ -52,4 +52,5 @@ private:
 	std::vector<std::string> _args;
 	std::queue<int8_t> _errors;
 	int _shPid = 0, _pid = 0;
+	static std::mutex ioMutex;
 };
