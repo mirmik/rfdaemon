@@ -46,6 +46,8 @@ App::App(const string& name, const string& cmd, RestartMode mode)
         if (logPathEnd == string::npos)
             logPathEnd = cmd.length();
         _logPath = string(&cmd[logPathBegin], logPathEnd - logPathBegin);
+        lock_guard lock(ioMutex);
+        printf("Log found: %s\n", _logPath.data());
     }
     if (argsBegin != string::npos)
     {

@@ -207,6 +207,10 @@ vector<uint8_t> RFDaemonServer::getAppLogs(const uint8_t* data, uint32_t size)
 			if (f.is_open())
 			{
 				string s(istreambuf_iterator<char>{f}, {});
+				if (s.empty())
+					s = "\r\n";
+				pLogSize = (uint32_t*)(answer.data() + 1 + logsNum);
+				pAppId = answer.data() + 1;
 				pLogSize[j] = s.length();
 				pAppId[j++] = i;
 				answer.insert(answer.end(), s.begin(), s.end());
