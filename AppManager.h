@@ -21,7 +21,8 @@ public:
         AppListSyntaxError,
         AppListConfigPath,
         AppListRuntimePath,
-        AppAttemptsEmpty
+        AppAttemptsEmpty,
+        AppRfmeasNotFound
     };
     AppManager(const std::string& appListFileName);
     bool loadConfigFile();

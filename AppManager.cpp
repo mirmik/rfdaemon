@@ -2,7 +2,6 @@
 #include <fstream>
 #include <mutex>
 #include <unistd.h>
-#include <pwd.h>
 #include "jsoncpp/json/json.h"
 #include "AppManager.h"
 
@@ -24,11 +23,8 @@ bool AppManager::loadConfigFile()
     JSONCPP_STRING errs;
     ifstream appFile = ifstream(appFilename);
     bool error = false;
-    string homedir = string(getpwuid(getuid())->pw_dir);
-    if (homedir == "/root")
-        homedir = "/home/rfmeas";
-    settingsFilename = homedir + "/settings.json";
-    runtimeSettingsFilename = homedir + "/runtime.json";
+    settingsFilename = "/home/rfmeas/settings.json";
+    runtimeSettingsFilename = "/home/rfmeas/runtime.json";
     if (appFile.is_open())
         cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
     else
@@ -62,21 +58,13 @@ bool AppManager::loadConfigFile()
                 string cmd = root["apps"][i]["command"].asString();
                 if (!cmd.empty() && !name.empty())
                 {
-                    // Replace username in command string to actual
-                    size_t homePathPos = cmd.find("/home/"), homePathEnd = cmd.find('/', homePathPos + 7);
-                    while ((homePathPos != string::npos) && (homePathEnd != string::npos) && (homePathEnd > homePathPos))
-                    {
-                        cmd.replace(homePathPos, homePathEnd - homePathPos, homedir);
-                        homePathPos = cmd.find("/home/", homePathEnd);
-                        homePathEnd = cmd.find('/', homePathPos + 7);
-                    }
                     App::RestartMode restartMode;
                     if (root["apps"][i]["restart"].asString() == "error")
                         restartMode = App::RestartMode::ERROR;
                     else if (root["apps"][i]["restart"].asString() == "never")
                         restartMode = App::RestartMode::NEVER;
                     else
-                        restartMode = App::RestartMode::ALWAYS; // "always" and other values
+                        restartMode = App::RestartMode::ALWAYS;
                     apps.push_back({ name, cmd, restartMode });
                 }
                 else
@@ -105,32 +93,33 @@ bool AppManager::loadConfigFile()
             {
                 if (apps[i].args()[j].find("--config") != string::npos)
                 {
-                    configFound = true;
-                    break;
+                    if (!apps[i].args()[j + 1].empty())
+                    {
+                        configFound = true;
+                        settingsFilename = apps[i].args()[j + 1];
+                        break;
+                    }
                 }
             }
             for (; k < apps[i].args().size(); k++)
             {
                 if (apps[i].args()[k].find("--runtime") != string::npos)
                 {
-                    runtimeFound = true;
-                    break;
+                    if (!apps[i].args()[k + 1].empty())
+                    {
+                        runtimeFound = true;
+                        runtimeSettingsFilename = apps[i].args()[k + 1];
+                        break;
+                    }
                 }
             }
-            if (configFound && runtimeFound &&
-                !apps[i].args()[j + 1].empty() && !apps[i].args()[k + 1].empty())
-            {
-                settingsFilename = apps[i].args()[j + 1];
-                runtimeSettingsFilename = apps[i].args()[k + 1];
-            }
-            else
-            {
-                if (!configFound)
-                    pushError(Errors::AppListConfigPath);
-                if (!runtimeFound)
-                    pushError(Errors::AppListRuntimePath);
-            }
+            if (!configFound)
+                pushError(Errors::AppListConfigPath);
+            if (!runtimeFound)
+                pushError(Errors::AppListRuntimePath);
         }
+        else
+            pushError(Errors::AppRfmeasNotFound);
     }
     return error;
 }
