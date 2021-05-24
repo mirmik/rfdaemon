@@ -31,6 +31,7 @@ public:
         SET_APPS_LIST
     } CmdId;
     RFDaemonServer(uint16_t port);
+    virtual ~RFDaemonServer();
     std::vector<uint8_t> getAppsInfo(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> startAllApps(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> stopAllApps(const uint8_t* data, uint32_t size);

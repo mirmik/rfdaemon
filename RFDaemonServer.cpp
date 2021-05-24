@@ -23,6 +23,10 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(SET_APPS_LIST, Func(this, &RFDaemonServer::setAppsList));
 }
 
+RFDaemonServer::~RFDaemonServer()
+{
+}
+
 void RFDaemonServer::addCmd(uint32_t code, const Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>& cmd)
 {
 	SrvCmd c;
@@ -42,7 +46,6 @@ bool RFDaemonServer::writeFile(const std::string& filename, const uint8_t* data,
 		f.write((const char*)data, size);
 		error = (f.rdstate() & (ios::failbit | ios::badbit)) != 0;
 		f.flush();
-		f.close();
 	}
 	return error;
 }
@@ -78,7 +81,6 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 		string s = cfgBuf.str();
 		*(uint32_t*)(answer.data() + 1) = s.length();
 		answer.insert(answer.end(), s.begin(), s.end());
-		cfg.close();
 
 		runtime.open(appMgr->getDeviceRuntimeFilename(), fstream::in);
 		if (runtime.is_open())
@@ -89,7 +91,6 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 			s = runtimeBuf.str();
 			*(uint32_t*)(answer.data() + 5) = s.length();
 			answer.insert(answer.end(), s.begin(), s.end());
-			runtime.close();
 		}
 	}
 	return answer;
@@ -198,6 +199,9 @@ vector<uint8_t> RFDaemonServer::getAppLogs(const uint8_t* data, uint32_t size)
 	answer[0] = logsNum;
 	uint32_t* pLogSize = (uint32_t*)(answer.data() + 1 + logsNum);
 	uint8_t* pAppId = answer.data() + 1;
+
+	auto packedData = appMgr->packLogs();
+
 	for (size_t i = 0, j = 0; i < apps.size(); i++)
 	{
 		string path = apps[i].logPath();
@@ -214,7 +218,6 @@ vector<uint8_t> RFDaemonServer::getAppLogs(const uint8_t* data, uint32_t size)
 				pLogSize[j] = s.length();
 				pAppId[j++] = i;
 				answer.insert(answer.end(), s.begin(), s.end());
-				f.close();
 			}
 		}
 	}

@@ -46,6 +46,8 @@ TcpServer::TcpServer(uint16_t port, size_t bufferSize)
 
 TcpServer::~TcpServer()
 {
+    if (socketDesc != -1)
+        close(socketDesc);
     rxQueue.clear();
     txQueue.clear();
     free(rxBufferPtr);

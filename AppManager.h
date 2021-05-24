@@ -24,6 +24,12 @@ public:
         AppAttemptsEmpty,
         AppRfmeasNotFound
     };
+    struct Log
+    {
+        std::string path;
+        std::vector<uint8_t> packedData;
+        size_t uncompressedSize;
+    };
     AppManager(const std::string& appListFileName);
     bool loadConfigFile();
     void runApps();
@@ -36,13 +42,16 @@ public:
     const std::string& getDeviceDescFilename() const; // rfmeask "config.json" file with path
     const std::string& getDeviceRuntimeFilename() const; // rfmeask "runtime.json" file with path
     std::list<uint8_t>& errors();
+    std::vector<std::string>& getSystemLogPaths();
     void pushError(Errors error);
+    std::vector<AppManager::Log> packLogs();
 private:
     void stopRestartWatcher();
     int restartWatchFunc();
     bool cancelWatchRestart = false;
     bool restartWatcherActive = false;
     std::vector<App> apps;
+    std::vector<std::string> systemLogPaths;
     std::list<uint8_t> errorList;
     std::thread appRestartWatchThread;
     std::string appFilename;

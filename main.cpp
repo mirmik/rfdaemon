@@ -149,6 +149,8 @@ int userIOThread()
 
 void exitHandler(int sig)
 {
+    delete srv;
     appManager->closeApps();
+    delete appManager;
     exit(sig);
 }

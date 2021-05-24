@@ -4,9 +4,10 @@
 #include <unistd.h>
 #include "jsoncpp/json/json.h"
 #include "AppManager.h"
+#include "zlib.h"
 
 using namespace std;
-std::mutex AppManager::ioMutex;
+mutex AppManager::ioMutex;
 
 AppManager::AppManager(const string& appListFileName)
 {
@@ -43,25 +44,26 @@ bool AppManager::loadConfigFile()
     else
     {
         int arraySize = root["apps"].size();
-        if (!arraySize)
-        {
-            cout << "No apps found in file \"" + appFilename + "\".\n";
-            error = true;
-        }
-        else
+        if (arraySize)
         {
             closeApps();
             apps.clear();
+
+            map<int, int> orderList;
+            for (int i = 0; i < arraySize; i++)
+                orderList[i] = root["apps"][i]["order"].asInt() - 1;
+
             for (int i = 0; i < arraySize; i++)
             {
-                string name = root["apps"][i]["name"].asString();
-                string cmd = root["apps"][i]["command"].asString();
+                int order = orderList[orderList[i]];
+                string name = root["apps"][order]["name"].asString();
+                string cmd = root["apps"][order]["command"].asString();
                 if (!cmd.empty() && !name.empty())
                 {
                     App::RestartMode restartMode;
-                    if (root["apps"][i]["restart"].asString() == "error")
+                    if (root["apps"][order]["restart"].asString() == "error")
                         restartMode = App::RestartMode::ERROR;
-                    else if (root["apps"][i]["restart"].asString() == "never")
+                    else if (root["apps"][order]["restart"].asString() == "never")
                         restartMode = App::RestartMode::NEVER;
                     else
                         restartMode = App::RestartMode::ALWAYS;
@@ -74,6 +76,18 @@ bool AppManager::loadConfigFile()
                 }
             }
         }
+        else
+        {
+            cout << "No apps found in file \"" + appFilename + "\".\n";
+            error = true;
+        }
+        
+        if (!root["apps"]["sys_logs"].isNull())
+        {
+            int sysLogCount = root["apps"]["sys_logs"].size();
+            for (int i = 0; i < sysLogCount; i++)
+                systemLogPaths.push_back(root["apps"]["sys_logs"][i].asString());
+        }
     }
     if (!error)
     {
@@ -81,7 +95,8 @@ bool AppManager::loadConfigFile()
         size_t i = 0, j = 0, k = 0;
         for (; i < apps.size(); i++)
         {
-            if (apps[i].command().find("rfmeas") != string::npos)
+            int len = apps[i].command().length();
+            if (!apps[i].command().compare(len - 6, 6, "rfmeas"))
             {
                 rfmeasFound = true;
                 break;
@@ -225,14 +240,19 @@ const string& AppManager::getDeviceDescFilename() const
     return settingsFilename;
 }
 
-const std::string& AppManager::getDeviceRuntimeFilename() const
+const string& AppManager::getDeviceRuntimeFilename() const
 {
     return runtimeSettingsFilename;
 }
 
-std::list<uint8_t>& AppManager::errors()
+list<uint8_t>& AppManager::errors()
 {
     return errorList;
+}
+
+vector<string>& AppManager::getSystemLogPaths()
+{
+    return systemLogPaths;
 }
 
 void AppManager::pushError(Errors error)
@@ -240,4 +260,30 @@ void AppManager::pushError(Errors error)
     errorList.push_back((uint8_t)error);
     if (errorList.size() > 100)
         errorList.pop_front();
+}
+
+vector<AppManager::Log> AppManager::packLogs()
+{
+    vector<AppManager::Log> data;
+    vector<string> paths = systemLogPaths;
+    for (const auto& app : apps)
+        paths.push_back(app.logPath());
+    for (const auto& path : paths)
+    {
+        ifstream f(path);
+        if (f.is_open())
+        {
+            string s(istreambuf_iterator<char>{f}, {});
+            size_t fileSize = s.size() + 1, size;
+            vector<uint8_t> output(fileSize);
+            if (compress(output.data(), &size, (Bytef*)s.data(), fileSize) == Z_OK)
+            {
+                vector<uint8_t> packed(4);
+                *(uint32_t*)(packed.data()) = size;
+                packed.insert(packed.end(), output.begin(), output.begin() + size);
+                data.push_back({ path, packed, fileSize });
+            }
+        }
+    };
+    return data;
 }
