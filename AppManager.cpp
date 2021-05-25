@@ -58,6 +58,8 @@ bool AppManager::loadConfigFile()
                 int order = orderList[orderList[i]];
                 string name = root["apps"][order]["name"].asString();
                 string cmd = root["apps"][order]["command"].asString();
+                auto logs = root["apps"][order]["logs"];
+
                 if (!cmd.empty() && !name.empty())
                 {
                     App::RestartMode restartMode;
@@ -67,7 +69,14 @@ bool AppManager::loadConfigFile()
                         restartMode = App::RestartMode::NEVER;
                     else
                         restartMode = App::RestartMode::ALWAYS;
-                    apps.push_back({ name, cmd, restartMode });
+
+                    vector<string> logPaths;
+                    if (!logs.empty())
+                    {
+                        for (unsigned int i = 0; i < logs.size(); i++)
+                            logPaths.push_back(logs[i].asString());
+                    }
+                    apps.push_back({ name, cmd, restartMode, logPaths });
                 }
                 else
                 {
@@ -82,12 +91,9 @@ bool AppManager::loadConfigFile()
             error = true;
         }
         
-        if (!root["apps"]["sys_logs"].isNull())
-        {
-            int sysLogCount = root["apps"]["sys_logs"].size();
-            for (int i = 0; i < sysLogCount; i++)
-                systemLogPaths.push_back(root["apps"]["sys_logs"][i].asString());
-        }
+        int sysLogCount = root["sys_logs"].size();
+        for (int i = 0; i < sysLogCount; i++)
+            systemLogPaths.push_back(root["sys_logs"][i].asString());
     }
     if (!error)
     {
@@ -214,17 +220,6 @@ size_t AppManager::getAppCount() const
     return apps.size();
 }
 
-size_t AppManager::getLogFilesCount() const
-{
-    size_t logCount = 0;
-    for (const auto& a : apps)
-    {
-        if (!a.logPath().empty())
-            logCount++;
-    }
-    return logCount;
-}
-
 const string& AppManager::getAppConfigFilename()
 {
     return appFilename;
@@ -267,21 +262,30 @@ vector<AppManager::Log> AppManager::packLogs()
     vector<AppManager::Log> data;
     vector<string> paths = systemLogPaths;
     for (const auto& app : apps)
-        paths.push_back(app.logPath());
+    {
+        auto logPaths = app.logPaths();
+        if (!logPaths.empty())
+        {
+            for (const auto& path : logPaths)
+                paths.push_back(path);
+        }
+    }
+
     for (const auto& path : paths)
     {
         ifstream f(path);
         if (f.is_open())
         {
             string s(istreambuf_iterator<char>{f}, {});
-            size_t fileSize = s.size() + 1, size;
+            size_t fileSize = s.size() + 1;
+            size_t size = fileSize;
             vector<uint8_t> output(fileSize);
             if (compress(output.data(), &size, (Bytef*)s.data(), fileSize) == Z_OK)
             {
                 vector<uint8_t> packed(4);
                 *(uint32_t*)(packed.data()) = size;
                 packed.insert(packed.end(), output.begin(), output.begin() + size);
-                data.push_back({ path, packed, fileSize });
+                data.push_back({ path, packed });
             }
         }
     };

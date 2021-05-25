@@ -18,7 +18,7 @@ RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 	addCmd(SET_CONFIG, Func(this, &RFDaemonServer::setConfig));
 	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
 	addCmd(UPDATE_FIRMWARE, Func(this, &RFDaemonServer::updateControllerFW));
-	addCmd(GET_APPS_LOGS, Func(this, &RFDaemonServer::getAppLogs));
+	addCmd(GET_LOGS, Func(this, &RFDaemonServer::getLogs));
 	addCmd(GET_APPS_LIST, Func(this, &RFDaemonServer::getAppsList));
 	addCmd(SET_APPS_LIST, Func(this, &RFDaemonServer::setAppsList));
 }
@@ -191,35 +191,24 @@ vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getAppLogs(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getLogs(const uint8_t* data, uint32_t size)
 {
-	int logsNum = appMgr->getLogFilesCount();
-	auto apps = appMgr->getAppsList();
-	vector<uint8_t> answer(1 + 5 * logsNum);
+	uint32_t namesLen = 0, offset = 0;
+	auto logs = appMgr->packLogs();
+	for (const auto& l : logs)
+		namesLen += l.path.length() + 1;
+	int logsNum = logs.size();
+	vector<uint8_t> answer(1 + (1 + sizeof(uint32_t)) * logsNum + namesLen);
 	answer[0] = logsNum;
-	uint32_t* pLogSize = (uint32_t*)(answer.data() + 1 + logsNum);
-	uint8_t* pAppId = answer.data() + 1;
 
-	auto packedData = appMgr->packLogs();
-
-	for (size_t i = 0, j = 0; i < apps.size(); i++)
+	for (int i = 0; i < logsNum; i++)
 	{
-		string path = apps[i].logPath();
-		if (!path.empty())
-		{
-			ifstream f = ifstream(path, ifstream::in);
-			if (f.is_open())
-			{
-				string s(istreambuf_iterator<char>{f}, {});
-				if (s.empty())
-					s = "\r\n";
-				pLogSize = (uint32_t*)(answer.data() + 1 + logsNum);
-				pAppId = answer.data() + 1;
-				pLogSize[j] = s.length();
-				pAppId[j++] = i;
-				answer.insert(answer.end(), s.begin(), s.end());
-			}
-		}
+		((uint32_t*)(answer.data() + 1 + logsNum))[i] = logs[i].data.size();
+		int pathStrLen = logs[i].path.length() + 1;
+		memcpy(answer.data() + 1 + (1 + sizeof(uint32_t)) * logsNum + offset,
+			logs[i].path.c_str(), pathStrLen);
+		offset += pathStrLen;
+		answer.insert(answer.end(), logs[i].data.begin(), logs[i].data.end());
 	}
 	return answer;
 }

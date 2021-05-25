@@ -27,8 +27,7 @@ public:
     struct Log
     {
         std::string path;
-        std::vector<uint8_t> packedData;
-        size_t uncompressedSize;
+        std::vector<uint8_t> data; // First 4 bytes are the size of data
     };
     AppManager(const std::string& appListFileName);
     bool loadConfigFile();
@@ -37,7 +36,6 @@ public:
     void restartApps();
     std::vector<App>& getAppsList();
     size_t getAppCount() const;
-    size_t getLogFilesCount() const;
     const std::string& getAppConfigFilename();
     const std::string& getDeviceDescFilename() const; // rfmeask "config.json" file with path
     const std::string& getDeviceRuntimeFilename() const; // rfmeask "runtime.json" file with path

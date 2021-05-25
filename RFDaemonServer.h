@@ -26,7 +26,7 @@ public:
         SET_CONFIG,
         UPDATE_IMG,
         UPDATE_FIRMWARE,
-        GET_APPS_LOGS,
+        GET_LOGS,
         GET_APPS_LIST,
         SET_APPS_LIST
     } CmdId;
@@ -40,7 +40,7 @@ public:
     std::vector<uint8_t> setConfig(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateSysImg(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> updateControllerFW(const uint8_t* data, uint32_t size);
-    std::vector<uint8_t> getAppLogs(const uint8_t* data, uint32_t size);
+    std::vector<uint8_t> getLogs(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> getAppsList(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setAppsList(const uint8_t* data, uint32_t size);
     void setAppManager(AppManager* manager);
