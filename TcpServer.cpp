@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "igris/util/crc.h"
+#include "arpa/inet.h"
 
 using namespace std;
 
@@ -236,4 +237,16 @@ size_t TcpServer::getBufferSize() const
 bool TcpServer::clientConnected()
 {
     return connectionAccepted;
+}
+
+string TcpServer::getClientInfo()
+{
+    char info[128];
+    char* client_ip = inet_ntoa(sAddr.sin_addr);
+    int client_port = ntohs(sAddr.sin_port);
+    if (client_ip != nullptr && connectionAccepted)
+        snprintf(info, sizeof(info), "IP:%s Port:%d", client_ip, client_port);
+    else
+        snprintf(info, sizeof(info), "Unable to get client data");
+    return string(info);
 }
