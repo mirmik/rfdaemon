@@ -144,7 +144,7 @@ int userIOThread()
     while (1)
     {
         getline(cin, userInput);
-        if (userInput.find("get ", 0) == 0)
+        if (userInput.find("get ") == 0)
         {
             if (userInput.find("tasks", 4) == 4)
             {
@@ -160,11 +160,11 @@ int userIOThread()
                 }
             }
         }
-        else if (userInput.find("restart", 0) == 0)
+        else if (userInput.find("restart") == 0)
             appManager->restartApps();
-        else if (userInput.find("stop", 0) == 0)
+        else if (userInput.find("stop") == 0)
             appManager->closeApps();
-        else if (userInput.find("connstatus", 0) == 0)
+        else if (userInput.find("connstatus") == 0)
             cout << (srv->clientConnected() ? ("Connected to " + srv->getClientInfo()) : "Disconnected") << endl;
         else
             cout << "Wrong command." << endl;
