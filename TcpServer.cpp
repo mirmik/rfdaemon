@@ -139,7 +139,7 @@ int TcpServer::receiveThread()
             rxQueueActive = false;
             connectionAccepted = false;
             if (result != 0)
-                printf("Socket receive error %d, restart connection.\n", result);
+                printf("Socket receive error %d, restart connection.\n", (int)result);
             else
                 printf("Client disconnected.\n");
             shutdown(connDesc, SHUT_RDWR);
