@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "igris/util/crc.h"
+#include "arpa/inet.h"
 
 using namespace std;
 
@@ -46,6 +47,8 @@ TcpServer::TcpServer(uint16_t port, size_t bufferSize)
 
 TcpServer::~TcpServer()
 {
+    if (socketDesc != -1)
+        close(socketDesc);
     rxQueue.clear();
     txQueue.clear();
     free(rxBufferPtr);
@@ -136,7 +139,7 @@ int TcpServer::receiveThread()
             rxQueueActive = false;
             connectionAccepted = false;
             if (result != 0)
-                printf("Socket receive error %d, restart connection.\n", result);
+                printf("Socket receive error %d, restart connection.\n", (int)result);
             else
                 printf("Client disconnected.\n");
             shutdown(connDesc, SHUT_RDWR);
@@ -179,7 +182,7 @@ int TcpServer::sendThread()
                     if (txQueuePos < txQueue.size())
                     {
                         // Multipacket transmission not finished, copy next data part to buffer
-                        size_t packetSize = std::min(txQueue.size() - txQueuePos + headerOffset, bufferLength);
+                        size_t packetSize = min(txQueue.size() - txQueuePos + headerOffset, bufferLength);
                         memcpy(txBufferPtr + headerOffset, txQueue.data() + txQueuePos,
                             packetSize - headerOffset);
                         
@@ -234,4 +237,16 @@ size_t TcpServer::getBufferSize() const
 bool TcpServer::clientConnected()
 {
     return connectionAccepted;
+}
+
+string TcpServer::getClientInfo()
+{
+    char info[128];
+    char* client_ip = inet_ntoa(sAddr.sin_addr);
+    int client_port = ntohs(sAddr.sin_port);
+    if (client_ip != nullptr && connectionAccepted)
+        snprintf(info, sizeof(info), "IP:%s Port:%d", client_ip, client_port);
+    else
+        snprintf(info, sizeof(info), "Unable to get client data");
+    return string(info);
 }

@@ -2,12 +2,12 @@
 #include <fstream>
 #include <mutex>
 #include <unistd.h>
-#include <pwd.h>
 #include "jsoncpp/json/json.h"
 #include "AppManager.h"
+#include "zlib.h"
 
 using namespace std;
-std::mutex AppManager::ioMutex;
+mutex AppManager::ioMutex;
 
 AppManager::AppManager(const string& appListFileName)
 {
@@ -24,11 +24,8 @@ bool AppManager::loadConfigFile()
     JSONCPP_STRING errs;
     ifstream appFile = ifstream(appFilename);
     bool error = false;
-    string homedir = string(getpwuid(getuid())->pw_dir);
-    if (homedir == "/root")
-        homedir = "/home/rfmeas";
-    settingsFilename = homedir + "/settings.json";
-    runtimeSettingsFilename = homedir + "/runtime.json";
+    settingsFilename = "/home/rfmeas/settings.json";
+    runtimeSettingsFilename = "/home/rfmeas/runtime.json";
     if (appFile.is_open())
         cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
     else
@@ -47,37 +44,39 @@ bool AppManager::loadConfigFile()
     else
     {
         int arraySize = root["apps"].size();
-        if (!arraySize)
-        {
-            cout << "No apps found in file \"" + appFilename + "\".\n";
-            error = true;
-        }
-        else
+        if (arraySize)
         {
             closeApps();
             apps.clear();
+
+            map<int, int> orderList;
+            for (int i = 0; i < arraySize; i++)
+                orderList[i] = root["apps"][i]["order"].asInt() - 1;
+
             for (int i = 0; i < arraySize; i++)
             {
-                string name = root["apps"][i]["name"].asString();
-                string cmd = root["apps"][i]["command"].asString();
+                int order = orderList[orderList[i]];
+                string name = root["apps"][order]["name"].asString();
+                string cmd = root["apps"][order]["command"].asString();
+                auto logs = root["apps"][order]["logs"];
+
                 if (!cmd.empty() && !name.empty())
                 {
-                    // Replace username in command string to actual
-                    size_t homePathPos = cmd.find("/home/"), homePathEnd = cmd.find('/', homePathPos + 7);
-                    while ((homePathPos != string::npos) && (homePathEnd != string::npos) && (homePathEnd > homePathPos))
-                    {
-                        cmd.replace(homePathPos, homePathEnd - homePathPos, homedir);
-                        homePathPos = cmd.find("/home/", homePathEnd);
-                        homePathEnd = cmd.find('/', homePathPos + 7);
-                    }
                     App::RestartMode restartMode;
-                    if (root["apps"][i]["restart"].asString() == "error")
+                    if (root["apps"][order]["restart"].asString() == "error")
                         restartMode = App::RestartMode::ERROR;
-                    else if (root["apps"][i]["restart"].asString() == "never")
+                    else if (root["apps"][order]["restart"].asString() == "never")
                         restartMode = App::RestartMode::NEVER;
                     else
-                        restartMode = App::RestartMode::ALWAYS; // "always" and other values
-                    apps.push_back({ name, cmd, restartMode });
+                        restartMode = App::RestartMode::ALWAYS;
+
+                    vector<string> logPaths;
+                    if (!logs.empty())
+                    {
+                        for (unsigned int i = 0; i < logs.size(); i++)
+                            logPaths.push_back(logs[i].asString());
+                    }
+                    apps.push_back({ name, cmd, restartMode, logPaths });
                 }
                 else
                 {
@@ -86,6 +85,15 @@ bool AppManager::loadConfigFile()
                 }
             }
         }
+        else
+        {
+            cout << "No apps found in file \"" + appFilename + "\".\n";
+            error = true;
+        }
+        
+        int sysLogCount = root["sys_logs"].size();
+        for (int i = 0; i < sysLogCount; i++)
+            systemLogPaths.push_back(root["sys_logs"][i].asString());
     }
     if (!error)
     {
@@ -93,7 +101,8 @@ bool AppManager::loadConfigFile()
         size_t i = 0, j = 0, k = 0;
         for (; i < apps.size(); i++)
         {
-            if (apps[i].command().find("rfmeas") != string::npos)
+            int len = apps[i].command().length();
+            if (!apps[i].command().compare(len - 6, 6, "rfmeas"))
             {
                 rfmeasFound = true;
                 break;
@@ -105,32 +114,33 @@ bool AppManager::loadConfigFile()
             {
                 if (apps[i].args()[j].find("--config") != string::npos)
                 {
-                    configFound = true;
-                    break;
+                    if (!apps[i].args()[j + 1].empty())
+                    {
+                        configFound = true;
+                        settingsFilename = apps[i].args()[j + 1];
+                        break;
+                    }
                 }
             }
             for (; k < apps[i].args().size(); k++)
             {
                 if (apps[i].args()[k].find("--runtime") != string::npos)
                 {
-                    runtimeFound = true;
-                    break;
+                    if (!apps[i].args()[k + 1].empty())
+                    {
+                        runtimeFound = true;
+                        runtimeSettingsFilename = apps[i].args()[k + 1];
+                        break;
+                    }
                 }
             }
-            if (configFound && runtimeFound &&
-                !apps[i].args()[j + 1].empty() && !apps[i].args()[k + 1].empty())
-            {
-                settingsFilename = apps[i].args()[j + 1];
-                runtimeSettingsFilename = apps[i].args()[k + 1];
-            }
-            else
-            {
-                if (!configFound)
-                    pushError(Errors::AppListConfigPath);
-                if (!runtimeFound)
-                    pushError(Errors::AppListRuntimePath);
-            }
+            if (!configFound)
+                pushError(Errors::AppListConfigPath);
+            if (!runtimeFound)
+                pushError(Errors::AppListRuntimePath);
         }
+        else
+            pushError(Errors::AppRfmeasNotFound);
     }
     return error;
 }
@@ -210,17 +220,6 @@ size_t AppManager::getAppCount() const
     return apps.size();
 }
 
-size_t AppManager::getLogFilesCount() const
-{
-    size_t logCount = 0;
-    for (const auto& a : apps)
-    {
-        if (!a.logPath().empty())
-            logCount++;
-    }
-    return logCount;
-}
-
 const string& AppManager::getAppConfigFilename()
 {
     return appFilename;
@@ -236,14 +235,19 @@ const string& AppManager::getDeviceDescFilename() const
     return settingsFilename;
 }
 
-const std::string& AppManager::getDeviceRuntimeFilename() const
+const string& AppManager::getDeviceRuntimeFilename() const
 {
     return runtimeSettingsFilename;
 }
 
-std::list<uint8_t>& AppManager::errors()
+list<uint8_t>& AppManager::errors()
 {
     return errorList;
+}
+
+vector<string>& AppManager::getSystemLogPaths()
+{
+    return systemLogPaths;
 }
 
 void AppManager::pushError(Errors error)
@@ -251,4 +255,39 @@ void AppManager::pushError(Errors error)
     errorList.push_back((uint8_t)error);
     if (errorList.size() > 100)
         errorList.pop_front();
+}
+
+vector<AppManager::Log> AppManager::packLogs()
+{
+    vector<AppManager::Log> data;
+    vector<string> paths = systemLogPaths;
+    for (const auto& app : apps)
+    {
+        auto logPaths = app.logPaths();
+        if (!logPaths.empty())
+        {
+            for (const auto& path : logPaths)
+                paths.push_back(path);
+        }
+    }
+
+    for (const auto& path : paths)
+    {
+        ifstream f(path);
+        if (f.is_open())
+        {
+            string s(istreambuf_iterator<char>{f}, {});
+            size_t fileSize = s.size() + 1;
+            size_t size = fileSize;
+            vector<uint8_t> output(fileSize);
+            if (compress(output.data(), &size, (Bytef*)s.data(), fileSize) == Z_OK)
+            {
+                vector<uint8_t> packed(4);
+                *(uint32_t*)(packed.data()) = size;
+                packed.insert(packed.end(), output.begin(), output.begin() + size);
+                data.push_back({ path, packed });
+            }
+        }
+    };
+    return data;
 }

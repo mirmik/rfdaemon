@@ -31,7 +31,8 @@ string GetStdoutFromCommand(string cmd) {
     return data;
 }
 
-App::App(const string& name, const string& cmd, RestartMode mode)
+App::App(const string& name, const string& cmd, RestartMode mode,
+    const vector<string>& logs) : _logPaths(logs)
 {
     // Split string to command and arguments
     size_t argsBegin = cmd.find_first_of(' ');
@@ -45,7 +46,9 @@ App::App(const string& name, const string& cmd, RestartMode mode)
         size_t logPathEnd = cmd.find_first_of(' ', logPathBegin);
         if (logPathEnd == string::npos)
             logPathEnd = cmd.length();
-        _logPath = string(&cmd[logPathBegin], logPathEnd - logPathBegin);
+        _logPaths.push_back(string(&cmd[logPathBegin], logPathEnd - logPathBegin));
+        lock_guard lock(ioMutex);
+        printf("Console log found: %s\n", _logPaths.back().data());
     }
     if (argsBegin != string::npos)
     {
@@ -140,7 +143,7 @@ pid_t App::appFork()
             size_t procNameStart = out.find(_name);
             size_t pidNameStart = out.find('(', procNameStart);
             if (procNameStart != string::npos && pidNameStart != string::npos)
-                _pid = std::atoi(out.c_str() + pidNameStart + 1);
+                _pid = atoi(out.c_str() + pidNameStart + 1);
         }
         else
             _pid = pid;
@@ -250,12 +253,12 @@ void App::run()
         _thread = new thread(&App::watchFunc, this);
 }
 
-const std::string& App::logPath() const
+const vector<string>& App::logPaths() const
 {
-    return _logPath;
+    return _logPaths;
 }
 
-std::queue<int8_t>& App::errors()
+queue<int8_t>& App::errors()
 {
     return _errors;
 }

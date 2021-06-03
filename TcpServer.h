@@ -30,6 +30,7 @@ public:
 	size_t getTxQueueSize() const;
 	size_t getBufferSize() const;
 	bool clientConnected();
+	std::string getClientInfo();
 	virtual std::vector<uint8_t> parseReceivedData(const std::vector<uint8_t>& data) = 0;
 private:
 	static constexpr uint32_t HeaderPreamble = 0x69EA23BE;
