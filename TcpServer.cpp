@@ -47,12 +47,26 @@ TcpServer::TcpServer(uint16_t port, size_t bufferSize)
 
 TcpServer::~TcpServer()
 {
+    terminateRxThread = true;
+    terminateTxThread = true;
+    if (connDesc != -1)
+    {
+        shutdown(connDesc, SHUT_RDWR);
+        connDesc = -1;
+    }
     if (socketDesc != -1)
+    {
+        shutdown(socketDesc, SHUT_RDWR);
+        socketDesc = -1;
+    }
+    if (socketDesc != -1)
+    {
         close(socketDesc);
+        socketDesc = -1;
+    }
+    while (terminateRxThread || terminateTxThread);
     rxQueue.clear();
     txQueue.clear();
-    free(rxBufferPtr);
-    free(txBufferPtr);
 }
 
 int TcpServer::receiveThread()
@@ -67,7 +81,7 @@ int TcpServer::receiveThread()
             {
                 perror("Socket accept error.\n");
                 close(socketDesc);
-                return 1;
+                break;
             }
             else
                 connectionAccepted = true;
@@ -133,7 +147,7 @@ int TcpServer::receiveThread()
                         }
                     }
                 }
-                if (terminate)
+                if (terminateRxThread)
                     break;
             } while (result > 0);
             rxQueueActive = false;
@@ -143,10 +157,12 @@ int TcpServer::receiveThread()
             else
                 printf("Client disconnected.\n");
             shutdown(connDesc, SHUT_RDWR);
-            if (terminate)
-                break;
+            connDesc = -1;
         }
+        if (terminateRxThread)
+            break;
     }
+    terminateRxThread = false;
     return 0;
 }
 
@@ -213,9 +229,10 @@ int TcpServer::sendThread()
         }
         else
             usleep(1000);
-        if (terminate)
+        if (terminateTxThread)
             break;
     }
+    terminateTxThread = false;
     return 0;
 }
 

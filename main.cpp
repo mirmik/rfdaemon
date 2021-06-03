@@ -15,7 +15,7 @@ AppManager* appManager = NULL;
 RFDaemonServer* srv = NULL;
 thread srvRxThread;
 thread srvTxThread;
-thread userThread;
+thread userIOThread;
 
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
@@ -68,12 +68,12 @@ int main(int argc, char* argv[])
         if (!serverOnlyMode)
             appManager->runApps();
 
-        srvRxThread = thread(tcpServerReceiveThread);
-        srvTxThread = thread(tcpServerSendThread);
+        srvRxThread = thread(tcpServerReceiveThreadHandler);
+        srvTxThread = thread(tcpServerSendThreadHandler);
         if (terminalMode)
         {
-            userThread = thread(userIOThread);
-            userThread.join();
+            userIOThread = thread(userIOThreadHandler);
+            userIOThread.join();
         }
         srvTxThread.join();
         srvRxThread.join();
@@ -126,19 +126,19 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
     return (wrongArg || !len);
 }
 
-int tcpServerSendThread()
+int tcpServerSendThreadHandler()
 {
     srv->setAppManager(appManager);
     return srv->sendThread();
 }
 
-int tcpServerReceiveThread()
+int tcpServerReceiveThreadHandler()
 {
     while (!srv);
     return srv->receiveThread();
 }
 
-int userIOThread()
+int userIOThreadHandler()
 {
     string userInput;
     while (1)
@@ -165,7 +165,12 @@ int userIOThread()
         else if (userInput.find("stop") == 0)
             appManager->closeApps();
         else if (userInput.find("connstatus") == 0)
-            cout << (srv->clientConnected() ? ("Connected to " + srv->getClientInfo()) : "Disconnected") << endl;
+        {
+            if (srv)
+                cout << (srv->clientConnected() ? ("Connected to " + srv->getClientInfo()) : "Disconnected") << endl;
+        }
+        else if (userInput.find("quit") == 0)
+            exitHandler(0);
         else
             cout << "Wrong command." << endl;
     }
@@ -174,8 +179,5 @@ int userIOThread()
 
 void exitHandler(int sig)
 {
-    delete srv;
-    appManager->closeApps();
-    delete appManager;
-    exit(sig);
+    quick_exit(sig);
 }

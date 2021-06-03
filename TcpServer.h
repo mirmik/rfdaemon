@@ -49,6 +49,7 @@ private:
 	sockaddr_in sAddr;
 	int socketDesc = 0;
 	int connDesc = 0;
-	bool terminate = false;
+	bool terminateRxThread = false;
+	bool terminateTxThread = false;
 	std::mutex mQueue;
 };

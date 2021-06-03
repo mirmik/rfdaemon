@@ -32,13 +32,13 @@ string GetStdoutFromCommand(string cmd) {
 }
 
 App::App(const string& name, const string& cmd, RestartMode mode,
-    const vector<string>& logs) : _logPaths(logs)
+    const vector<string>& logs) : _logPaths(logs), _name(name)
 {
     // Split string to command and arguments
     size_t argsBegin = cmd.find_first_of(' ');
     size_t logPathBegin = cmd.find_first_of('>');
     _cmd = cmd.substr(0, argsBegin);
-    _name = name;
+
     if (logPathBegin != string::npos && cmd.size() > (logPathBegin + 3))
     {
         do logPathBegin++;
