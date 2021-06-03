@@ -10,7 +10,7 @@ licant.cxx_application("rfdaemon",
 		"TcpServer.cpp",
 		"RFDaemonServer.cpp"
 	],
-	libs = ["jsoncpp", "igris", "pthread"]
+	libs = ["jsoncpp", "igris", "pthread", "z"]
 )
 
 licant.ex("rfdaemon")
