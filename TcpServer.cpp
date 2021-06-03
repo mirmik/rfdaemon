@@ -182,7 +182,7 @@ int TcpServer::sendThread()
                     if (txQueuePos < txQueue.size())
                     {
                         // Multipacket transmission not finished, copy next data part to buffer
-                        size_t packetSize = std::min(txQueue.size() - txQueuePos + headerOffset, bufferLength);
+                        size_t packetSize = min(txQueue.size() - txQueuePos + headerOffset, bufferLength);
                         memcpy(txBufferPtr + headerOffset, txQueue.data() + txQueuePos,
                             packetSize - headerOffset);
                         

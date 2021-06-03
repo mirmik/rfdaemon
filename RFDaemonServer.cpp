@@ -35,7 +35,7 @@ void RFDaemonServer::addCmd(uint32_t code, const Func<RFDaemonServer, vector<uin
 	commands.push_back(c);
 }
 
-bool RFDaemonServer::writeFile(const std::string& filename, const uint8_t* data, uint32_t size)
+bool RFDaemonServer::writeFile(const string& filename, const uint8_t* data, uint32_t size)
 {
 	bool error = false;
 	fstream f;
