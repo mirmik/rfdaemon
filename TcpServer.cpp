@@ -65,8 +65,6 @@ TcpServer::~TcpServer()
         socketDesc = -1;
     }
     while (terminateRxThread || terminateTxThread);
-    rxQueue.clear();
-    txQueue.clear();
 }
 
 int TcpServer::receiveThread()

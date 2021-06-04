@@ -179,5 +179,7 @@ int userIOThreadHandler()
 
 void exitHandler(int sig)
 {
+    delete srv;
+    srv = nullptr;
     quick_exit(sig);
 }
