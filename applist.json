@@ -1,7 +1,7 @@
 {
     "apps": [
         {
-            "command": "/home/user/projects/rfmeask/rfmeas --config /home/user/settings.json --runtime /home/user/runtime.json > /home/user/rfmeas_log",
+            "command": "/home/rfmeas/project/rfmeask/rfmeas --config /home/rfmeas/project/settings.json --runtime /home/rfmeas/project/runtime.json > /home/rfmeas/project/rfmeas_log",
             "name": "rfmeas",
             "order": 1,
             "restart": "always"
@@ -13,13 +13,13 @@
             "restart": "always"
         },
         {
-            "command": "/usr/local/bin/ctrans --udp 10014 --serial_v1 /dev/ttyS3 --noconsole",
+            "command": "/usr/local/bin/ctrans --udp 10014 --serial_v1 /dev/ttyS1 --noconsole",
             "name": "ctrans",
             "order": 3,
             "restart": "always"
         },
         {
-            "command": "/home/user/projects/rfmeask_dataproxy/dataproxy",
+            "command": "/home/rfmeas/project/dataproxy/dataproxy",
             "name": "dataproxy",
             "order": 4,
             "restart": "always"
