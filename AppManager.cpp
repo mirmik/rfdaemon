@@ -288,6 +288,6 @@ vector<AppManager::Log> AppManager::packLogs()
                 data.push_back({ path, packed });
             }
         }
-    };
+    }
     return data;
 }
