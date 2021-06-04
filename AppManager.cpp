@@ -101,7 +101,7 @@ bool AppManager::loadConfigFile()
         size_t i = 0, j = 0, k = 0;
         for (; i < apps.size(); i++)
         {
-            int len = apps[i].command().length();
+            auto len = apps[i].command().length();
             if (!apps[i].command().compare(len - 6, 6, "rfmeas"))
             {
                 rfmeasFound = true;
@@ -277,15 +277,13 @@ vector<AppManager::Log> AppManager::packLogs()
         if (f.is_open())
         {
             string s(istreambuf_iterator<char>{f}, {});
-            size_t fileSize = s.size() + 1;
+            size_t fileSize = s.size();
             size_t packedSize = fileSize;
             vector<uint8_t> output(fileSize);
-            if (output.back() != 0)
-                output.push_back(0);
             if (compress(output.data(), &packedSize, (Bytef*)s.data(), fileSize) == Z_OK)
             {
                 vector<uint8_t> packed(4);
-                *(uint32_t*)(packed.data()) = packedSize;
+                *(uint32_t*)(packed.data()) = (uint32_t)packedSize;
                 packed.insert(packed.end(), output.begin(), output.begin() + packedSize);
                 data.push_back({ path, packed });
             }

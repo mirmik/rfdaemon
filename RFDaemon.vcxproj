@@ -69,6 +69,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
     <RemoteRootDir>~/project/</RemoteRootDir>
+    <RemoteProjectRelDir />
+    <RemoteCopyIncludeDirectories>$(RemoteCopyIncludeDirectories)</RemoteCopyIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -91,6 +93,14 @@
     <RemoteIntRelDir>$(ProjectName)/build</RemoteIntRelDir>
     <RemoteOutRelDir>$(ProjectName)</RemoteOutRelDir>
     <RemoteDeployDir>$(RemoteRootDir)$(ProjectName)</RemoteDeployDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetExt />
+    <RemoteIntRelDir>$(ProjectName)/build</RemoteIntRelDir>
+    <RemoteOutRelDir>$(ProjectName)</RemoteOutRelDir>
+    <RemoteDeployDir>$(RemoteRootDir)$(ProjectName)</RemoteDeployDir>
+    <MultiProcNumber>8</MultiProcNumber>
+    <IncludePath>$(ProjectDir);$(IncludePath);C:\Users\itxs\source\repos\rfdaemon\jsoncpp\json;C:\Users\itxs\source\repos\rfdaemon\jsoncpp;C:\Users\itxs\source\repos\igris</IncludePath>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="..\igris\igris\util\crc.c" />
@@ -142,6 +152,16 @@
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <LinkTimeOptimization>true</LinkTimeOptimization>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>pthread;z</LibraryDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

@@ -14,4 +14,10 @@
     <RemoteDebuggingTarget>-1436586711;127.0.0.1 (username=, port=22, authentication=Password)</RemoteDebuggingTarget>
     <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <RemoteDebuggerCommand>$(RemoteDeployDir)/$(TargetName)</RemoteDebuggerCommand>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+    <RemoteDebuggerCommandArguments>-t -c applist.json</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerWorkingDirectory>$(RemoteDeployDir)</RemoteDebuggerWorkingDirectory>
+  </PropertyGroup>
 </Project>
