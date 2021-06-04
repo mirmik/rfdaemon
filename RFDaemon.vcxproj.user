@@ -1,12 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <RemoteDebuggerCommandArguments>-t -c /home/user/applist.json</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerCommandArguments>-t -c applist.json</RemoteDebuggerCommandArguments>
     <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
     <PreLaunchCommand>
     </PreLaunchCommand>
-    <RemoteDebuggingTarget>-1436586711;127.0.0.1 (username=, port=22, authentication=Password)</RemoteDebuggingTarget>
-    <RemoteTarget>-1436586711;127.0.0.1 (username=, port=22, authentication=Password)</RemoteTarget>
+    <RemoteDebuggingTarget>235550237;192.168.1.130 (username=, port=22, authentication=Password)</RemoteDebuggingTarget>
+    <RemoteTarget>235550237;192.168.1.130 (username=, port=22, authentication=Password)</RemoteTarget>
+    <RemoteDebuggerWorkingDirectory>$(RemoteDeployDir)</RemoteDebuggerWorkingDirectory>
+    <RemoteDebuggerCommand>$(RemoteDeployDir)/$(TargetName)</RemoteDebuggerCommand>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <RemoteDebuggingTarget>-1436586711;127.0.0.1 (username=, port=22, authentication=Password)</RemoteDebuggingTarget>

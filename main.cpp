@@ -41,8 +41,8 @@ int main(int argc, char* argv[])
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
-#warning "terminalMode = true only for debug"
-        terminalMode = true;
+//#warning "terminalMode = true only for debug"
+//        terminalMode = true;
         configFileName = "applist.json";
         port = DEFAULT_TCP_PORT;
     }

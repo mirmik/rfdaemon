@@ -278,13 +278,15 @@ vector<AppManager::Log> AppManager::packLogs()
         {
             string s(istreambuf_iterator<char>{f}, {});
             size_t fileSize = s.size() + 1;
-            size_t size = fileSize;
+            size_t packedSize = fileSize;
             vector<uint8_t> output(fileSize);
-            if (compress(output.data(), &size, (Bytef*)s.data(), fileSize) == Z_OK)
+            if (output.back() != 0)
+                output.push_back(0);
+            if (compress(output.data(), &packedSize, (Bytef*)s.data(), fileSize) == Z_OK)
             {
                 vector<uint8_t> packed(4);
-                *(uint32_t*)(packed.data()) = size;
-                packed.insert(packed.end(), output.begin(), output.begin() + size);
+                *(uint32_t*)(packed.data()) = packedSize;
+                packed.insert(packed.end(), output.begin(), output.begin() + packedSize);
                 data.push_back({ path, packed });
             }
         }

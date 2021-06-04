@@ -32,7 +32,7 @@ string GetStdoutFromCommand(string cmd) {
 }
 
 App::App(const string& name, const string& cmd, RestartMode mode,
-    const vector<string>& logs) : _logPaths(logs), _name(name)
+    const vector<string>& logs) : _name(name), _logPaths(logs)
 {
     // Split string to command and arguments
     size_t argsBegin = cmd.find_first_of(' ');
