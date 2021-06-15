@@ -258,7 +258,7 @@ const vector<string>& App::logPaths() const
     return _logPaths;
 }
 
-queue<int8_t>& App::errors()
+queue<int>& App::errors()
 {
     return _errors;
 }

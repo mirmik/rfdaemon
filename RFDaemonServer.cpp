@@ -148,7 +148,7 @@ vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t* data, uint32_t size)
 		pAppData[i].pid = apps[i].pid();
 		if (apps[i].errors().size())
 		{
-			pAppData[i].error = apps[i].errors().front();
+			pAppData[i].error = (int8_t)apps[i].errors().front();
 			apps[i].errors().pop();
 		}
 	}
@@ -193,18 +193,18 @@ vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 
 vector<uint8_t> RFDaemonServer::getLogs(const uint8_t* data, uint32_t size)
 {
-	uint32_t namesLen = 0, offset = 0;
+	size_t namesLen = 0, offset = 0;
 	auto logs = appMgr->packLogs();
 	for (const auto& l : logs)
 		namesLen += l.path.length() + 1;
-	int logsNum = logs.size();
+	size_t logsNum = logs.size();
 	vector<uint8_t> answer(1 + (1 + sizeof(uint32_t)) * logsNum + namesLen);
-	answer[0] = logsNum;
+	answer[0] = (uint8_t)logsNum;
 
 	for (int i = 0; i < logsNum; i++)
 	{
 		((uint32_t*)(answer.data() + 1 + logsNum))[i] = logs[i].data.size();
-		int pathStrLen = logs[i].path.length() + 1;
+		size_t pathStrLen = logs[i].path.length() + 1;
 		memcpy(answer.data() + 1 + (1 + sizeof(uint32_t)) * logsNum + offset,
 			logs[i].path.c_str(), pathStrLen);
 		offset += pathStrLen;
@@ -238,7 +238,7 @@ vector<uint8_t> RFDaemonServer::parseReceivedData(const vector<uint8_t>& data)
 			answer[i * 2 + 2] = pCmdList[i];
 			auto cmdRet = commands[pCmdList[i]].cmd(data.data() + argOffset, pArgSizeList[i]);
 			argOffset += pArgSizeList[i];
-			*(uint32_t*)(answer.data() + i * sizeof(uint32_t) + 2 + cmdNum * sizeof(uint16_t)) = cmdRet.size();
+			*(uint32_t*)(answer.data() + i * sizeof(uint32_t) + 2 + cmdNum * sizeof(uint16_t)) = (uint32_t)cmdRet.size();
 			if (cmdRet.size() != 0)
 				answer.insert(answer.end(), cmdRet.begin(), cmdRet.end());
 		}

@@ -39,7 +39,7 @@ public:
 	pid_t waitFinish();
 	void run();
 	const std::vector<std::string>& logPaths() const;
-	std::queue<int8_t>& errors();
+	std::queue<int>& errors();
 private:
 	void watchFunc();
 	pid_t appFork();
@@ -54,7 +54,7 @@ private:
 	std::string _cmd, _name;
 	std::vector<std::string> _logPaths;
 	std::vector<std::string> _args;
-	std::queue<int8_t> _errors;
+	std::queue<int> _errors;
 	int _shPid = 0, _pid = 0;
 	static std::mutex ioMutex;
 };
