@@ -55,10 +55,7 @@ TcpServer::~TcpServer()
         connDesc = -1;
     }
     if (socketDesc != -1)
-    {
         shutdown(socketDesc, SHUT_RDWR);
-        socketDesc = -1;
-    }
     if (socketDesc != -1)
     {
         close(socketDesc);
