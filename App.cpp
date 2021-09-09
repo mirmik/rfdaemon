@@ -47,7 +47,7 @@ App::App(const string& name, const string& cmd, RestartMode mode,
         if (logPathEnd == string::npos)
             logPathEnd = cmd.length();
         _logPaths.push_back(string(&cmd[logPathBegin], logPathEnd - logPathBegin));
-        lock_guard lock(ioMutex);
+        lock_guard<std::mutex> lock(ioMutex);
         printf("Console log found: %s\n", _logPaths.back().data());
     }
     if (argsBegin != string::npos)
@@ -72,12 +72,12 @@ void App::stop(bool atStart)
     {
         if (kill(_pid, SIGKILL) == 0)
         {
-            lock_guard lock(ioMutex);
+            lock_guard<std::mutex> lock(ioMutex);
             printf("Killed app with pid %d\n", _pid);
         }
         else
         {
-            lock_guard lock(ioMutex);
+            lock_guard<std::mutex> lock(ioMutex);
             printf("Failed to kill app with pid %d, ", _pid);
             if (errno == ESRCH)
                 printf("no such process.\n");
@@ -89,12 +89,12 @@ void App::stop(bool atStart)
     {
         if (kill(_shPid, SIGKILL) == 0)
         {
-            lock_guard lock(ioMutex);
+            lock_guard<std::mutex> lock(ioMutex);
             printf("Killed sh with pid %d\n", _shPid);
         }
         else
         {
-            lock_guard lock(ioMutex);
+            lock_guard<std::mutex> lock(ioMutex);
             printf("Failed to kill sh with pid %d, ", _shPid);
             if (errno == ESRCH)
                 printf("no such process.\n");

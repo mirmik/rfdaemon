@@ -10,17 +10,17 @@ using namespace std;
 
 RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 {
-	addCmd(GET_APPS_INFO, Func(this, &RFDaemonServer::getAppsInfo));
-	addCmd(APPS_START, Func(this, &RFDaemonServer::startAllApps));
-	addCmd(APPS_STOP, Func(this, &RFDaemonServer::stopAllApps));
-	addCmd(APPS_RESTART, Func(this, &RFDaemonServer::restartAllApps));
-	addCmd(GET_CONFIG, Func(this, &RFDaemonServer::getConfig));
-	addCmd(SET_CONFIG, Func(this, &RFDaemonServer::setConfig));
-	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
-	addCmd(UPDATE_FIRMWARE, Func(this, &RFDaemonServer::updateControllerFW));
-	addCmd(GET_LOGS, Func(this, &RFDaemonServer::getLogs));
-	addCmd(GET_APPS_LIST, Func(this, &RFDaemonServer::getAppsList));
-	addCmd(SET_APPS_LIST, Func(this, &RFDaemonServer::setAppsList));
+	addCmd(GET_APPS_INFO, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::getAppsInfo));
+	addCmd(APPS_START, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::startAllApps));
+	addCmd(APPS_STOP, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::stopAllApps));
+	addCmd(APPS_RESTART, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::restartAllApps));
+	addCmd(GET_CONFIG, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::getConfig));
+	addCmd(SET_CONFIG, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::setConfig));
+	addCmd(UPDATE_IMG, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::updateSysImg));
+	addCmd(UPDATE_FIRMWARE, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::updateControllerFW));
+	addCmd(GET_LOGS, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::getLogs));
+	addCmd(GET_APPS_LIST, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::getAppsList));
+	addCmd(SET_APPS_LIST, Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>(this, &RFDaemonServer::setAppsList));
 }
 
 RFDaemonServer::~RFDaemonServer()

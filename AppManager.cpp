@@ -166,7 +166,7 @@ void AppManager::closeApps()
         if (!a.stopped())
             a.stop();
     }
-    lock_guard lock(ioMutex);
+    lock_guard<std::mutex> lock(ioMutex);
     cout << "All created processes have just been killed." << endl;
 }
 
@@ -192,7 +192,7 @@ int AppManager::restartWatchFunc()
                 {
                     apps[j].stop(true);
                     pushError(Errors::AppAttemptsEmpty);
-                    lock_guard lock(ioMutex);
+                    lock_guard<std::mutex> lock(ioMutex);
                     cout << "Process \"" << apps[j].name() << "\" did too many restarts and won't restart anymore." << endl;
                 }
             }
@@ -203,7 +203,7 @@ int AppManager::restartWatchFunc()
             break;
         }
     }
-    lock_guard lock(ioMutex);
+    lock_guard<std::mutex> lock(ioMutex);
     cout << "Restart checker closed." << endl;
     return 0;
 }
