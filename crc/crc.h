@@ -1,7 +1,6 @@
 #ifndef GXX_UTIL_CRC_H
 #define GXX_UTIL_CRC_H
 
-#include <igris/compiler.h>
 #include <stdbool.h>
 #include <stdint.h>
 
