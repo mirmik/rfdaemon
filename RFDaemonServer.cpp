@@ -201,7 +201,7 @@ vector<uint8_t> RFDaemonServer::getLogs(const uint8_t* data, uint32_t size)
 	vector<uint8_t> answer(1 + (1 + sizeof(uint32_t)) * logsNum + namesLen);
 	answer[0] = (uint8_t)logsNum;
 
-	for (int i = 0; i < logsNum; i++)
+	for (size_t i = 0; i < logsNum; i++)
 	{
 		((uint32_t*)(answer.data() + 1 + logsNum))[i] = logs[i].data.size();
 		size_t pathStrLen = logs[i].path.length() + 1;

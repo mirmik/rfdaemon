@@ -2,7 +2,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <signal.h>
-#include "igris/util/crc.h"
+#include "crc/crc.h"
 #include "arpa/inet.h"
 
 using namespace std;
@@ -181,7 +181,7 @@ int TcpServer::sendThread()
                     txQueueActive = true;
                     PacketHeader* h = (PacketHeader*)txBufferPtr;
                     h->preamble = HeaderPreamble;
-                    h->size = txQueue.size();
+                    h->size = (uint32_t)txQueue.size();
                     h->crc32 = crc32(txQueue.data(), h->size, 0);
                     txQueuePos = 0;
                     headerOffset = sizeof(PacketHeader);

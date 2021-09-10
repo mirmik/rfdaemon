@@ -43,7 +43,7 @@
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
     <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
-    <ProjectName>rfdaemon</ProjectName>
+    <ProjectName>RFDaemon</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
@@ -84,7 +84,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir);$(IncludePath);C:\Users\itxs\source\repos\rfdaemon\jsoncpp\json;C:\Users\itxs\source\repos\rfdaemon\jsoncpp;C:\Users\itxs\source\repos\igris</IncludePath>
+    <IncludePath>$(ProjectDir);$(IncludePath);jsoncpp\json;jsoncpp</IncludePath>
     <MultiProcNumber>8</MultiProcNumber>
     <RemoteCCompileToolExe>g++</RemoteCCompileToolExe>
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
@@ -100,12 +100,12 @@
     <RemoteOutRelDir>$(ProjectName)</RemoteOutRelDir>
     <RemoteDeployDir>$(RemoteRootDir)$(ProjectName)</RemoteDeployDir>
     <MultiProcNumber>8</MultiProcNumber>
-    <IncludePath>$(ProjectDir);$(IncludePath);C:\Users\itxs\source\repos\rfdaemon\jsoncpp\json;C:\Users\itxs\source\repos\rfdaemon\jsoncpp;C:\Users\itxs\source\repos\igris</IncludePath>
+    <IncludePath>$(ProjectDir);$(IncludePath);jsoncpp\json;jsoncpp</IncludePath>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="..\igris\igris\util\crc.c" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="AppManager.cpp" />
+    <ClCompile Include="crc\crc.c" />
     <ClCompile Include="jsoncpp\src\lib_json\json_reader.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_value.cpp" />
     <ClCompile Include="jsoncpp\src\lib_json\json_writer.cpp" />
@@ -114,10 +114,9 @@
     <ClCompile Include="TcpServer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\igris\igris\compiler.h" />
-    <ClInclude Include="..\igris\igris\util\crc.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="AppManager.h" />
+    <ClInclude Include="crc\crc.h" />
     <ClInclude Include="functors.h" />
     <ClInclude Include="jsoncpp\json\allocator.h" />
     <ClInclude Include="jsoncpp\json\assertions.h" />
