@@ -15,34 +15,8 @@ TcpServer::TcpServer(uint16_t port, size_t bufferSize)
 
     // Prevent crash due to broken socket pipe
     signal(SIGPIPE, SIG_IGN);
-    socketDesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (socketDesc == -1)
-    {
-        perror("Socket creation error.\n");
-        exit(EXIT_FAILURE);
-    }
-    int reuse = 1;
-    if (setsockopt(socketDesc, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
-        printf("setsockopt(SO_REUSEADDR) failed");
-
-    memset(&sAddr, 0, sizeof(sAddr));
-    sAddr.sin_family = PF_INET;
-    sAddr.sin_port = htons(port);
-    sAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind(socketDesc, (sockaddr*)&sAddr, sizeof(sAddr)) == -1)
-    {
-        perror("Socket bind error.\n");
-        close(socketDesc);
-        exit(EXIT_FAILURE);
-    }
-
-    if (listen(socketDesc, 1) == -1)
-    {
-        perror("Socket listening error.\n");
-        close(socketDesc);
-        exit(EXIT_FAILURE);
-    }
+    usedPort = port;
+    setupConnection();
 }
 
 TcpServer::~TcpServer()
@@ -70,7 +44,9 @@ int TcpServer::receiveThread()
     {
         if (!connectionAccepted)
         {
-            usleep(1000);
+            usleep(10000);
+            if (!connectionCreated)
+                setupConnection();
             connDesc = accept(socketDesc, 0, 0);
             if (connDesc < 0)
             {
@@ -151,8 +127,14 @@ int TcpServer::receiveThread()
                 printf("Socket receive error %d, restart connection.\n", (int)result);
             else
                 printf("Client disconnected.\n");
+            mConn.lock();
             shutdown(connDesc, SHUT_RDWR);
             connDesc = -1;
+            mConn.unlock();
+            shutdown(socketDesc, SHUT_RDWR);
+            close(socketDesc);
+            socketDesc = -1;
+            connectionCreated = false;
         }
         if (terminateRxThread)
             break;
@@ -198,7 +180,9 @@ int TcpServer::sendThread()
                             packetSize - headerOffset);
                         
                         // Send next data part
+                        mConn.lock();
                         result = send(connDesc, txBufferPtr, packetSize, 0);
+                        mConn.unlock();
                         if (result > 0)
                             txQueuePos += result - headerOffset;
                         else if (result < 0)
@@ -221,9 +205,11 @@ int TcpServer::sendThread()
                 if (result < 0)
                     printf("Socket send error.\n");
             }
+            else
+                usleep(1000);
         }
         else
-            usleep(1000);
+            usleep(10000);
         if (terminateTxThread)
             break;
     }
@@ -261,4 +247,37 @@ string TcpServer::getClientInfo()
     else
         snprintf(info, sizeof(info), "Unable to get client data");
     return string(info);
+}
+
+void TcpServer::setupConnection()
+{
+    socketDesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (socketDesc == -1)
+    {
+        perror("Socket creation error.\n");
+        exit(EXIT_FAILURE);
+    }
+    int reuse = 1;
+    if (setsockopt(socketDesc, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+        printf("setsockopt(SO_REUSEADDR) failed");
+
+    memset(&sAddr, 0, sizeof(sAddr));
+    sAddr.sin_family = PF_INET;
+    sAddr.sin_port = htons(usedPort);
+    sAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(socketDesc, (sockaddr*)&sAddr, sizeof(sAddr)) == -1)
+    {
+        perror("Socket bind error.\n");
+        close(socketDesc);
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(socketDesc, 1) == -1)
+    {
+        perror("Socket listening error.\n");
+        close(socketDesc);
+        exit(EXIT_FAILURE);
+    }
+    connectionCreated = true;
 }

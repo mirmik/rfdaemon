@@ -33,7 +33,9 @@ public:
 	std::string getClientInfo();
 	virtual std::vector<uint8_t> parseReceivedData(const std::vector<uint8_t>& data) = 0;
 private:
+	void setupConnection();
 	static constexpr uint32_t HeaderPreamble = 0x69EA23BE;
+	bool connectionCreated = false;
 	bool connectionAccepted = false;
 	size_t bufferLength = 0;
 	size_t txQueuePos = 0;
@@ -47,9 +49,11 @@ private:
 	PacketHeader currentHeader;
 	QueryResult lastQueryResult = QueryResult::AllOk;
 	sockaddr_in sAddr;
+	uint16_t usedPort = 0;
 	int socketDesc = 0;
 	int connDesc = 0;
 	bool terminateRxThread = false;
 	bool terminateTxThread = false;
 	std::mutex mQueue;
+	std::mutex mConn;
 };
