@@ -8,9 +8,11 @@ licant.cxx_application("rfdaemon",
 		"App.cpp",
 		"AppManager.cpp",
 		"TcpServer.cpp",
-		"RFDaemonServer.cpp"
+		"RFDaemonServer.cpp",
+		"crc32_ccitt/crc32_ccitt.c"
 	],
-	libs = ["jsoncpp", "igris", "pthread", "z"]
+	include_paths = [ "./" ],
+	libs = ["jsoncpp", "pthread", "z"]
 )
 
 licant.ex("rfdaemon")
