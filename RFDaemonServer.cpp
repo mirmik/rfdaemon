@@ -79,7 +79,7 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 		stringstream cfgBuf;
 		cfgBuf << cfg.rdbuf();
 		string s = cfgBuf.str();
-		*(uint32_t*)(answer.data() + 1) = s.length();
+		*(uint32_t*)(answer.data() + 1) = (uint32_t)s.length();
 		answer.insert(answer.end(), s.begin(), s.end());
 
 		runtime.open(appMgr->getDeviceRuntimeFilename(), fstream::in);
@@ -89,7 +89,7 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 			stringstream runtimeBuf;
 			runtimeBuf << runtime.rdbuf();
 			s = runtimeBuf.str();
-			*(uint32_t*)(answer.data() + 5) = s.length();
+			*(uint32_t*)(answer.data() + 5) = (uint32_t)s.length();
 			answer.insert(answer.end(), s.begin(), s.end());
 		}
 	}
@@ -126,7 +126,7 @@ vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t* data, uint32_t size)
 		int64_t uptime;
 	};
 
-	uint8_t appCount = appMgr->getAppCount();
+	uint8_t appCount = (uint8_t)appMgr->getAppCount();
 	vector<uint8_t> answer(2 + appCount * sizeof(AppData));
 	answer[0] = appCount;
 
@@ -185,7 +185,7 @@ vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 {
 	ifstream f = ifstream(appMgr->getAppConfigFilename(), ifstream::in);
 	string s(istreambuf_iterator<char>{f}, {});
-	uint32_t strSize = s.length() + 1;
+	size_t strSize = s.length() + 1;
 	vector<uint8_t> answer(strSize);
 	memcpy(answer.data(), s.c_str(), strSize);
 	return answer;
@@ -203,7 +203,7 @@ vector<uint8_t> RFDaemonServer::getLogs(const uint8_t* data, uint32_t size)
 
 	for (size_t i = 0; i < logsNum; i++)
 	{
-		((uint32_t*)(answer.data() + 1 + logsNum))[i] = logs[i].data.size();
+		((uint32_t*)(answer.data() + 1 + logsNum))[i] = (uint32_t)logs[i].data.size();
 		size_t pathStrLen = logs[i].path.length() + 1;
 		memcpy(answer.data() + 1 + (1 + sizeof(uint32_t)) * logsNum + offset,
 			logs[i].path.c_str(), pathStrLen);
@@ -223,7 +223,7 @@ vector<uint8_t> RFDaemonServer::parseReceivedData(const vector<uint8_t>& data)
 	vector<uint8_t> answer;
 	bool fromClientToSrv = data[0] != 0;
 	uint8_t cmdNum = data[1];
-	uint32_t argOffset = 2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t));
+	uint32_t argOffset = 2 + cmdNum * (uint32_t)(sizeof(uint16_t) + sizeof(uint32_t));
 
 	if (fromClientToSrv && (data.size() >= argOffset))
 	{
@@ -235,7 +235,7 @@ vector<uint8_t> RFDaemonServer::parseReceivedData(const vector<uint8_t>& data)
 
 		for (size_t i = 0; i < cmdNum; i++)
 		{
-			answer[i * 2 + 2] = pCmdList[i];
+			answer[i * 2 + 2] = (uint8_t)pCmdList[i];
 			auto cmdRet = commands[pCmdList[i]].cmd(data.data() + argOffset, pArgSizeList[i]);
 			argOffset += pArgSizeList[i];
 			*(uint32_t*)(answer.data() + i * sizeof(uint32_t) + 2 + cmdNum * sizeof(uint16_t)) = (uint32_t)cmdRet.size();

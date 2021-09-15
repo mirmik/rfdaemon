@@ -32,12 +32,13 @@ int main(int argc, char* argv[])
     string configFileName;
     bool terminalMode = false, serverOnlyMode = false;
     pid_t daemonPid = 0;
-
-    system("pkill rfmeas");
-    system("pkill dataproxy");
-    system("pkill ctrans");
-    system("pkill crowker");
-    //system("pkill ConsoleApp");
+    int sysStatus = 0;
+    sysStatus = system("pkill rfmeas");
+    sysStatus = system("pkill dataproxy");
+    sysStatus = system("pkill ctrans");
+    sysStatus = system("pkill crowker");
+    sysStatus = system("pkill ModbusRemoteControl");
+    cout << sysStatus << endl;
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
@@ -83,7 +84,8 @@ int main(int argc, char* argv[])
 
 bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileName, bool& terminalMode)
 {
-    int opt = 0, len = 0, portArgLen = 0;
+    size_t len = 0, portArgLen = 0;
+    int opt = 0;
     bool wrongArg = false;
     char* portArgEnd = NULL;
 
@@ -109,12 +111,12 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
         case 'p':
             portArgLen = strlen(optarg);
             portArgEnd = optarg;
-            port = strtoul(optarg, &portArgEnd, 10);
+            port = (uint16_t)strtoul(optarg, &portArgEnd, 10);
 
-            if ((portArgEnd - optarg) < portArgLen)
+            if ((size_t)(portArgEnd - optarg) < portArgLen)
             {
-                port = strtoul(optarg, &portArgEnd, 16);
-                wrongArg = (portArgEnd - optarg) < portArgLen;
+                port = (uint16_t)strtoul(optarg, &portArgEnd, 16);
+                wrongArg = (size_t)(portArgEnd - optarg) < portArgLen;
             }
             break;
         default:
