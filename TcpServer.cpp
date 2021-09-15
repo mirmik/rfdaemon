@@ -2,7 +2,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <signal.h>
-#include "crc/crc.h"
+#include "crc32_ccitt/crc32_ccitt.h"
 #include "arpa/inet.h"
 
 using namespace std;
@@ -125,7 +125,7 @@ int TcpServer::receiveThread()
                         else
                         {
                             rxQueueActive = false;
-                            if (crc32(rxQueue.data(), currentHeader.size, 0) == currentHeader.crc32)
+                            if (crc32_ccitt(rxQueue.data(), currentHeader.size, 0) == currentHeader.crc32)
                             {
                                 while (txQueueActive);
                                 mQueue.lock();
@@ -182,7 +182,7 @@ int TcpServer::sendThread()
                     PacketHeader* h = (PacketHeader*)txBufferPtr;
                     h->preamble = HeaderPreamble;
                     h->size = (uint32_t)txQueue.size();
-                    h->crc32 = crc32(txQueue.data(), h->size, 0);
+                    h->crc32 = crc32_ccitt(txQueue.data(), h->size, 0);
                     txQueuePos = 0;
                     headerOffset = sizeof(PacketHeader);
                 }
