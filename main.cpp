@@ -84,6 +84,7 @@ int main(int argc, char* argv[])
 
 bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileName, bool& terminalMode)
 {
+    uint16_t portVal = 0;
     size_t len = 0, portArgLen = 0;
     int opt = 0;
     bool wrongArg = false;
@@ -111,13 +112,17 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
         case 'p':
             portArgLen = strlen(optarg);
             portArgEnd = optarg;
-            port = (uint16_t)strtoul(optarg, &portArgEnd, 10);
+            portVal = (uint16_t)strtoul(optarg, &portArgEnd, 10);
 
             if ((size_t)(portArgEnd - optarg) < portArgLen)
             {
-                port = (uint16_t)strtoul(optarg, &portArgEnd, 16);
+                portVal = (uint16_t)strtoul(optarg, &portArgEnd, 16);
                 wrongArg = (size_t)(portArgEnd - optarg) < portArgLen;
+                if (!wrongArg)
+                    port = portVal;
             }
+            else
+                port = portVal;
             break;
         default:
             wrongArg = true;
