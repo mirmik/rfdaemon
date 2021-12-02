@@ -141,7 +141,8 @@ int tcpServerSendThreadHandler()
 
 int tcpServerReceiveThreadHandler()
 {
-    while (!srv);
+    while (!srv)
+        usleep(1000);
     return srv->receiveThread();
 }
 
