@@ -23,6 +23,12 @@
             "name": "dataproxy",
             "order": 4,
             "restart": "always"
+        },
+	{
+            "command": "/home/rfmeas/project/ModbusRemoteControl/ModbusRemoteControl",
+            "name": "ModbusRemoteControl",
+            "order": 5,
+            "restart": "always"
         }
     ]
 }
