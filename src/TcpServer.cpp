@@ -2,7 +2,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <signal.h>
-#include "crc32_ccitt/crc32_ccitt.h"
+#include "crc32_ccitt.h"
 #include "arpa/inet.h"
 
 using namespace std;

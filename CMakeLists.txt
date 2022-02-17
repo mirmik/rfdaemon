@@ -10,11 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CC_STANDARD 11)
 
 file(GLOB SOURCES 
-	main.cpp
-	App.cpp
-	AppManager.cpp
-	TcpServer.cpp
-	RFDaemonServer.cpp
+	src/*.cpp
 ) 
 
 add_executable(rfdaemon ${SOURCES})
@@ -24,5 +20,6 @@ target_include_directories(rfdaemon PRIVATE .)
 target_link_libraries(rfdaemon pthread)
 target_link_libraries(rfdaemon igris)
 target_link_libraries(rfdaemon jsoncpp)
+target_link_libraries(rfdaemon z)
 
 

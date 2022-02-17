@@ -1,4 +1,4 @@
-#include "crc32_ccitt/crc32_ccitt.h"
+#include "crc32_ccitt.h"
 
 uint32_t crc32_ccitt(const void *data, uint32_t length, uint32_t crc_init)
 {
@@ -8,7 +8,7 @@ uint32_t crc32_ccitt(const void *data, uint32_t length, uint32_t crc_init)
         0x1A864DB2, 0x1E475005, 0x2608EDB8, 0x22C9F00F, 0x2F8AD6D6, 0x2B4BCB61,
         0x350C9B64, 0x31CD86D3, 0x3C8EA00A, 0x384FBDBD};
     uint32_t crc = crc_init;
-    const uint32_t *pData = data;
+    const uint32_t *pData = (const uint32_t *)data;
     uint32_t bodySize = length / 4;
     uint32_t tailSize = length % 4;
 
