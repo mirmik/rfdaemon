@@ -4,14 +4,9 @@ import licant
 
 licant.cxx_application("rfdaemon",
 	sources = [
-		"main.cpp",
-		"App.cpp",
-		"AppManager.cpp",
-		"TcpServer.cpp",
-		"RFDaemonServer.cpp",
-		"crc32_ccitt/crc32_ccitt.c"
+		"src/*.cpp",
 	],
-	include_paths = [ "./" ],
+	include_paths = [ "./src" ],
 	libs = ["jsoncpp", "pthread", "z"]
 )
 
