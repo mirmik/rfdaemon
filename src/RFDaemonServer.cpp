@@ -96,6 +96,7 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 	return answer;
 }
 
+// TODO: Файлы принимаются не абстрактно.
 vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
 {
 	uint8_t fileCount = data[0];
@@ -104,12 +105,12 @@ vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
 	if (fileCount--)
 	{
 		uint32_t cfgSize = *(uint32_t*)(data + 1);
-		error = writeFile(appMgr->getDeviceDescFilename(), data + 9, cfgSize);
-		if (fileCount--)
+		error = writeFile(appMgr->getDeviceDescFilename(), data + 5, cfgSize);
+		/*if (fileCount--)
 		{
 			uint32_t runtimeSize = *(uint32_t*)(data + 5);
 			error = error || writeFile(appMgr->getDeviceRuntimeFilename(), data + 9 + cfgSize, runtimeSize);
-		}
+		}*/
 	}
 	answer[0] = error;
 	return answer;

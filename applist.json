@@ -13,7 +13,7 @@
             "restart": "always"
         },
         {
-            "command": "/usr/local/bin/ctrans --udp 10014 --serial /dev/ttyS1 --noconsole",
+            "command": "/usr/local/bin/ctrans --udp 10014 --serial /dev/ttyS0:115200:e:8:1 --retrans --noconsole",
             "name": "ctrans",
             "order": 3,
             "restart": "always"
