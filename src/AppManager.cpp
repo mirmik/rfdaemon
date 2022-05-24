@@ -24,8 +24,8 @@ bool AppManager::loadConfigFile()
     JSONCPP_STRING errs;
     ifstream appFile = ifstream(appFilename);
     bool error = false;
-    settingsFilename = "/home/rfmeas/settings.json";
-    runtimeSettingsFilename = "/home/rfmeas/runtime.json";
+    //settingsFilename = "/home/rfmeas/settings.json";
+    //runtimeSettingsFilename = "/home/rfmeas/runtime.json";
     if (appFile.is_open())
         cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
     else
@@ -95,7 +95,9 @@ bool AppManager::loadConfigFile()
         for (int i = 0; i < sysLogCount; i++)
             systemLogPaths.push_back(root["sys_logs"][i].asString());
     }
-    if (!error)
+
+    // Irregular functions ???
+    /*if (!error)
     {
         // Search for config.json and runtime.json filepaths in rfmeas cmd string
         size_t i = 0, j = 0, k = 0;
@@ -141,7 +143,7 @@ bool AppManager::loadConfigFile()
         }
         else
             pushError(Errors::AppRfmeasNotFound);
-    }
+    }*/
     return error;
 }
 

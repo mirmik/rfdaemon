@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <thread>
+#include <nos/fprint.h>
 
 using namespace std;
 
@@ -73,12 +74,12 @@ void App::stop(bool atStart)
         if (kill(_pid, SIGKILL) == 0)
         {
             lock_guard<std::mutex> lock(ioMutex);
-            printf("Killed app with pid %d\n", _pid);
+            printf("Killed app '%s' with pid %d\n", name().c_str(), _pid);
         }
         else
         {
             lock_guard<std::mutex> lock(ioMutex);
-            printf("Failed to kill app with pid %d, ", _pid);
+            printf("Failed to kill app %s with pid %d, ", name().c_str(), _pid);
             if (errno == ESRCH)
                 printf("no such process.\n");
             else
@@ -123,6 +124,7 @@ pid_t App::appFork()
 
     if (pid == 0)
     {
+        nos::fprintln("Start cmd: {} args: {}", _cmd, _args);
         vector<char*> argsStr;
         argsStr.push_back((char*)"/bin/sh");
         argsStr.push_back((char*)"-c");

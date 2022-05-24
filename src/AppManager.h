@@ -53,7 +53,7 @@ private:
     std::list<uint8_t> errorList;
     std::thread appRestartWatchThread;
     std::string appFilename;
-    std::string settingsFilename;
-    std::string runtimeSettingsFilename;
+    std::string settingsFilename = "/home/rfmeas/project/config.json";
+    std::string runtimeSettingsFilename = "/home/rfmeas/project/runtime.json";;
     static std::mutex ioMutex;
 };

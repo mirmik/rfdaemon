@@ -7,9 +7,11 @@
 #include <thread>
 #include "RFDaemonServer.h"
 #include "AppManager.h"
+#include <console.h>
 
 using namespace std;
 
+int tcp_console_port = 5000;
 uint16_t port = DEFAULT_TCP_PORT;
 AppManager* appManager = NULL;
 RFDaemonServer* srv = NULL;
@@ -69,6 +71,7 @@ int main(int argc, char* argv[])
         if (!serverOnlyMode)
             appManager->runApps();
 
+        start_tcp_console(tcp_console_port);
         srvRxThread = thread(tcpServerReceiveThreadHandler);
         srvTxThread = thread(tcpServerSendThreadHandler);
         if (terminalMode)
