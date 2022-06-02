@@ -149,20 +149,18 @@ bool AppManager::loadConfigFile()
 
 void AppManager::runApps()
 {
-    stopRestartWatcher();
-    cancelWatchRestart = false;
-    appRestartWatchThread = thread(&AppManager::restartWatchFunc, this);
+//    stopRestartWatcher();
+//    cancelWatchRestart = false;
+//    appRestartWatchThread = thread(&AppManager::restartWatchFunc, this);
     for (auto& a : apps)
     {
-        a.clearRestartAttempts();
         if (a.stopped())
-            a.run();
+            a.start();
     }
 }
 
 void AppManager::closeApps()
 {
-    stopRestartWatcher();
     for (auto& a : apps)
     {
         if (!a.stopped())
@@ -170,44 +168,6 @@ void AppManager::closeApps()
     }
     lock_guard lock(ioMutex);
     cout << "All created processes have just been killed." << endl;
-}
-
-void AppManager::stopRestartWatcher()
-{
-    if (appRestartWatchThread.joinable())
-    {
-        cancelWatchRestart = true;
-        appRestartWatchThread.join();
-    }
-}
-
-int AppManager::restartWatchFunc()
-{
-    for (int i = 0; i < 500; i++)
-    {
-        this_thread::sleep_for(10ms);
-        for (size_t j = 0; j < apps.size(); j++)
-        {
-            if (!apps[j].stopped())
-            {
-                if (apps[j].restartAttempts() >= APP_MAX_RESTART_ATTEMPTS)
-                {
-                    apps[j].stop(true);
-                    pushError(Errors::AppAttemptsEmpty);
-                    lock_guard lock(ioMutex);
-                    cout << "Process \"" << apps[j].name() << "\" did too many restarts and won't restart anymore." << endl;
-                }
-            }
-        }
-        if (cancelWatchRestart)
-        {
-            cancelWatchRestart = false;
-            break;
-        }
-    }
-    lock_guard lock(ioMutex);
-    cout << "Restart checker closed." << endl;
-    return 0;
 }
 
 void AppManager::restartApps()
@@ -230,6 +190,24 @@ const string& AppManager::getAppConfigFilename()
 vector<App>& AppManager::getAppsList()
 {
     return apps;
+}
+
+App* AppManager::findApp(const string& name)
+{
+    for (auto& a : apps)
+    {
+        if (!a.name().compare(name))
+            return &a;
+    }
+    return nullptr;
+}
+
+App* AppManager::getApp(size_t index)
+{
+    if (index < apps.size())
+        return &apps[index];
+    
+    return nullptr;
 }
 
 const string& AppManager::getDeviceDescFilename() const

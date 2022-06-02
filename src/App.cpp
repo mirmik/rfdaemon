@@ -7,13 +7,20 @@
 #include <thread>
 #include <nos/fprint.h>
 
-using namespace std;
+std::mutex App::ioMutex;
+using namespace std::chrono_literals;
 
-mutex App::ioMutex;
+std::string App::status_string() const
+{
+    if (isStopped)
+        return "stopped";
+    else
+        return "running";
+}
 
-string GetStdoutFromCommand(string cmd) {
+std::string GetStdoutFromCommand(std::string cmd) {
 
-    string data;
+    std::string data;
     FILE* stream;
     const int max_buffer = 256;
     char buffer[max_buffer];
@@ -32,28 +39,28 @@ string GetStdoutFromCommand(string cmd) {
     return data;
 }
 
-App::App(const string& name, const string& cmd, RestartMode mode,
-    const vector<string>& logs) : _name(name), _logPaths(logs)
+App::App(const std::string& name, const std::string& cmd, RestartMode mode,
+    const std::vector<std::string>& logs) : _name(name), _logPaths(logs)
 {
-    // Split string to command and arguments
+    // Split std::string to command and arguments
     size_t argsBegin = cmd.find_first_of(' ');
     size_t logPathBegin = cmd.find_first_of('>');
     _cmd = cmd.substr(0, argsBegin);
 
-    if (logPathBegin != string::npos && cmd.size() > (logPathBegin + 3))
+    if (logPathBegin != std::string::npos && cmd.size() > (logPathBegin + 3))
     {
         do logPathBegin++;
         while (cmd[logPathBegin] == ' ' && cmd[logPathBegin] != '\0');
         size_t logPathEnd = cmd.find_first_of(' ', logPathBegin);
-        if (logPathEnd == string::npos)
+        if (logPathEnd == std::string::npos)
             logPathEnd = cmd.length();
-        _logPaths.push_back(string(&cmd[logPathBegin], logPathEnd - logPathBegin));
-        lock_guard<std::mutex> lock(ioMutex);
+        _logPaths.push_back(std::string(&cmd[logPathBegin], logPathEnd - logPathBegin));
+        std::lock_guard<std::mutex> lock(ioMutex);
         printf("Console log found: %s\n", _logPaths.back().data());
     }
-    if (argsBegin != string::npos)
+    if (argsBegin != std::string::npos)
     {
-        string argstr = cmd.substr(argsBegin);
+        std::string argstr = cmd.substr(argsBegin);
         char* p = strtok((char*)argstr.c_str(), " ");
         while (p)
         {
@@ -66,90 +73,56 @@ App::App(const string& name, const string& cmd, RestartMode mode,
 
 void App::stop(bool atStart)
 {
-    isStopped = true;
-    if (atStart)
-        successStart = false;
-    if (_pid)
-    {
-        if (kill(_pid, SIGKILL) == 0)
-        {
-            lock_guard<std::mutex> lock(ioMutex);
-            printf("Killed app '%s' with pid %d\n", name().c_str(), _pid);
-        }
-        else
-        {
-            lock_guard<std::mutex> lock(ioMutex);
-            printf("Failed to kill app %s with pid %d, ", name().c_str(), _pid);
-            if (errno == ESRCH)
-                printf("no such process.\n");
-            else
-                printf("unknown error.\n");
-        }
+    if (!isStopped) {
+        _attempts = 0;
+        kill(_pid, SIGKILL);
     }
-    if (_shPid)
+}
+
+void App::start()
+{
+    if (isStopped)
     {
-        if (kill(_shPid, SIGKILL) == 0)
-        {
-            lock_guard<std::mutex> lock(ioMutex);
-            printf("Killed sh with pid %d\n", _shPid);
-        }
-        else
-        {
-            lock_guard<std::mutex> lock(ioMutex);
-            printf("Failed to kill sh with pid %d, ", _shPid);
-            if (errno == ESRCH)
-                printf("no such process.\n");
-            else
-                printf("unknown error.\n");
-        }
-    }
-    _restartAttempts = 0;
-    if (_thread)
-    {
-        if (_thread->joinable())
-            _thread->join();
-        delete _thread;
-        _thread = NULL;
+        restart_attempt_counter();
+        run();
     }
 }
 
 // Call only in a separate thread
 pid_t App::appFork()
 {
-    isFinished = false;
-    successStart = true;
+    nos::println("app fork");
     _exitStatus = 0;
-    _restartAttempts++;
+    increment_attempt_counter();
     pid_t pid = fork();
 
     if (pid == 0)
     {
         nos::fprintln("Start cmd: {} args: {}", _cmd, _args);
-        vector<char*> argsStr;
-        argsStr.push_back((char*)"/bin/sh");
-        argsStr.push_back((char*)"-c");
-        string c = _cmd;
+        std::vector<char*> argsStr;
+        std::string c = _cmd;
         for (auto& item : _args)
-            c.append(" " + item);
-        argsStr.push_back((char*)c.c_str());
+            argsStr.push_back((char*)c.c_str());
         argsStr.push_back((char*)NULL);
-        exit(execv("/bin/sh", argsStr.data()));
+        exit(execv(argsStr[0], argsStr.data()));
     }
     else if (pid > 0)
     {
+        isStopped = false;
         _shPid = pid;
         usleep(1000);
-        if (kill(_shPid, 0) == 0)
+        /*if (kill(_shPid, 0) == 0)
         {
-            string out = GetStdoutFromCommand("pstree -pls " + to_string(_shPid));
+            std::string out = GetStdoutFromCommand("pstree -pls " + std::to_string(_shPid));
             size_t procNameStart = out.find(_name);
             size_t pidNameStart = out.find('(', procNameStart);
-            if (procNameStart != string::npos && pidNameStart != string::npos)
+            if (procNameStart != std::string::npos && pidNameStart != std::string::npos)
                 _pid = atoi(out.c_str() + pidNameStart + 1);
         }
-        else
-            _pid = pid;
+        else*/
+        _pid = pid;
         waitFinish();
+        isStopped = true;  
     }
     return pid;
 }
@@ -159,19 +132,9 @@ bool App::stopped() const
     return isStopped;
 }
 
-bool App::finished() const
-{
-    return isFinished;
-}
-
 App::RestartMode App::restartMode() const
 {
     return _restartMode;
-}
-
-bool App::successfulStart() const
-{
-    return successStart;
 }
 
 int App::pid() const
@@ -179,17 +142,17 @@ int App::pid() const
     return _pid;
 }
 
-const string& App::name() const
+const std::string& App::name() const
 {
     return _name;
 }
 
-const string& App::command() const
+const std::string& App::command() const
 {
     return _cmd;
 }
 
-const vector<string>& App::args() const
+const std::vector<std::string>& App::args() const
 {
     return _args;
 }
@@ -201,7 +164,7 @@ int App::exitStatus() const
 
 int64_t App::uptime() const
 {
-    string file = "/proc/" + to_string(_shPid) + "/stat";
+    std::string file = "/proc/" + std::to_string(_shPid) + "/stat";
     struct stat buf;
     int64_t result = 0;
     if (!stat(file.c_str(), &buf))
@@ -209,20 +172,26 @@ int64_t App::uptime() const
     return result;
 }
 
-uint32_t App::restartAttempts() const
+void App::restart_attempt_counter()
 {
-    return _restartAttempts;
+    _attempts = _attempts_initializer;
 }
 
-void App::clearRestartAttempts()
+void App::increment_attempt_counter()
 {
-    _restartAttempts = 0;
+    _attempts--;
+    assert(_attempts >= 0);
+}
+
+bool App::need_to_another_attempt() const
+{
+    return _attempts != 0;
 }
 
 pid_t App::waitFinish()
 {
+    nos::fprintln("wait finish '{}' : {} {}", name(), _shPid, _pid);
     waitpid(_shPid, &_exitStatus, 0);
-    isFinished = true;
     if (_exitStatus)
         _errors.push(_exitStatus);
     if (_errors.size() > 100)
@@ -234,33 +203,36 @@ void App::watchFunc()
 {
     while (1)
     {
-        this_thread::sleep_for(10ms);
-        if (!isStopped)
-            appFork();
-        else
-            return;
-        if (_restartMode == RestartMode::NEVER)
-            break;
-        if (_restartMode == RestartMode::ERROR && !_exitStatus)
-            break;
-        if (!successStart)
+        std::this_thread::sleep_for(10ms);
+        appFork();
+        
+        if (!need_to_another_attempt())
             break;
     }
+    _watcher_guard = false;
+    _pid = 0;
+    _shPid = 0;
 }
 
 void App::run()
 {
-    isStopped = false;
-    if (!_thread)
-        _thread = new thread(&App::watchFunc, this);
+    if (!_watcher_guard) 
+    {
+        _watcher_guard = true;
+        if (_watcher_thread.joinable())
+            _watcher_thread.join();
+        _watcher_thread = std::thread(&App::watchFunc, this);
+    }
+    else 
+        nos::fprintln("Can't start app '{}' because it's wather is already running", name());
 }
 
-const vector<string>& App::logPaths() const
+const std::vector<std::string>& App::logPaths() const
 {
     return _logPaths;
 }
 
-queue<int>& App::errors()
+std::queue<int>& App::errors()
 {
     return _errors;
 }

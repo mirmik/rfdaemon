@@ -43,15 +43,14 @@ public:
     std::vector<std::string>& getSystemLogPaths();
     void pushError(Errors error);
     std::vector<AppManager::Log> packLogs();
+    std::vector<App>& applications() { return apps; }
+    App* getApp(size_t index);
+    App* findApp(const std::string& name);
+
 private:
-    void stopRestartWatcher();
-    int restartWatchFunc();
-    bool cancelWatchRestart = false;
-    bool restartWatcherActive = false;
     std::vector<App> apps;
     std::vector<std::string> systemLogPaths;
     std::list<uint8_t> errorList;
-    std::thread appRestartWatchThread;
     std::string appFilename;
     std::string settingsFilename = "/home/rfmeas/project/config.json";
     std::string runtimeSettingsFilename = "/home/rfmeas/project/runtime.json";;

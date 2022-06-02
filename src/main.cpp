@@ -8,6 +8,7 @@
 #include "RFDaemonServer.h"
 #include "AppManager.h"
 #include <console.h>
+#include <signal.h>
 
 using namespace std;
 
@@ -17,7 +18,8 @@ AppManager* appManager = NULL;
 RFDaemonServer* srv = NULL;
 thread srvRxThread;
 thread srvTxThread;
-thread userIOThread;
+
+void interrupt_signal_handler(int signum);
 
 /*
 1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
@@ -32,15 +34,11 @@ thread userIOThread;
 int main(int argc, char* argv[])
 {
     string configFileName;
-    bool terminalMode = false, serverOnlyMode = false;
+    bool terminalMode = true, serverOnlyMode = false;
     pid_t daemonPid = 0;
     int sysStatus = 0;
-    sysStatus = system("pkill rfmeas");
-    sysStatus = system("pkill dataproxy");
-    sysStatus = system("pkill ctrans");
-    sysStatus = system("pkill crowker");
-    sysStatus = system("pkill ModbusRemoteControl");
-    cout << sysStatus << endl;
+    
+    signal(SIGINT, interrupt_signal_handler);
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
@@ -76,8 +74,7 @@ int main(int argc, char* argv[])
         srvTxThread = thread(tcpServerSendThreadHandler);
         if (terminalMode)
         {
-            userIOThread = thread(userIOThreadHandler);
-            userIOThread.join();
+            start_istream_console();
         }
         srvTxThread.join();
         srvRxThread.join();
@@ -98,7 +95,10 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
         switch (opt)
         {
         case 't':
-            terminalMode = 1;
+            terminalMode = true;
+            break;
+        case 'd':
+            terminalMode = false;
             break;
         case 'c':
             len = strlen(optarg);
@@ -149,48 +149,16 @@ int tcpServerReceiveThreadHandler()
     return srv->receiveThread();
 }
 
-int userIOThreadHandler()
-{
-    string userInput;
-    while (1)
-    {
-        getline(cin, userInput);
-        if (userInput.find("get ") == 0)
-        {
-            if (userInput.find("tasks", 4) == 4)
-            {
-                const auto& apps = appManager->getAppsList();
-                bool verbose = userInput.find(" -v", 9) == 9;
-                for (const auto& app : apps)
-                {
-                    cout << app.name() << "\t" << (app.stopped() ? "Stopped" : "Active");
-                    if (verbose)
-                        cout << "\t" << app.pid() << "\t" << app.command() << "\t" << app.uptime() << endl;
-                    else
-                        cout << endl;
-                }
-            }
-        }
-        else if (userInput.find("restart") == 0)
-            appManager->restartApps();
-        else if (userInput.find("stop") == 0)
-            appManager->closeApps();
-        else if (userInput.find("connstatus") == 0)
-        {
-            if (srv)
-                cout << (srv->clientConnected() ? ("Connected to " + srv->getClientInfo()) : "Disconnected") << endl;
-        }
-        else if (userInput.find("quit") == 0)
-            exitHandler(0);
-        else
-            cout << "Wrong command." << endl;
-    }
-    return 0;
-}
-
 void exitHandler(int sig)
 {
     delete srv;
     srv = nullptr;
     quick_exit(sig);
+}
+
+void interrupt_signal_handler(int sig)
+{
+    cout << "Interrupt signal received.\n";
+    appManager->closeApps();
+    exitHandler(sig);
 }

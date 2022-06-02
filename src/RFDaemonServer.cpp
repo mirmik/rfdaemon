@@ -144,7 +144,7 @@ vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t* data, uint32_t size)
 	for (int i = 0; i < appCount; i++)
 	{
 		pAppData[i].state = !apps[i].stopped();
-		pAppData[i].startSuccess = apps[i].successfulStart();
+		pAppData[i].startSuccess = true; // Не используется
 		pAppData[i].uptime = apps[i].uptime();
 		pAppData[i].pid = apps[i].pid();
 		if (apps[i].errors().size())
