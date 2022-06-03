@@ -5,6 +5,7 @@
 #include "RFDaemonServer.h"
 #include "AppManager.h"
 #include "App.h"
+#include <nos/fprint.h>
 
 using namespace std;
 
@@ -70,9 +71,12 @@ vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t* data, uint32_t siz
 
 vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 {
+	auto settings_path = appMgr->getDeviceDescFilename();
+	auto runtime_path = appMgr->getDeviceRuntimeFilename();
+
 	vector<uint8_t> answer(9);
 	fstream cfg, runtime;
-	cfg.open(appMgr->getDeviceDescFilename(), fstream::in);
+	cfg.open(settings_path, fstream::in);
 	if (cfg.is_open())
 	{
 		answer[0]++;
@@ -81,18 +85,19 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 		string s = cfgBuf.str();
 		*(uint32_t*)(answer.data() + 1) = (uint32_t)s.length();
 		answer.insert(answer.end(), s.begin(), s.end());
-
-		runtime.open(appMgr->getDeviceRuntimeFilename(), fstream::in);
-		if (runtime.is_open())
-		{
-			answer[0]++;
-			stringstream runtimeBuf;
-			runtimeBuf << runtime.rdbuf();
-			s = runtimeBuf.str();
-			*(uint32_t*)(answer.data() + 5) = (uint32_t)s.length();
-			answer.insert(answer.end(), s.begin(), s.end());
-		}
 	}
+	
+	runtime.open(runtime_path, fstream::in);
+	if (runtime.is_open())
+	{
+		answer[0]++;
+		stringstream runtimeBuf;
+		runtimeBuf << runtime.rdbuf();
+		string s = runtimeBuf.str();
+		*(uint32_t*)(answer.data() + 5) = (uint32_t)s.length();
+		answer.insert(answer.end(), s.begin(), s.end());
+	}
+	
 	return answer;
 }
 

@@ -24,8 +24,6 @@ bool AppManager::loadConfigFile()
     JSONCPP_STRING errs;
     ifstream appFile = ifstream(appFilename);
     bool error = false;
-    //settingsFilename = "/home/rfmeas/settings.json";
-    //runtimeSettingsFilename = "/home/rfmeas/runtime.json";
     if (appFile.is_open())
         cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
     else
@@ -96,62 +94,11 @@ bool AppManager::loadConfigFile()
             systemLogPaths.push_back(root["sys_logs"][i].asString());
     }
 
-    // Irregular functions ???
-    /*if (!error)
-    {
-        // Search for config.json and runtime.json filepaths in rfmeas cmd string
-        size_t i = 0, j = 0, k = 0;
-        for (; i < apps.size(); i++)
-        {
-            auto len = apps[i].command().length();
-            if (!apps[i].command().compare(len - 6, 6, "rfmeas"))
-            {
-                rfmeasFound = true;
-                break;
-            }
-        }
-        if (rfmeasFound)
-        {
-            for (; j < apps[i].args().size(); j++)
-            {
-                if (apps[i].args()[j].find("--config") != string::npos)
-                {
-                    if (!apps[i].args()[j + 1].empty())
-                    {
-                        configFound = true;
-                        settingsFilename = apps[i].args()[j + 1];
-                        break;
-                    }
-                }
-            }
-            for (; k < apps[i].args().size(); k++)
-            {
-                if (apps[i].args()[k].find("--runtime") != string::npos)
-                {
-                    if (!apps[i].args()[k + 1].empty())
-                    {
-                        runtimeFound = true;
-                        runtimeSettingsFilename = apps[i].args()[k + 1];
-                        break;
-                    }
-                }
-            }
-            if (!configFound)
-                pushError(Errors::AppListConfigPath);
-            if (!runtimeFound)
-                pushError(Errors::AppListRuntimePath);
-        }
-        else
-            pushError(Errors::AppRfmeasNotFound);
-    }*/
     return error;
 }
 
 void AppManager::runApps()
 {
-//    stopRestartWatcher();
-//    cancelWatchRestart = false;
-//    appRestartWatchThread = thread(&AppManager::restartWatchFunc, this);
     for (auto& a : apps)
     {
         if (a.stopped())

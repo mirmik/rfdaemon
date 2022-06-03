@@ -78,7 +78,6 @@ std::vector<char*> App::tokens_for_execve(const std::vector<std::string>& args)
 // Call only in a separate thread
 pid_t App::appFork()
 {
-    nos::println("app fork");
     _exitStatus = 0;
     increment_attempt_counter();
     pid_t pid = fork();

@@ -52,7 +52,7 @@ private:
     std::vector<std::string> systemLogPaths;
     std::list<uint8_t> errorList;
     std::string appFilename;
-    std::string settingsFilename = "/home/rfmeas/project/config.json";
+    std::string settingsFilename = "/home/rfmeas/project/settings.json";
     std::string runtimeSettingsFilename = "/home/rfmeas/project/runtime.json";;
     static std::mutex ioMutex;
 };
