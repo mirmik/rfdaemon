@@ -29,7 +29,8 @@ int main(int argc, char* argv[])
     int sysStatus = 0;
     
     signal(SIGINT, interrupt_signal_handler);
-
+    signal(SIGTERM, interrupt_signal_handler);
+    
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
         configFileName = "applist.json";
@@ -44,9 +45,6 @@ int main(int argc, char* argv[])
         cout << "Error: RFDaemon process fork failed.";
     else if (daemonPid == 0) // fork process code part
     {
-        signal(SIGINT, exitHandler);
-        signal(SIGTERM, exitHandler);
-        signal(SIGQUIT, exitHandler);
         srv = new RFDaemonServer(port);
         appManager = new AppManager(configFileName);
         if (appManager->loadConfigFile())
