@@ -129,6 +129,24 @@ int list_of_applications(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
+int stop_all_applications(const nos::argv& args, nos::ostream& out) 
+{
+    appManager->closeApps();
+    return 0;
+}
+
+int start_all_applications(const nos::argv& args, nos::ostream& out) 
+{
+    appManager->runApps();
+    return 0;
+}
+
+int restart_all_applications(const nos::argv& args, nos::ostream& out) 
+{
+    appManager->restartApps();
+    return 0;
+}
+
 std::thread server_thread;
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "hello is hello", &hello),
@@ -138,6 +156,9 @@ nos::executor executor(std::vector<nos::command>{
     nos::command("start", "start application", &start_application),
     nos::command("stop_id", "stop application", &stop_id_application),
     nos::command("start_id", "start application", &start_id_application),
+    nos::command("stop_all", "stop all applications", &stop_all_applications),
+    nos::command("start_all", "start all applications", &start_all_applications),
+    nos::command("restart_all", "restart all applications", &restart_all_applications)
 });
 
 void client_spin(nos::inet::tcp_socket client) 

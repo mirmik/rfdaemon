@@ -21,16 +21,6 @@ thread srvTxThread;
 
 void interrupt_signal_handler(int signum);
 
-/*
-1. Проверяем параметры запуска и если в них ошибка - стартуем с дефолтными параметрами
-2. Пробуем читать файл конфигурации демона (файл json со списком запускаемых программ)
-3. Если файл отсутствует или в нем ошибки, то не запускаем программы (server-only mode)
-4. Если файл в порядке то запускаем из него программы, каждую в отдельном процессе fork->exec
-    и сохраняем в память PID всех запущенных процессов
-5. Запускаем сетевое соединение в отдельном потоке, в котором ждем поступающих запросов и отвечаем на них
-6. В родительском потоке постоянно проверяем состояние запущенных программ.
-    Если какая то упала, то перезапускаем.
-*/
 int main(int argc, char* argv[])
 {
     string configFileName;
@@ -42,8 +32,6 @@ int main(int argc, char* argv[])
 
     if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
     {
-//#warning "terminalMode = true only for debug"
-//        terminalMode = true;
         configFileName = "applist.json";
         port = DEFAULT_TCP_PORT;
     }

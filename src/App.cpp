@@ -128,7 +128,7 @@ std::vector<std::string> App::logPaths() const
 
 int64_t App::uptime() const
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
+    return std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now() - _startTime).count();
 }
 
