@@ -34,7 +34,7 @@ void interrupt_signal_handler(int signum);
 int main(int argc, char* argv[])
 {
     string configFileName;
-    bool terminalMode = true, serverOnlyMode = false;
+    bool terminalMode = false, serverOnlyMode = false;
     pid_t daemonPid = 0;
     int sysStatus = 0;
     
@@ -161,4 +161,9 @@ void interrupt_signal_handler(int sig)
     cout << "Interrupt signal received.\n";
     appManager->closeApps();
     exitHandler(sig);
+}
+
+// TODO 
+void stop_all_threads()
+{
 }

@@ -9,6 +9,15 @@
 #include <AppManager.h>
 
 extern AppManager* appManager;
+extern void stop_all_threads();
+
+int exit(const nos::argv& args, nos::ostream& out) 
+{
+    appManager->closeApps();
+    //stop_all_threads();
+    quick_exit(0);
+    return 0;
+}
 
 int hello(const nos::argv& args, nos::ostream& out) 
 {
@@ -123,6 +132,7 @@ int list_of_applications(const nos::argv& args, nos::ostream& out)
 std::thread server_thread;
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "hello is hello", &hello),
+    nos::command("exit", "exit", &exit),
     nos::command("list", "list of applications", &list_of_applications),
     nos::command("stop", "stop application", &stop_application),
     nos::command("start", "start application", &start_application),
@@ -168,42 +178,15 @@ void start_tcp_console(int tcp_console_port)
 int userIOThreadHandler()
 {
     std::string str;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (1)
     {
+        std::cout << "$ ";
         getline(std::cin, str);
         nos::tokens tokens(str);
         nos::string_buffer sb;
         executor.execute(tokens, sb);
         std::cout << sb.str();
-        /*if (userInput.find("get ") == 0)
-        {
-            if (userInput.find("tasks", 4) == 4)
-            {
-                const auto& apps = appManager->getAppsList();
-                bool verbose = userInput.find(" -v", 9) == 9;
-                for (const auto& app : apps)
-                {
-                    cout << app.name() << "\t" << (app.stopped() ? "Stopped" : "Active");
-                    if (verbose)
-                        cout << "\t" << app.pid() << "\t" << app.command() << "\t" << app.uptime() << endl;
-                    else
-                        cout << endl;
-                }
-            }
-        }
-        else if (userInput.find("restart") == 0)
-            appManager->restartApps();
-        else if (userInput.find("stop") == 0)
-            appManager->closeApps();
-        else if (userInput.find("connstatus") == 0)
-        {
-            if (srv)
-                cout << (srv->clientConnected() ? ("Connected to " + srv->getClientInfo()) : "Disconnected") << endl;
-        }
-        else if (userInput.find("quit") == 0)
-            exitHandler(0);
-        else
-            cout << "Wrong command." << endl;*/       
     }
     return 0;
 }

@@ -7,7 +7,7 @@ licant.cxx_application("rfdaemon",
 		"src/*.cpp",
 	],
 	include_paths = [ "./src" ],
-	libs = ["jsoncpp", "pthread", "z", "nos"]
+	libs = ["jsoncpp", "pthread", "z", "nos", "igris"]
 )
 
 licant.ex("rfdaemon")

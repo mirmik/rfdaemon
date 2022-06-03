@@ -27,18 +27,15 @@ public:
 	void stop(bool atStart = false);
 	void start();
 	bool stopped() const;
-	bool finished() const;
 	RestartMode restartMode() const;
 	int pid() const;
 	const std::string& name() const;
-	const std::string& command() const;
 	const std::vector<std::string>& args() const;
-	int exitStatus() const;
 	int64_t uptime() const;
 	uint32_t restartAttempts() const;
 	pid_t waitFinish();
 	void run();
-	const std::vector<std::string>& logPaths() const;
+	std::vector<std::string> logPaths() const;
 	std::queue<int>& errors();
 	std::string status_string() const;
 
@@ -46,25 +43,24 @@ public:
 	void increment_attempt_counter();
 	void restart_attempt_counter();
 
+	static std::vector<char*> tokens_for_execve(const std::vector<std::string>& args);
+
 private:
 	void watchFunc();
 	pid_t appFork();
-	
+
+private:	
+	std::chrono::time_point<std::chrono::system_clock> _startTime;
+	std::vector<std::string> tokens;
 	int32_t _attempts_initializer = 5;
 	int32_t _attempts = _attempts_initializer;
-
 	bool _watcher_guard = false;
 	std::thread _watcher_thread = {};
-
-	int restartCount = 0;
 	bool isStopped = true;
-	//bool successStart = true;
 	int _exitStatus = 0;
 	RestartMode _restartMode = RestartMode::ALWAYS;
-	std::string _cmd, _name;
-	std::vector<std::string> _logPaths;
-	std::vector<std::string> _args;
+	std::string _name;
 	std::queue<int> _errors;
-	int _shPid = 0, _pid = 0;
-	static std::mutex ioMutex;
+	int _pid = 0;
+
 };
