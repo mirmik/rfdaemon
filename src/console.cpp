@@ -147,6 +147,29 @@ int restart_all_applications(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
+int show_application_stdout(const nos::argv& args, nos::ostream& out) 
+{
+    if (args.size() < 2)
+    {
+        out.println("Usage: show_application_stdout <app_name>");
+        return -1;
+    }
+
+    auto* app = appManager->findApp(args[1].to_string());
+    if (app)
+    {
+        const std::string& out = app->show_stdout();
+        nos::println(out);
+    }
+    else
+    {
+        out.println("Application not found: " + args[1].to_string());
+        return -1;
+    }
+
+    return 0;
+}
+
 std::thread server_thread;
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "hello is hello", &hello),
@@ -158,7 +181,8 @@ nos::executor executor(std::vector<nos::command>{
     nos::command("start_id", "start application", &start_id_application),
     nos::command("stop_all", "stop all applications", &stop_all_applications),
     nos::command("start_all", "start all applications", &start_all_applications),
-    nos::command("restart_all", "restart all applications", &restart_all_applications)
+    nos::command("restart_all", "restart all applications", &restart_all_applications),
+    nos::command("log", "show application stdout", &show_application_stdout),
 });
 
 void client_spin(nos::inet::tcp_socket client) 

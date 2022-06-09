@@ -1,17 +1,19 @@
 #pragma once
 #include "TcpServer.h"
 #include <vector>
-#include "functors.h"
+#include <functional>
 
 class AppManager;
 class DeviceManager;
 class RFDaemonServer;
 
-typedef struct
+using cmdfunction = std::function<std::vector<uint8_t>(const uint8_t*, uint32_t)>;
+
+struct SrvCmd
 {
     uint32_t bitCode;
-    Func<RFDaemonServer, std::vector<uint8_t>, const uint8_t*, uint32_t> cmd;
-} SrvCmd;
+    cmdfunction cmd;
+};
 
 class RFDaemonServer : public TcpServer
 {
@@ -44,7 +46,7 @@ public:
     std::vector<uint8_t> getAppsList(const uint8_t* data, uint32_t size);
     std::vector<uint8_t> setAppsList(const uint8_t* data, uint32_t size);
     void setAppManager(AppManager* manager);
-    void addCmd(uint32_t code, const Func<RFDaemonServer, std::vector<uint8_t>, const uint8_t*, uint32_t>& cmd);
+    void addCmd(uint32_t code, const cmdfunction& cmd);
 private:
     bool writeFile(const std::string& filename, const uint8_t* data, uint32_t size);
     std::vector<uint8_t> parseReceivedData(const std::vector<uint8_t>& data) final;

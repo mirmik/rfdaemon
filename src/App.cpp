@@ -80,19 +80,38 @@ pid_t App::appFork()
 {
     _exitStatus = 0;
     increment_attempt_counter();
-    pid_t pid = fork();
 
+    int wr[2];
+    pipe(wr);
     _startTime = std::chrono::system_clock::now();
+
+    logdata_clear();
+    pid_t pid = fork();
     if (pid == 0)
     {
+        close(wr[0]);
+        dup2(wr[1], STDOUT_FILENO);
+        close(wr[1]);
+
         nos::fprintln("Execv app : {}", tokens);
         exit(execv(tokens[0].data(), tokens_for_execve(tokens).data()));
     }
     else if (pid > 0)
     {
+        close(wr[1]);
         isStopped = false;
         usleep(1000);
         _pid = pid;
+
+        char buf[1024];
+        ssize_t n;
+        while ((n = read(wr[0], buf, sizeof(buf))) > 0)
+        {
+            nos::print(nos::buffer(buf, n));
+            _stdout.append(buf, n);
+        }
+        nos::println("READ END", n);
+
         waitFinish();
         isStopped = true;  
     }
@@ -188,4 +207,36 @@ void App::run()
 std::queue<int>& App::errors()
 {
     return _errors;
+}
+
+void App::logdata_clear()
+{
+    _stdout.clear();
+    _stdout.reserve(1024 * 1024);
+} 
+
+void App::logdata_append(const char* data, size_t size)
+{
+    _stdout.append(data, size);
+}
+
+size_t App::logdata_size() const
+{
+    return _stdout.size();
+}
+
+int64_t App::logdata_read(char* buf, size_t size, size_t offset)
+{
+    if (offset >= _stdout.size())
+        return 0;
+    auto fullsize = logdata_size();
+    if (offset + size > fullsize)
+        size = fullsize - offset;
+    memcpy(buf, _stdout.data() + offset, size);
+    return size;
+}
+
+const std::string& App::show_stdout() const
+{
+    return _stdout;
 }

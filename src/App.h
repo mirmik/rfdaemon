@@ -45,6 +45,13 @@ public:
 
 	static std::vector<char*> tokens_for_execve(const std::vector<std::string>& args);
 
+	void logdata_append(const char* data, size_t size);
+	size_t logdata_size() const;
+	void logdata_clear();
+	int64_t logdata_read(char* data, size_t size, size_t offset);
+
+	const std::string& show_stdout() const;
+
 private:
 	void watchFunc();
 	pid_t appFork();
@@ -63,4 +70,5 @@ private:
 	std::queue<int> _errors;
 	int _pid = 0;
 
+	std::string _stdout;
 };

@@ -11,24 +11,26 @@ using namespace std;
 
 RFDaemonServer::RFDaemonServer(uint16_t port) : TcpServer(port)
 {
-	addCmd(GET_APPS_INFO, Func(this, &RFDaemonServer::getAppsInfo));
-	addCmd(APPS_START, Func(this, &RFDaemonServer::startAllApps));
-	addCmd(APPS_STOP, Func(this, &RFDaemonServer::stopAllApps));
-	addCmd(APPS_RESTART, Func(this, &RFDaemonServer::restartAllApps));
-	addCmd(GET_CONFIG, Func(this, &RFDaemonServer::getConfig));
-	addCmd(SET_CONFIG, Func(this, &RFDaemonServer::setConfig));
-	addCmd(UPDATE_IMG, Func(this, &RFDaemonServer::updateSysImg));
-	addCmd(UPDATE_FIRMWARE, Func(this, &RFDaemonServer::updateControllerFW));
-	addCmd(GET_LOGS, Func(this, &RFDaemonServer::getLogs));
-	addCmd(GET_APPS_LIST, Func(this, &RFDaemonServer::getAppsList));
-	addCmd(SET_APPS_LIST, Func(this, &RFDaemonServer::setAppsList));
+	auto make_bind = [&](auto mptr){ return std::bind(
+		mptr, this, std::placeholders::_1, std::placeholders::_2); };
+	addCmd(GET_APPS_INFO, make_bind(&RFDaemonServer::getAppsInfo));
+	addCmd(APPS_START, make_bind(&RFDaemonServer::startAllApps));
+	addCmd(APPS_STOP, make_bind(&RFDaemonServer::stopAllApps));
+	addCmd(APPS_RESTART, make_bind(&RFDaemonServer::restartAllApps));
+	addCmd(GET_CONFIG, make_bind(&RFDaemonServer::getConfig));
+	addCmd(SET_CONFIG, make_bind(&RFDaemonServer::setConfig));
+	addCmd(UPDATE_IMG, make_bind(&RFDaemonServer::updateSysImg));
+	addCmd(UPDATE_FIRMWARE, make_bind(&RFDaemonServer::updateControllerFW));
+	addCmd(GET_LOGS, make_bind(&RFDaemonServer::getLogs));
+	addCmd(GET_APPS_LIST, make_bind(&RFDaemonServer::getAppsList));
+	addCmd(SET_APPS_LIST, make_bind(&RFDaemonServer::setAppsList));
 }
 
 RFDaemonServer::~RFDaemonServer()
 {
 }
 
-void RFDaemonServer::addCmd(uint32_t code, const Func<RFDaemonServer, vector<uint8_t>, const uint8_t*, uint32_t>& cmd)
+void RFDaemonServer::addCmd(uint32_t code, const cmdfunction& cmd)
 {
 	SrvCmd c;
 	c.bitCode = code;
