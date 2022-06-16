@@ -1,3 +1,4 @@
+#include <cctype>
 #include <iostream>
 #include <fstream>
 #include <mutex>
@@ -12,13 +13,23 @@ mutex AppManager::ioMutex;
 AppManager::AppManager(const string& appListFileName)
 {
     appFilename = appListFileName;
+    spamserver.start(5001);
+}
+
+void AppManager::send_spam(const string& message)
+{
+    std::lock_guard<std::mutex> lock(spam_mutex);
+    spamserver.print(message);
+}
+
+void AppManager::send_spam(const vector<uint8_t>& message)
+{
+    std::lock_guard<std::mutex> lock(spam_mutex);
+    spamserver.write(message.data(), message.size());
 }
 
 bool AppManager::loadConfigFile()
 {
-    bool configFound = false;
-    bool runtimeFound = false;
-    bool rfmeasFound = false;
     Json::Value root;
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
@@ -53,10 +64,12 @@ bool AppManager::loadConfigFile()
 
             for (int i = 0; i < arraySize; i++)
             {
+                std::vector<LinkedFile> linked_files;
                 int order = orderList[orderList[i]];
                 string name = root["apps"][order]["name"].asString();
                 string cmd = root["apps"][order]["command"].asString();
                 auto logs = root["apps"][order]["logs"];
+                auto files = root["apps"][order]["files"];
 
                 if (!cmd.empty() && !name.empty())
                 {
@@ -69,12 +82,18 @@ bool AppManager::loadConfigFile()
                         restartMode = App::RestartMode::ALWAYS;
 
                     vector<string> logPaths;
-                    if (!logs.empty())
+                    if (!files.empty())
                     {
-                        for (unsigned int i = 0; i < logs.size(); i++)
-                            logPaths.push_back(logs[i].asString());
+                        for (const auto& rec : root["apps"][order]["files"]) 
+                        {
+                            LinkedFile file;
+                            file.path = rec["path"].asString();
+                            file.name = rec["name"].asString();
+                            file.editable = rec["editable"].asBool();
+                            linked_files.push_back(file);
+                        }
                     }
-                    apps.push_back({ name, cmd, restartMode, logPaths });
+                    apps.emplace_back(apps.size(), name, cmd, restartMode, linked_files);
                 }
                 else
                 {
@@ -141,6 +160,11 @@ vector<App>& AppManager::getAppsList()
 
 App* AppManager::findApp(const string& name)
 {
+    if (std::isdigit(name[0])) 
+    {
+        return &apps[stoi(name)];
+    }
+
     for (auto& a : apps)
     {
         if (!a.name().compare(name))

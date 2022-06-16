@@ -53,25 +53,25 @@ bool RFDaemonServer::writeFile(const string& filename, const uint8_t* data, uint
 	return error;
 }
 
-vector<uint8_t> RFDaemonServer::startAllApps(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::startAllApps(const uint8_t*, uint32_t)
 {
 	appMgr->runApps();
 	return vector<uint8_t>();
 }
 
-vector<uint8_t> RFDaemonServer::stopAllApps(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::stopAllApps(const uint8_t*, uint32_t)
 {
 	appMgr->closeApps();
 	return vector<uint8_t>();
 }
 
-vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t*, uint32_t)
 {
 	appMgr->restartApps();
 	return vector<uint8_t>();
 }
 
-vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getConfig(const uint8_t*, uint32_t)
 {
 	auto settings_path = appMgr->getDeviceDescFilename();
 	auto runtime_path = appMgr->getDeviceRuntimeFilename();
@@ -104,7 +104,7 @@ vector<uint8_t> RFDaemonServer::getConfig(const uint8_t* data, uint32_t size)
 }
 
 // TODO: Файлы принимаются не абстрактно.
-vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t)
 {
 	uint8_t fileCount = data[0];
 	bool error = false;
@@ -113,17 +113,12 @@ vector<uint8_t> RFDaemonServer::setConfig(const uint8_t* data, uint32_t size)
 	{
 		uint32_t cfgSize = *(uint32_t*)(data + 1);
 		error = writeFile(appMgr->getDeviceDescFilename(), data + 5, cfgSize);
-		/*if (fileCount--)
-		{
-			uint32_t runtimeSize = *(uint32_t*)(data + 5);
-			error = error || writeFile(appMgr->getDeviceRuntimeFilename(), data + 9 + cfgSize, runtimeSize);
-		}*/
 	}
 	answer[0] = error;
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t*, uint32_t)
 {
 	struct __attribute__((packed)) AppData
 	{
@@ -189,7 +184,7 @@ vector<uint8_t> RFDaemonServer::setAppsList(const uint8_t* data, uint32_t size)
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t*, uint32_t)
 {
 	ifstream f = ifstream(appMgr->getAppConfigFilename(), ifstream::in);
 	string s(istreambuf_iterator<char>{f}, {});
@@ -199,7 +194,7 @@ vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t* data, uint32_t size)
 	return answer;
 }
 
-vector<uint8_t> RFDaemonServer::getLogs(const uint8_t* data, uint32_t size)
+vector<uint8_t> RFDaemonServer::getLogs(const uint8_t*, uint32_t)
 {
 	size_t namesLen = 0, offset = 0;
 	auto logs = appMgr->packLogs();

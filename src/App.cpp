@@ -1,4 +1,5 @@
 #include "App.h"
+#include "AppManager.h"
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -7,6 +8,9 @@
 #include <thread>
 #include <nos/fprint.h>
 #include <igris/util/string.h>
+#include <igris/util/base64.h>
+
+extern AppManager* appManager;
 
 //std::mutex App::ioMutex;
 using namespace std::chrono_literals;
@@ -40,14 +44,20 @@ std::string GetStdoutFromCommand(std::string cmd) {
     return data;
 }
 
-App::App(const std::string& name, const std::string& cmd, RestartMode mode,
-    const std::vector<std::string>& logs) : _name(name)
+App::App(
+    int task_index, 
+    const std::string& name, 
+    const std::string& cmd, 
+    RestartMode mode,
+    const std::vector<LinkedFile>& linkeds) 
+    : 
+    _linked_files(linkeds), task_index(task_index), _name(name)
 {
     tokens = igris::split(cmd);
     _restartMode = mode;
 }
 
-void App::stop(bool atStart)
+void App::stop()
 {
     if (!isStopped) {
         _attempts = 0;
@@ -102,13 +112,23 @@ pid_t App::appFork()
         isStopped = false;
         usleep(1000);
         _pid = pid;
-
-        char buf[1024];
+        
         ssize_t n;
+        std::vector<uint8_t> buffer;
+        buffer.reserve(2048);
+        char buf[1024];
         while ((n = read(wr[0], buf, sizeof(buf))) > 0)
         {
-            nos::print(nos::buffer(buf, n));
-            _stdout.append(buf, n);
+            buffer.clear();
+            buffer.push_back((uint8_t)task_index);
+            buffer.push_back((uint8_t)name().size());
+            buffer.insert(buffer.end(), _name.begin(), _name.end());
+
+            uint16_t len = n;
+            buffer.push_back((uint8_t)(len >> 8));
+            buffer.push_back((uint8_t)(len & 0xFF));
+            buffer.insert(buffer.end(), buf, buf + n);
+            appManager->send_spam(buffer);           
         }
         nos::println("READ END", n);
 

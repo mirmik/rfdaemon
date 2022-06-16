@@ -11,6 +11,17 @@ namespace std
 	class thread;
 }
 
+class LinkedFile 
+{
+public:
+	std::string path = {};
+	std::string name = {};
+	bool editable = {};
+
+	LinkedFile() = default;
+	LinkedFile(const LinkedFile&) = default;
+};
+
 class App
 {
 public:
@@ -20,11 +31,12 @@ public:
 		ERROR,
 		NEVER
 	};
-	App(const std::string& name,
+	App(int task_index,
+		const std::string& name,
 		const std::string& cmd,
-		RestartMode mode = ALWAYS,
-		const std::vector<std::string>& logs = std::vector<std::string>());
-	void stop(bool atStart = false);
+		RestartMode mode,
+		const std::vector<LinkedFile>& linkeds);
+	void stop();
 	void start();
 	bool stopped() const;
 	RestartMode restartMode() const;
@@ -51,12 +63,16 @@ public:
 	int64_t logdata_read(char* data, size_t size, size_t offset);
 
 	const std::string& show_stdout() const;
+	const std::vector<LinkedFile>& linked_files() const { return _linked_files; }
 
 private:
 	void watchFunc();
 	pid_t appFork();
 
 private:	
+	std::vector<std::string> _args;
+	std::vector<LinkedFile> _linked_files;
+	int task_index;
 	std::chrono::time_point<std::chrono::system_clock> _startTime;
 	std::vector<std::string> tokens;
 	int32_t _attempts_initializer = 5;

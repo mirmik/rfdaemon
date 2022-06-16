@@ -6,8 +6,10 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+#include <mutex>
 #include <list>
 #include "App.h"
+#include <nos/inet/tcpspam_server.h>
 
 constexpr auto APP_MAX_RESTART_ATTEMPTS = 3;
 
@@ -46,6 +48,8 @@ public:
     std::vector<App>& applications() { return apps; }
     App* getApp(size_t index);
     App* findApp(const std::string& name);
+    void send_spam(const std::string& message);
+    void send_spam(const std::vector<uint8_t>& message);
 
 private:
     std::vector<App> apps;
@@ -53,6 +57,8 @@ private:
     std::list<uint8_t> errorList;
     std::string appFilename;
     std::string settingsFilename = "/home/rfmeas/project/settings.json";
-    std::string runtimeSettingsFilename = "/home/rfmeas/project/runtime.json";;
+    std::string runtimeSettingsFilename = "/home/rfmeas/project/runtime.json";
     static std::mutex ioMutex;
+    nos::inet::tcpspam_server spamserver;
+    std::mutex spam_mutex;
 };

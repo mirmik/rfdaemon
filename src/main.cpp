@@ -26,7 +26,6 @@ int main(int argc, char* argv[])
     string configFileName;
     bool terminalMode = false, serverOnlyMode = false;
     pid_t daemonPid = 0;
-    int sysStatus = 0;
     
     signal(SIGINT, interrupt_signal_handler);
     signal(SIGTERM, interrupt_signal_handler);
