@@ -5,9 +5,9 @@
 
 resources:
   repositories:
-    - repository: igris # In a different organization
+    - repository: igris
       type: git
-      name: libs/igris
+      name: igris
 
 trigger:
 - master
