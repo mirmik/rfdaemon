@@ -3,6 +3,13 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
+resources:
+  repositories:
+    - repository: igris # In a different organization
+      endpoint: MyAzureReposGitServiceConnection
+      type: git
+      name: libs/igris
+
 trigger:
 - master
 
@@ -10,6 +17,7 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
+- checkout: igris
 - script: echo Hello, world!
   displayName: 'Run a one-line script'
 
