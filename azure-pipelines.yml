@@ -6,7 +6,6 @@
 resources:
   repositories:
     - repository: igris # In a different organization
-      endpoint: MyAzureReposGitServiceConnection
       type: git
       name: libs/igris
 
