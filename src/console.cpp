@@ -225,7 +225,7 @@ int app_linked_files(const nos::argv& args, nos::ostream& out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: app_linked_files <app_name>");
+        out.println("Usage: linkeds <app_name>");
         return -1;
     }
 
@@ -245,7 +245,7 @@ int read_linked_file(const nos::argv& args, nos::ostream& out)
 {
     if (args.size() < 3)
     {
-        out.println("Usage: read_linked_file <app_name> <file_name>");
+        out.println("Usage: read_linked <app_name> <file_name>");
         return -1;
     }
 
@@ -260,6 +260,36 @@ int read_linked_file(const nos::argv& args, nos::ostream& out)
                 nos::buffered_file f(file.path, "r");
                 auto s = f.readall();
                 out.println(s);
+                return 0;
+            }
+        }
+    }
+
+    out.println("File not found");
+    return -1;
+}
+
+
+int read_linked_file_b64(const nos::argv& args, nos::ostream& out) 
+{
+    if (args.size() < 3)
+    {
+        out.println("Usage: read_linked_b64 <app_name> <file_name>");
+        return -1;
+    }
+
+    auto* app = appManager->findApp(args[1].to_string());
+    if (app)
+    {
+        const auto& linked_files = app->linked_files();
+        for (auto& file : linked_files) 
+        {
+            if (file.name == args[2].to_string())
+            {
+                nos::buffered_file f(file.path, "r");
+                auto s = f.readall();
+                auto b = igris::base64_encode(s);
+                out.println(b);
                 return 0;
             }
         }
@@ -286,7 +316,8 @@ nos::executor executor(std::vector<nos::command>{
     nos::command("spam", "send spam", &send_spam),
     nos::command("api_version", "api version", &api_version),
     nos::command("linkeds", "linked files", &app_linked_files),
-    nos::command("read", "read linked file", &read_linked_file)
+    nos::command("read_linked", "read linked file", &read_linked_file),
+    nos::command("read_linked_b64", "read linked file", &read_linked_file_b64)
 });
 
 void client_spin(nos::inet::tcp_socket client) 
