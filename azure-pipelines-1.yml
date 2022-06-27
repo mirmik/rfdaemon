@@ -13,5 +13,5 @@ steps:
 
 - checkout: none
 
-- script: curl.exe http://127.0.0.1:5000/project_updated?libname=rfdaemon
+- script: curl.exe http://127.0.0.1:5000/project_updated?projname=rfdaemon
   displayName: 'Run test script through local flask server'
