@@ -232,12 +232,32 @@ int app_linked_files(const nos::argv& args, nos::ostream& out)
     auto* app = appManager->findApp(args[1].to_string());
     const auto& linked_files = app->linked_files();
 
-    igris::trent tr;
+    igris::trent tr(igris::trent::type::list);
     for (auto& file : linked_files) 
     {
         tr.push_back(file.to_trent());
     }
     out.print(igris::json::to_string(tr));
+    return 0;
+}
+
+int app_linked_files_b64(const nos::argv& args, nos::ostream& out) 
+{
+    if (args.size() < 2)
+    {
+        out.println("Usage: linkeds_b64 <app_name>");
+        return -1;
+    }
+
+    auto* app = appManager->findApp(args[1].to_string());
+    const auto& linked_files = app->linked_files();
+
+    igris::trent tr(igris::trent::type::list);
+    for (auto& file : linked_files) 
+    {
+        tr.push_back(file.to_trent());
+    }
+    out.println(igris::base64_encode(igris::json::to_string(tr)));
     return 0;
 }
 
@@ -316,6 +336,7 @@ nos::executor executor(std::vector<nos::command>{
     nos::command("spam", "send spam", &send_spam),
     nos::command("api_version", "api version", &api_version),
     nos::command("linkeds", "linked files", &app_linked_files),
+    nos::command("linkeds_b64", "linked files", &app_linked_files_b64),
     nos::command("read_linked", "read linked file", &read_linked_file),
     nos::command("read_linked_b64", "read linked file", &read_linked_file_b64)
 });
@@ -331,6 +352,9 @@ void client_spin(nos::inet::tcp_socket client)
             break;
         nos::tokens tokens(buf);
         nos::string_buffer sb;
+        nos::print_list(tokens);
+        if (tokens.size() == 0)
+            return;
         executor.execute(tokens, sb);
         client.write(sb.str().data(), sb.str().size());
     }
@@ -368,6 +392,9 @@ int userIOThreadHandler()
         std::cout << "$ ";
         getline(std::cin, str);
         nos::tokens tokens(str);
+        nos::print_list(tokens);
+        if (tokens.size() == 0)
+            continue;
         nos::string_buffer sb;
         executor.execute(tokens, sb);
         std::cout << sb.str();
