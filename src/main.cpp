@@ -46,11 +46,14 @@ int main(int argc, char* argv[])
     {
         srv = new RFDaemonServer(port);
         appManager = new AppManager(configFileName);
-        if (appManager->loadConfigFile())
+
+        int appfile_error = appManager->loadConfigFile();
+        if (appfile_error)
         {
             serverOnlyMode = true;
-            cout << "Run server-only mode.\n";
+            cout << "Application script has errors. Server-only mode runned.\n";
         }
+        
         if (!serverOnlyMode)
             appManager->runApps();
 
@@ -59,7 +62,7 @@ int main(int argc, char* argv[])
         srvTxThread = thread(tcpServerSendThreadHandler);
         if (terminalMode)
         {
-            start_istream_console();
+            start_stdstream_console();
         }
         srvTxThread.join();
         srvRxThread.join();

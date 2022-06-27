@@ -5,6 +5,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <igris/trent/trent.h>
 
 namespace std
 {
@@ -18,6 +19,7 @@ public:
 	std::string name = {};
 	bool editable = {};
 
+	igris::trent to_trent() const;
 	LinkedFile() = default;
 	LinkedFile(const LinkedFile&) = default;
 };

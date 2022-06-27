@@ -8,6 +8,8 @@
 #include <thread>
 #include <iostream>
 #include <AppManager.h>
+#include <igris/trent/json.h>
+#include <igris/trent/json_print.h>
 
 const int API_VERSION = 100;
 extern AppManager* appManager;
@@ -230,10 +232,12 @@ int app_linked_files(const nos::argv& args, nos::ostream& out)
     auto* app = appManager->findApp(args[1].to_string());
     const auto& linked_files = app->linked_files();
 
+    igris::trent tr;
     for (auto& file : linked_files) 
     {
-        nos::fprintln_to(out, "{} {} {}", file.name, file.path, file.editable);
+        tr.push_back(file.to_trent());
     }
+    out.print(igris::json::to_string(tr));
     return 0;
 }
 
@@ -340,7 +344,7 @@ int userIOThreadHandler()
     return 0;
 }
 
-void start_istream_console() 
+void start_stdstream_console() 
 {
     std::thread userIOThread(userIOThreadHandler);
     userIOThread.detach();

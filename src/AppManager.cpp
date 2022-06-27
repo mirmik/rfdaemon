@@ -81,7 +81,6 @@ bool AppManager::loadConfigFile()
                     else
                         restartMode = App::RestartMode::ALWAYS;
 
-                    vector<string> logPaths;
                     if (!files.empty())
                     {
                         for (const auto& rec : root["apps"][order]["files"]) 
