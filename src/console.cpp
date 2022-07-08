@@ -1,36 +1,39 @@
-#include <console.h>
-#include <nos/inet/tcp_socket.h>
-#include <nos/inet/tcp_server.h>
-#include <nos/shell/argv.h>
-#include <nos/shell/executor.h>
-#include <nos/io/buffered_file.h>
-#include <igris/util/base64.h>
-#include <thread>
-#include <iostream>
 #include <AppManager.h>
+#include <console.h>
 #include <igris/trent/json.h>
 #include <igris/trent/json_print.h>
+#include <igris/util/base64.h>
+#include <iostream>
+#include <nos/inet/tcp_server.h>
+#include <nos/inet/tcp_socket.h>
+#include <nos/io/buffered_file.h>
+#include <nos/shell/argv.h>
+#include <nos/shell/executor.h>
+#include <thread>
 
+extern bool CONSOLE_DEBUG;
 const int API_VERSION = 100;
-extern AppManager* appManager;
+extern AppManager *appManager;
 extern void stop_all_threads();
 
-int exit(const nos::argv& args, nos::ostream& out) 
+int exit(const nos::argv &args, nos::ostream &out)
 {
-    (void) args; (void) out;
+    (void)args;
+    (void)out;
     appManager->closeApps();
     quick_exit(0);
     return 0;
 }
 
-int hello(const nos::argv& args, nos::ostream& out) 
+int hello(const nos::argv &args, nos::ostream &out)
 {
-    (void) args; (void) out;
+    (void)args;
+    (void)out;
     out.println("Hello");
     return 0;
 }
 
-int start_application(const nos::argv& args, nos::ostream& out) 
+int start_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
@@ -38,7 +41,7 @@ int start_application(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
+    auto *app = appManager->findApp(args[1].to_string());
     if (app)
     {
         app->start();
@@ -53,7 +56,7 @@ int start_application(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int stop_application(const nos::argv& args, nos::ostream& out) 
+int stop_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
@@ -61,7 +64,7 @@ int stop_application(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
+    auto *app = appManager->findApp(args[1].to_string());
     if (app)
     {
         app->stop();
@@ -76,7 +79,7 @@ int stop_application(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int stop_id_application(const nos::argv& args, nos::ostream& out) 
+int stop_id_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
@@ -84,7 +87,7 @@ int stop_id_application(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->getApp(args[1].to_int());
+    auto *app = appManager->getApp(args[1].to_int());
     if (app)
     {
         app->stop();
@@ -99,7 +102,7 @@ int stop_id_application(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int start_id_application(const nos::argv& args, nos::ostream& out) 
+int start_id_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
@@ -107,7 +110,7 @@ int start_id_application(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->getApp(args[1].to_int());
+    auto *app = appManager->getApp(args[1].to_int());
     if (app)
     {
         app->start();
@@ -122,37 +125,41 @@ int start_id_application(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int list_of_applications(const nos::argv& args, nos::ostream& out) 
+int list_of_applications(const nos::argv &args, nos::ostream &out)
 {
-    (void) args;
-    auto& apps = appManager->applications();
-    for (auto& app : apps)
-        nos::fprintln_to(out, "{} : {} : {}", app.name(), app.status_string(), app.pid());
+    (void)args;
+    auto &apps = appManager->applications();
+    for (auto &app : apps)
+        nos::fprintln_to(out, "{} : {} : {}", app.name(), app.status_string(),
+                         app.pid());
     return 0;
 }
 
-int stop_all_applications(const nos::argv& args, nos::ostream& out) 
+int stop_all_applications(const nos::argv &args, nos::ostream &out)
 {
-    (void) args; (void) out;
+    (void)args;
+    (void)out;
     appManager->closeApps();
     return 0;
 }
 
-int start_all_applications(const nos::argv& args, nos::ostream& out) 
+int start_all_applications(const nos::argv &args, nos::ostream &out)
 {
-    (void) args; (void) out;
+    (void)args;
+    (void)out;
     appManager->runApps();
     return 0;
 }
 
-int restart_all_applications(const nos::argv& args, nos::ostream& out) 
+int restart_all_applications(const nos::argv &args, nos::ostream &out)
 {
-    (void) args; (void) out;
+    (void)args;
+    (void)out;
     appManager->restartApps();
     return 0;
 }
 
-int show_application_stdout(const nos::argv& args, nos::ostream& out) 
+int show_application_stdout(const nos::argv &args, nos::ostream &out)
 {
     nos::println("show_application_stdout: {}", args[1]);
     if (args.size() < 2)
@@ -161,10 +168,10 @@ int show_application_stdout(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
+    auto *app = appManager->findApp(args[1].to_string());
     if (app)
     {
-        const std::string& stdout_string = app->show_stdout();
+        const std::string &stdout_string = app->show_stdout();
         nos::println_to(out, stdout_string);
     }
     else
@@ -176,7 +183,7 @@ int show_application_stdout(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int show_application_stdout_base64(const nos::argv& args, nos::ostream& out) 
+int show_application_stdout_base64(const nos::argv &args, nos::ostream &out)
 {
     nos::println("show_application_stdout: {}", args[1]);
     if (args.size() < 2)
@@ -185,10 +192,10 @@ int show_application_stdout_base64(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
+    auto *app = appManager->findApp(args[1].to_string());
     if (app)
     {
-        const std::string& stdout_string = app->show_stdout();
+        const std::string &stdout_string = app->show_stdout();
         nos::println_to(out, igris::base64_encode(stdout_string));
     }
     else
@@ -200,9 +207,9 @@ int show_application_stdout_base64(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int send_spam(const nos::argv& args, nos::ostream& out) 
+int send_spam(const nos::argv &args, nos::ostream &out)
 {
-    (void) out;
+    (void)out;
     if (args.size() < 2)
     {
         out.println("Usage: send_spam <word>");
@@ -214,14 +221,14 @@ int send_spam(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int api_version(const nos::argv& args, nos::ostream& out) 
+int api_version(const nos::argv &args, nos::ostream &out)
 {
-    (void) args;
+    (void)args;
     out.println(API_VERSION);
     return 0;
 }
 
-int app_linked_files(const nos::argv& args, nos::ostream& out) 
+int app_linked_files(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
@@ -229,11 +236,11 @@ int app_linked_files(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
-    const auto& linked_files = app->linked_files();
+    auto *app = appManager->findApp(args[1].to_string());
+    const auto &linked_files = app->linked_files();
 
     igris::trent tr(igris::trent::type::list);
-    for (auto& file : linked_files) 
+    for (auto &file : linked_files)
     {
         tr.push_back(file.to_trent());
     }
@@ -241,7 +248,7 @@ int app_linked_files(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int app_linked_files_b64(const nos::argv& args, nos::ostream& out) 
+int app_linked_files_b64(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
@@ -249,11 +256,11 @@ int app_linked_files_b64(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
-    const auto& linked_files = app->linked_files();
+    auto *app = appManager->findApp(args[1].to_string());
+    const auto &linked_files = app->linked_files();
 
     igris::trent tr(igris::trent::type::list);
-    for (auto& file : linked_files) 
+    for (auto &file : linked_files)
     {
         tr.push_back(file.to_trent());
     }
@@ -261,7 +268,7 @@ int app_linked_files_b64(const nos::argv& args, nos::ostream& out)
     return 0;
 }
 
-int read_linked_file(const nos::argv& args, nos::ostream& out) 
+int read_linked_file(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 3)
     {
@@ -269,11 +276,11 @@ int read_linked_file(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
+    auto *app = appManager->findApp(args[1].to_string());
     if (app)
     {
-        const auto& linked_files = app->linked_files();
-        for (auto& file : linked_files) 
+        const auto &linked_files = app->linked_files();
+        for (auto &file : linked_files)
         {
             if (file.name == args[2].to_string())
             {
@@ -289,8 +296,7 @@ int read_linked_file(const nos::argv& args, nos::ostream& out)
     return -1;
 }
 
-
-int read_linked_file_b64(const nos::argv& args, nos::ostream& out) 
+int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 3)
     {
@@ -298,11 +304,11 @@ int read_linked_file_b64(const nos::argv& args, nos::ostream& out)
         return -1;
     }
 
-    auto* app = appManager->findApp(args[1].to_string());
+    auto *app = appManager->findApp(args[1].to_string());
     if (app)
     {
-        const auto& linked_files = app->linked_files();
-        for (auto& file : linked_files) 
+        const auto &linked_files = app->linked_files();
+        for (auto &file : linked_files)
         {
             if (file.name == args[2].to_string())
             {
@@ -321,7 +327,8 @@ int read_linked_file_b64(const nos::argv& args, nos::ostream& out)
 
 std::thread server_thread;
 nos::executor executor(std::vector<nos::command>{
-    nos::command("hello", "hello is hello", &hello),
+    nos::command("hello", "baba is you", &hello),
+    nos::command("q", "exit", &exit),
     nos::command("exit", "exit", &exit),
     nos::command("list", "list of applications", &list_of_applications),
     nos::command("stop", "stop application", &stop_application),
@@ -329,38 +336,61 @@ nos::executor executor(std::vector<nos::command>{
     nos::command("stop_id", "stop application", &stop_id_application),
     nos::command("start_id", "start application", &start_id_application),
     nos::command("stop_all", "stop all applications", &stop_all_applications),
-    nos::command("start_all", "start all applications", &start_all_applications),
-    nos::command("restart_all", "restart all applications", &restart_all_applications),
+    nos::command("start_all", "start all applications",
+                 &start_all_applications),
+    nos::command("restart_all", "restart all applications",
+                 &restart_all_applications),
     nos::command("log", "show application stdout", &show_application_stdout),
-    nos::command("log_base64", "show application stdout", &show_application_stdout_base64),
+    nos::command("log_base64", "show application stdout",
+                 &show_application_stdout_base64),
     nos::command("spam", "send spam", &send_spam),
     nos::command("api_version", "api version", &api_version),
     nos::command("linkeds", "linked files", &app_linked_files),
     nos::command("linkeds_b64", "linked files", &app_linked_files_b64),
     nos::command("read_linked", "read linked file", &read_linked_file),
-    nos::command("read_linked_b64", "read linked file", &read_linked_file_b64)
-});
+    nos::command("read_linked_b64", "read linked file",
+                 &read_linked_file_b64)});
 
-void client_spin(nos::inet::tcp_socket client) 
+std::string execute_tokens(nos::tokens &tokens)
 {
-    char buf[1024];
-    while(true) 
+    if (CONSOLE_DEBUG)
     {
-        memset(buf, 0, sizeof(buf));
-        client.read(buf, sizeof(buf));
-        if (buf[0] == '\0')
-            break;
-        nos::tokens tokens(buf);
-        nos::string_buffer sb;
+        nos::print("New request: ");
         nos::print_list(tokens);
-        if (tokens.size() == 0)
-            return;
-        executor.execute(tokens, sb);
-        client.write(sb.str().data(), sb.str().size());
+        nos::println();
+    }
+
+    nos::string_buffer sb;
+    if (tokens.size() == 0)
+        return "";
+    executor.execute(tokens, sb);
+    return sb.str();
+}
+
+void client_spin(nos::inet::tcp_socket client)
+{
+    try
+    {
+        while (true)
+        {
+            std::string line = nos::readline_from(client);
+            if (line.size() == 0)
+                return;
+
+            nos::tokens tokens(line);
+            auto sb = execute_tokens(tokens);
+            if (sb.size() == 0)
+                continue;
+            client.write(sb.data(), sb.size());
+        }
+    }
+    catch (const std::exception &ex)
+    {
+        nos::println("client finished by exception", ex.what());
     }
 }
 
-void server_spin(int port) 
+void server_spin(int port)
 {
     nos::inet::tcp_server server;
     server.init();
@@ -392,17 +422,15 @@ int userIOThreadHandler()
         std::cout << "$ ";
         getline(std::cin, str);
         nos::tokens tokens(str);
-        nos::print_list(tokens);
-        if (tokens.size() == 0)
+        auto sb = execute_tokens(tokens);
+        if (sb.size() == 0)
             continue;
-        nos::string_buffer sb;
-        executor.execute(tokens, sb);
-        std::cout << sb.str();
+        std::cout << sb;
     }
     return 0;
 }
 
-void start_stdstream_console() 
+void start_stdstream_console()
 {
     std::thread userIOThread(userIOThreadHandler);
     userIOThread.detach();

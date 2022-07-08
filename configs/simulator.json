@@ -1,0 +1,23 @@
+{
+    "apps": [
+        {
+            "command": "/root/project/rfmeask/rfmeas --simulator opu --logerrors /root/project/errlog.txt",
+            "name": "rfmeas",
+            "order": 1,
+            "restart": "always",
+            "files": [
+                {
+                    "path": "/root/project/errlog.txt",
+                    "name": "errlog.txt",
+                    "editable": false
+                }
+            ]
+        },
+        {
+            "command": "/usr/local/bin/crowker --udp 10009",
+            "name": "crowker",
+            "order": 2,
+            "restart": "always"
+        }
+    ]
+}

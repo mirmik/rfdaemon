@@ -1,42 +1,39 @@
 ﻿#include "main.h"
+#include "AppManager.h"
+#include "RFDaemonServer.h"
+#include <console.h>
 #include <getopt.h>
-#include <unistd.h>
-#include <string.h>
 #include <iostream>
 #include <signal.h>
+#include <string.h>
 #include <thread>
-#include "RFDaemonServer.h"
-#include "AppManager.h"
-#include <console.h>
-#include <signal.h>
+#include <unistd.h>
 
 using namespace std;
 
+bool CONSOLE_DEBUG = false;
 int tcp_console_port = 5000;
 uint16_t port = DEFAULT_TCP_PORT;
-AppManager* appManager = NULL;
-RFDaemonServer* srv = NULL;
+AppManager *appManager = NULL;
+RFDaemonServer *srv = NULL;
 thread srvRxThread;
 thread srvTxThread;
 
 void interrupt_signal_handler(int signum);
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     string configFileName;
     bool terminalMode = false, serverOnlyMode = false;
     pid_t daemonPid = 0;
-    
+
     signal(SIGINT, interrupt_signal_handler);
     signal(SIGTERM, interrupt_signal_handler);
-    
-    if (checkRunArgs(argc, argv, port, configFileName, terminalMode))
-    {
-        configFileName = "applist.json";
-        port = DEFAULT_TCP_PORT;
-    }
-    
-    cout << "Starting in " << (terminalMode ? "terminal" : "daemon") << "mode.\n";
+
+    checkRunArgs(argc, argv, port, configFileName, terminalMode);
+
+    cout << "Starting in " << (terminalMode ? "terminal" : "daemon")
+         << "mode.\n";
 
     if (!terminalMode)
         daemonPid = fork();
@@ -53,7 +50,7 @@ int main(int argc, char* argv[])
             serverOnlyMode = true;
             cout << "Application script has errors. Server-only mode runned.\n";
         }
-        
+
         if (!serverOnlyMode)
             appManager->runApps();
 
@@ -70,26 +67,66 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileName, bool& terminalMode)
+void print_help()
+{
+    nos::fprint(
+        "Usage: rfdaemon [OPTION]...\n"
+        "\n"
+        "Configuration:\n"
+        "  -c, --config - path to settings file\n"
+        "  -p, --port - RFDaemon protocol port\n"
+        "  -d, --daemon - Start daemon mode (default)\n"
+        "  -t, --terminal - Start terminal mode \n"
+        "Debug:\n"
+        "  -h  --help - print this\n"
+        "  -D, --console-debug - debug input console commands\n"
+        "  -T, --immediate-exit, Immediate exit for library linking test\n"
+        "\n");
+}
+
+bool checkRunArgs(int argc, char *argv[], uint16_t &port,
+                  string &appListFileName, bool &terminalMode)
 {
     uint16_t portVal = 0;
-    size_t len = 0, portArgLen = 0;
+    size_t portArgLen = 0;
     int opt = 0;
     bool wrongArg = false;
-    char* portArgEnd = NULL;
+    char *portArgEnd = NULL;
+    int long_index = 0;
 
-    while ((opt = getopt(argc, argv, "tc:p:")) != -1)
+    const struct option long_options[] = {
+        {"help", no_argument, NULL, 'h'},
+        {"terminal", no_argument, NULL, 't'},
+        {"daemon", no_argument, NULL, 'd'},
+        {"config", required_argument, NULL, 'c'},
+        {"port", required_argument, NULL, 'p'},
+        {"immediate-exit", no_argument, NULL, 'T'},
+        {NULL, 0, NULL, 0}};
+
+    while ((opt = getopt_long(argc, argv, "thdTc:p:", long_options,
+                              &long_index)) != -1)
     {
         switch (opt)
         {
+        case 'h':
+            print_help();
+            exit(0);
+
         case 't':
             terminalMode = true;
             break;
+
         case 'd':
             terminalMode = false;
             break;
+
+        case 'T':
+            nos::println("immediate exit");
+            exit(0);
+
         case 'c':
-            len = strlen(optarg);
+        {
+            size_t len = strlen(optarg);
             if (len > 5)
             {
                 if (!strcmp(optarg + len - 5, ".json"))
@@ -99,8 +136,11 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
             }
             else
                 wrongArg = true;
-            break;
+        }
+        break;
+
         case 'p':
+        {
             portArgLen = strlen(optarg);
             portArgEnd = optarg;
             portVal = (uint16_t)strtoul(optarg, &portArgEnd, 10);
@@ -114,14 +154,15 @@ bool checkRunArgs(int argc, char* argv[], uint16_t& port, string& appListFileNam
             }
             else
                 port = portVal;
-            break;
+        }
+        break;
+
         default:
-            wrongArg = true;
+            print_help();
+            exit(0);
         }
     }
-    if (wrongArg || !len)
-        printf("Usage: %s [-p 0..65535/0..FFFF] [-t] -c filename.json\n", argv[0]);
-    return (wrongArg || !len);
+    return 0;
 }
 
 int tcpServerSendThreadHandler()
@@ -151,7 +192,7 @@ void interrupt_signal_handler(int sig)
     exitHandler(sig);
 }
 
-// TODO 
+// TODO
 void stop_all_threads()
 {
 }
