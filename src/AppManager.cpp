@@ -7,22 +7,22 @@
 #include "AppManager.h"
 #include "zlib.h"
 
-using namespace std;
-mutex AppManager::ioMutex;
+std::mutex AppManager::ioMutex;
+using namespace std::chrono_literals;
 
-AppManager::AppManager(const string& appListFileName)
+AppManager::AppManager(const std::string& appListFileName)
 {
     appFilename = appListFileName;
     spamserver.start(5001);
 }
 
-void AppManager::send_spam(const string& message)
+void AppManager::send_spam(const std::string& message)
 {
     std::lock_guard<std::mutex> lock(spam_mutex);
     spamserver.print(message);
 }
 
-void AppManager::send_spam(const vector<uint8_t>& message)
+void AppManager::send_spam(const std::vector<uint8_t>& message)
 {
     std::lock_guard<std::mutex> lock(spam_mutex);
     spamserver.write(message.data(), message.size());
@@ -33,20 +33,20 @@ bool AppManager::loadConfigFile()
     Json::Value root;
     Json::CharReaderBuilder builder;
     JSONCPP_STRING errs;
-    ifstream appFile = ifstream(appFilename);
+    std::ifstream appFile(appFilename);
     bool error = false;
     if (appFile.is_open())
-        cout << "RFDaemon configuration file \"" + appFilename + "\" found.\n";
+        nos::println("RFDaemon configuration file '{}' found.", appFilename);
     else
     {
-        cout << "RFDaemon configuration file \"" + appFilename + "\" missing.\n";
+        nos::println("RFDaemon configuration file '{}' missing.", appFilename);
         pushError(Errors::AppListNotFound);
         return true;
     }
 
     if (!parseFromStream(builder, appFile, &root, &errs))
     {
-        cout << "Errors in configuration file \"" + appFilename + "\"[" << errs << "].\n";
+        nos::println("Errors in configuration file '{}' ['{}'].", appFilename, errs);
         pushError(Errors::AppListSyntaxError);
         error = true;
     }
@@ -58,7 +58,7 @@ bool AppManager::loadConfigFile()
             closeApps();
             apps.clear();
 
-            map<int, int> orderList;
+            std::map<int, int> orderList;
             for (int i = 0; i < arraySize; i++)
                 orderList[i] = root["apps"][i]["order"].asInt() - 1;
 
@@ -66,8 +66,8 @@ bool AppManager::loadConfigFile()
             {
                 std::vector<LinkedFile> linked_files;
                 int order = orderList[orderList[i]];
-                string name = root["apps"][order]["name"].asString();
-                string cmd = root["apps"][order]["command"].asString();
+                std::string name = root["apps"][order]["name"].asString();
+                std::string cmd = root["apps"][order]["command"].asString();
                 auto logs = root["apps"][order]["logs"];
                 auto files = root["apps"][order]["files"];
 
@@ -103,7 +103,7 @@ bool AppManager::loadConfigFile()
         }
         else
         {
-            cout << "No apps found in file \"" + appFilename + "\".\n";
+            nos::fprintln("No apps found in file '{}'.", appFilename);
             error = true;
         }
         
@@ -131,14 +131,14 @@ void AppManager::closeApps()
         if (!a.stopped())
             a.stop();
     }
-    lock_guard lock(ioMutex);
-    cout << "All created processes have just been killed." << endl;
+    std::lock_guard lock(ioMutex);
+    nos::println("All created processes have just been killed.");
 }
 
 void AppManager::restartApps()
 {
     closeApps();
-    this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(500ms);
     runApps();
 }
 
@@ -147,17 +147,17 @@ size_t AppManager::getAppCount() const
     return apps.size();
 }
 
-const string& AppManager::getAppConfigFilename()
+const std::string& AppManager::getAppConfigFilename()
 {
     return appFilename;
 }
 
-vector<App>& AppManager::getAppsList()
+std::vector<App>& AppManager::getAppsList()
 {
     return apps;
 }
 
-App* AppManager::findApp(const string& name)
+App* AppManager::findApp(const std::string& name)
 {
     if (std::isdigit(name[0])) 
     {
@@ -180,22 +180,22 @@ App* AppManager::getApp(size_t index)
     return nullptr;
 }
 
-const string& AppManager::getDeviceDescFilename() const
+const std::string& AppManager::getDeviceDescFilename() const
 {
     return settingsFilename;
 }
 
-const string& AppManager::getDeviceRuntimeFilename() const
+const std::string& AppManager::getDeviceRuntimeFilename() const
 {
     return runtimeSettingsFilename;
 }
 
-list<uint8_t>& AppManager::errors()
+std::list<uint8_t>& AppManager::errors()
 {
     return errorList;
 }
 
-vector<string>& AppManager::getSystemLogPaths()
+std::vector<std::string>& AppManager::getSystemLogPaths()
 {
     return systemLogPaths;
 }
@@ -207,10 +207,10 @@ void AppManager::pushError(Errors error)
         errorList.pop_front();
 }
 
-vector<AppManager::Log> AppManager::packLogs()
+std::vector<AppManager::Log> AppManager::packLogs()
 {
-    vector<AppManager::Log> data;
-    vector<string> paths = systemLogPaths;
+    std::vector<AppManager::Log> data;
+    std::vector<std::string> paths = systemLogPaths;
     for (const auto& app : apps)
     {
         auto logPaths = app.logPaths();
@@ -223,16 +223,16 @@ vector<AppManager::Log> AppManager::packLogs()
 
     for (const auto& path : paths)
     {
-        ifstream f(path);
+        std::ifstream f(path);
         if (f.is_open())
         {
-            string s(istreambuf_iterator<char>{f}, {});
+            std::string s(std::istreambuf_iterator<char>{f}, {});
             size_t fileSize = s.size();
             size_t packedSize = fileSize;
-            vector<uint8_t> output(fileSize);
+            std::vector<uint8_t> output(fileSize);
             if (compress(output.data(), &packedSize, (Bytef*)s.data(), fileSize) == Z_OK)
             {
-                vector<uint8_t> packed(4);
+                std::vector<uint8_t> packed(4);
                 *(uint32_t*)(packed.data()) = __bswap_32((uint32_t)packedSize);
                 packed.insert(packed.end(), output.begin(), output.begin() + packedSize);
                 data.push_back({ path, packed });
