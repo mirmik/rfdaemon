@@ -1,5 +1,6 @@
 #include "AppManager.h"
 #include "zlib.h"
+#include <byteswap.h>
 #include <cctype>
 #include <fstream>
 #include <igris/trent/json.h>
@@ -226,7 +227,7 @@ std::vector<AppManager::Log> AppManager::packLogs()
                          fileSize) == Z_OK)
             {
                 std::vector<uint8_t> packed(4);
-                *(uint32_t *)(packed.data()) = __bswap_32((uint32_t)packedSize);
+                *(uint32_t *)(packed.data()) = bswap_32((uint32_t)packedSize);
                 packed.insert(packed.end(), output.begin(),
                               output.begin() + packedSize);
                 data.push_back({path, packed});
