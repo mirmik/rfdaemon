@@ -2,6 +2,7 @@
 #include "arpa/inet.h"
 #include "crc32_ccitt.h"
 #include <cstring>
+#include <modes.h>
 #include <signal.h>
 #include <unistd.h>
 
@@ -183,6 +184,13 @@ int TcpServer::sendThread()
 
                         // Send next data part
                         mConn.lock();
+
+                        if (VERBOSE)
+                        {
+                            nos::println("Sending packet: ");
+                            nos::print_dump(txBufferPtr, packetSize);
+                        }
+
                         result = connection.send(txBufferPtr, packetSize, 0);
                         mConn.unlock();
                         if (result > 0)

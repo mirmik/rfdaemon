@@ -4,6 +4,7 @@
 #include <igris/trent/json_print.h>
 #include <igris/util/base64.h>
 #include <iostream>
+#include <modes.h>
 #include <nos/inet/tcp_server.h>
 #include <nos/inet/tcp_socket.h>
 #include <nos/io/buffered_file.h>
@@ -11,7 +12,6 @@
 #include <nos/shell/executor.h>
 #include <thread>
 
-extern bool CONSOLE_DEBUG;
 const int API_VERSION = 100;
 extern AppManager *appManager;
 extern void stop_all_threads();
@@ -328,8 +328,7 @@ int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
 std::thread server_thread;
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "baba is you", &hello),
-    nos::command("q", "exit", &exit),
-    nos::command("exit", "exit", &exit),
+    nos::command("q", "exit", &exit), nos::command("exit", "exit", &exit),
     nos::command("list", "list of applications", &list_of_applications),
     nos::command("stop", "stop application", &stop_application),
     nos::command("start", "start application", &start_application),
@@ -353,7 +352,7 @@ nos::executor executor(std::vector<nos::command>{
 
 std::string execute_tokens(nos::tokens &tokens)
 {
-    if (CONSOLE_DEBUG)
+    if (VERBOSE)
     {
         nos::print("New request: ");
         nos::print_list(tokens);

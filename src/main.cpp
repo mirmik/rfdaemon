@@ -12,7 +12,8 @@
 using namespace std;
 
 bool VERBOSE = false;
-bool CONSOLE_DEBUG = false;
+bool WITHOUT_RFMEASK = false;
+
 int tcp_console_port = 5000;
 uint16_t port = DEFAULT_TCP_PORT;
 AppManager *appManager = NULL;
@@ -78,10 +79,10 @@ void print_help()
         "  -p, --port - RFDaemon protocol port\n"
         "  -d, --daemon - Start daemon mode (default)\n"
         "  -t, --terminal - Start terminal mode \n"
+        "  -n, --noext - Disable rfmeask extention \n"
         "Debug:\n"
         "  -v, --debug - Print more information\n"
         "  -h  --help - print this\n"
-        "  -D, --console-debug - debug input console commands\n"
         "  -T, --immediate-exit, Immediate exit for library linking test\n"
         "\n");
 }
@@ -102,6 +103,7 @@ bool checkRunArgs(int argc, char *argv[], uint16_t &port,
         {"daemon", no_argument, NULL, 'd'},
         {"debug", no_argument, NULL, 'v'},
         {"config", required_argument, NULL, 'c'},
+        {"noext", no_argument, NULL, 'n'},
         {"port", required_argument, NULL, 'p'},
         {"immediate-exit", no_argument, NULL, 'T'},
         {NULL, 0, NULL, 0}};
@@ -125,6 +127,10 @@ bool checkRunArgs(int argc, char *argv[], uint16_t &port,
 
         case 'v':
             VERBOSE = true;
+            break;
+
+        case 'n':
+            WITHOUT_RFMEASK = true;
             break;
 
         case 'T':
