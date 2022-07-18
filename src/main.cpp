@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 
     signal(SIGINT, interrupt_signal_handler);
     signal(SIGTERM, interrupt_signal_handler);
+    signal(SIGSEGV, interrupt_signal_handler);
 
     checkRunArgs(argc, argv, port, configFileName, terminalMode);
 

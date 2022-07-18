@@ -7,7 +7,7 @@
             "restart": "always",
             "files": [
                 {
-                    "path": "/root/project/errlog.txt",
+                    "path": "/root/project/errlogaaa.txt",
                     "name": "errlog.txt",
                     "editable": false
                 }

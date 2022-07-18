@@ -284,7 +284,7 @@ int read_linked_file(const nos::argv &args, nos::ostream &out)
         {
             if (file.name == args[2].to_string())
             {
-                if (!nos::osutil::access(file.path))
+                if (!nos::osutil::is_accessible(file.path))
                 {
                     out.println("Can`t read file (is it exists?): " +
                                 file.path);
@@ -319,6 +319,13 @@ int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
         {
             if (file.name == args[2].to_string())
             {
+                if (!nos::osutil::is_accessible(file.path))
+                {
+                    out.println(igris::base64_encode(
+                        "Can`t read file (is it exists?): " + file.path));
+                    return -1;
+                }
+
                 nos::buffered_file f(file.path, "r");
                 auto s = f.readall();
                 auto b = igris::base64_encode(s);
