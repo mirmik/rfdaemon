@@ -7,7 +7,7 @@
             "restart": "always",
             "files": [
                 {
-                    "path": "/root/project/errlogaaa.txt",
+                    "path": "/root/project/errlog.txt",
                     "name": "errlog.txt",
                     "editable": false
                 }
@@ -17,6 +17,12 @@
             "command": "/usr/local/bin/crowker --udp 10009",
             "name": "crowker",
             "order": 2,
+            "restart": "always"
+        },
+        {
+            "command": "/bin/ls",
+            "name": "ls",
+            "order": 3,
             "restart": "always"
         }
     ]

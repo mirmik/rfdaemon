@@ -30,6 +30,8 @@ public:
     };
     App(int task_index, const std::string &name, const std::string &cmd,
         RestartMode mode, const std::vector<LinkedFile> &linkeds);
+    App(const App &) = default;
+    App(App &&) = default;
     void stop();
     void start();
     bool stopped() const;
@@ -56,11 +58,25 @@ public:
     size_t logdata_size() const;
     void logdata_clear();
     int64_t logdata_read(char *data, size_t size, size_t offset);
+    void on_child_finished();
 
     const std::string &show_stdout() const;
     const std::vector<LinkedFile> &linked_files() const
     {
         return _linked_files;
+    }
+
+    ~App()
+    {
+        try
+        {
+            stop();
+            _watcher_thread.join();
+        }
+        catch (...)
+        {
+            // path
+        }
     }
 
 private:
@@ -84,5 +100,6 @@ private:
     std::queue<int> _errors;
     int _pid = 0;
 
-    std::string _stdout;
+    bool cancel_reading = false;
+    std::string _stdout_record;
 };

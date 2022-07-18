@@ -161,7 +161,6 @@ int restart_all_applications(const nos::argv &args, nos::ostream &out)
 
 int show_application_stdout(const nos::argv &args, nos::ostream &out)
 {
-    nos::println("show_application_stdout: {}", args[1]);
     if (args.size() < 2)
     {
         out.println("Usage: show_application_stdout <app_name>");
@@ -339,10 +338,49 @@ int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
     return -1;
 }
 
+int apps_config_b64(const nos::argv &args, nos::ostream &out)
+{
+    (void)args;
+    auto path = appManager->getAppConfigFilename();
+    auto file = nos::buffered_file(path.c_str(), "r");
+    auto text = nos::readall_from(file);
+    out.println(igris::base64_encode(text));
+    file.close();
+    return 0;
+}
+
+int set_apps_config_b64(const nos::argv &args, nos::ostream &out)
+{
+    if (args.size() < 2)
+    {
+        out.println("Usage: set_apps_config_b64 <config_b64>");
+        return -1;
+    }
+    // nos::println("set_apps_config_b64: {}", args[1].to_string());
+
+    auto decoded = igris::base64_decode(args[1].to_string());
+    auto path = appManager->getAppConfigFilename();
+    auto file = nos::buffered_file(path.c_str(), "w");
+    nos::print_to(file, decoded);
+    file.close();
+    appManager->reload_config();
+    return 0;
+}
+
+int reload_config(const nos::argv &args, nos::ostream &out)
+{
+    (void)args;
+    (void)out;
+    appManager->reload_config();
+    return 0;
+}
+
 std::thread server_thread;
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "baba is you", &hello),
-    nos::command("q", "exit", &exit), nos::command("exit", "exit", &exit),
+    nos::command("q", "exit", &exit),
+    nos::command("exit", "exit", &exit),
+    nos::command("reload", "reload", &reload_config),
     nos::command("list", "list of applications", &list_of_applications),
     nos::command("stop", "stop application", &stop_application),
     nos::command("start", "start application", &start_application),
@@ -360,6 +398,9 @@ nos::executor executor(std::vector<nos::command>{
     nos::command("api_version", "api version", &api_version),
     nos::command("linkeds", "linked files", &app_linked_files),
     nos::command("linkeds_b64", "linked files", &app_linked_files_b64),
+    nos::command("apps_config_b64", "get apps config", &apps_config_b64),
+    nos::command("set_apps_config_b64", "set apps config",
+                 &set_apps_config_b64),
     nos::command("read_linked", "read linked file", &read_linked_file),
     nos::command("read_linked_b64", "read linked file",
                  &read_linked_file_b64)});

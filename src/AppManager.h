@@ -55,6 +55,10 @@ public:
     App *findApp(const std::string &name);
     void send_spam(const std::string &message);
     void send_spam(const std::vector<uint8_t> &message);
+    void reload_config();
+
+    void on_child_finished(pid_t pid);
+    App *get_app_by_pid(pid_t pid);
 
 private:
     std::vector<App> apps;

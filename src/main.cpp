@@ -6,6 +6,7 @@
 #include <iostream>
 #include <signal.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
 
@@ -23,6 +24,26 @@ thread srvTxThread;
 
 void interrupt_signal_handler(int signum);
 
+void interrupt_child(int signum)
+{
+    (void)signum;
+    int status;
+
+    for (;;)
+    {
+        pid_t p = waitpid(-1, &status, WUNTRACED | WNOHANG);
+        if (p < 0)
+        {
+            perror("waitpid");
+            exit(1);
+        }
+        if (p == 0)
+            break;
+
+        appManager->on_child_finished(p);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     string configFileName;
@@ -32,6 +53,7 @@ int main(int argc, char *argv[])
     signal(SIGINT, interrupt_signal_handler);
     signal(SIGTERM, interrupt_signal_handler);
     signal(SIGSEGV, interrupt_signal_handler);
+    signal(SIGCHLD, interrupt_child);
 
     checkRunArgs(argc, argv, port, configFileName, terminalMode);
 

@@ -101,44 +101,53 @@ pid_t App::appFork()
     pipe(wr);
     _startTime = std::chrono::system_clock::now();
 
-    logdata_clear();
     pid_t pid = fork();
     if (pid == 0)
     {
         close(wr[0]);
         dup2(wr[1], STDOUT_FILENO);
         close(wr[1]);
-
         nos::fprintln("Execv app : {}", tokens);
+
+        // Timeout for main thread can connect to the pipe
+        std::this_thread::sleep_for(100ms);
         exit(execv(tokens[0].data(), tokens_for_execve(tokens).data()));
     }
     else if (pid > 0)
     {
         close(wr[1]);
         isStopped = false;
-        usleep(1000);
         _pid = pid;
-
         ssize_t n;
         std::vector<uint8_t> buffer;
-        buffer.reserve(2048);
         char buf[1024];
-        while ((n = read(wr[0], buf, sizeof(buf))) > 0)
+        buffer.reserve(2048);
+
+        nos::osutil::nonblock(wr[0], true);
+
+        while (true)
         {
-            buffer.clear();
-            buffer.push_back((uint8_t)task_index);
-            buffer.push_back((uint8_t)name().size());
-            buffer.insert(buffer.end(), _name.begin(), _name.end());
+            n = read(wr[0], buf, sizeof(buf));
+            if (n > 0)
+            {
+                _stdout_record.append(std::string(buf, n));
+                buffer.clear();
+                buffer.push_back((uint8_t)task_index);
+                buffer.push_back((uint8_t)name().size());
+                buffer.insert(buffer.end(), _name.begin(), _name.end());
+                uint16_t len = n;
+                buffer.push_back((uint8_t)(len >> 8));
+                buffer.push_back((uint8_t)(len & 0xFF));
+                buffer.insert(buffer.end(), buf, buf + n);
+                appManager->send_spam(buffer);
+            }
 
-            uint16_t len = n;
-            buffer.push_back((uint8_t)(len >> 8));
-            buffer.push_back((uint8_t)(len & 0xFF));
-            buffer.insert(buffer.end(), buf, buf + n);
-            appManager->send_spam(buffer);
+            if (cancel_reading)
+                break;
+            std::this_thread::sleep_for(100ms);
         }
-        nos::println("READ END", n);
 
-        waitFinish();
+        cancel_reading = false;
         isStopped = true;
     }
     return pid;
@@ -240,32 +249,37 @@ std::queue<int> &App::errors()
 
 void App::logdata_clear()
 {
-    _stdout.clear();
-    _stdout.reserve(1024 * 1024);
+    _stdout_record.clear();
+    _stdout_record.reserve(1024 * 1024);
 }
 
 void App::logdata_append(const char *data, size_t size)
 {
-    _stdout.append(data, size);
+    _stdout_record.append(data, size);
 }
 
 size_t App::logdata_size() const
 {
-    return _stdout.size();
+    return _stdout_record.size();
 }
 
 int64_t App::logdata_read(char *buf, size_t size, size_t offset)
 {
-    if (offset >= _stdout.size())
+    if (offset >= _stdout_record.size())
         return 0;
     auto fullsize = logdata_size();
     if (offset + size > fullsize)
         size = fullsize - offset;
-    memcpy(buf, _stdout.data() + offset, size);
+    memcpy(buf, _stdout_record.data() + offset, size);
     return size;
 }
 
 const std::string &App::show_stdout() const
 {
-    return _stdout;
+    return _stdout_record;
+}
+
+void App::on_child_finished()
+{
+    cancel_reading = true;
 }

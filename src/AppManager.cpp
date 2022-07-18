@@ -240,3 +240,26 @@ std::vector<AppManager::Log> AppManager::packLogs()
     }
     return data;
 }
+
+void AppManager::reload_config()
+{
+    closeApps();
+    loadConfigFile();
+    runApps();
+}
+
+void AppManager::on_child_finished(pid_t pid)
+{
+    auto *app = get_app_by_pid(pid);
+    app->on_child_finished();
+}
+
+App *AppManager::get_app_by_pid(pid_t pid)
+{
+    for (auto &a : apps)
+    {
+        if (a.pid() == pid)
+            return &a;
+    }
+    return nullptr;
+}
