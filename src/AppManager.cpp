@@ -8,6 +8,7 @@
 #include <mutex>
 #include <unistd.h>
 
+extern bool VERBOSE;
 std::mutex AppManager::ioMutex;
 using namespace std::chrono_literals;
 
@@ -31,6 +32,9 @@ void AppManager::send_spam(const std::vector<uint8_t> &message)
 
 bool AppManager::loadConfigFile()
 {
+    if (VERBOSE)
+        nos::println("loading config file from", appFilename);
+
     igris::trent root;
     try
     {

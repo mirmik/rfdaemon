@@ -11,6 +11,7 @@
 
 using namespace std;
 
+bool VERBOSE = false;
 bool CONSOLE_DEBUG = false;
 int tcp_console_port = 5000;
 uint16_t port = DEFAULT_TCP_PORT;
@@ -78,6 +79,7 @@ void print_help()
         "  -d, --daemon - Start daemon mode (default)\n"
         "  -t, --terminal - Start terminal mode \n"
         "Debug:\n"
+        "  -v, --debug - Print more information\n"
         "  -h  --help - print this\n"
         "  -D, --console-debug - debug input console commands\n"
         "  -T, --immediate-exit, Immediate exit for library linking test\n"
@@ -98,12 +100,13 @@ bool checkRunArgs(int argc, char *argv[], uint16_t &port,
         {"help", no_argument, NULL, 'h'},
         {"terminal", no_argument, NULL, 't'},
         {"daemon", no_argument, NULL, 'd'},
+        {"debug", no_argument, NULL, 'v'},
         {"config", required_argument, NULL, 'c'},
         {"port", required_argument, NULL, 'p'},
         {"immediate-exit", no_argument, NULL, 'T'},
         {NULL, 0, NULL, 0}};
 
-    while ((opt = getopt_long(argc, argv, "thdTc:p:", long_options,
+    while ((opt = getopt_long(argc, argv, "thdvTc:p:", long_options,
                               &long_index)) != -1)
     {
         switch (opt)
@@ -118,6 +121,10 @@ bool checkRunArgs(int argc, char *argv[], uint16_t &port,
 
         case 'd':
             terminalMode = false;
+            break;
+
+        case 'v':
+            VERBOSE = true;
             break;
 
         case 'T':
