@@ -1,6 +1,7 @@
 ﻿#include "main.h"
 #include "AppManager.h"
 #include "RFDaemonServer.h"
+#include <Beam.h>
 #include <console.h>
 #include <getopt.h>
 #include <iostream>
@@ -21,6 +22,7 @@ AppManager *appManager = NULL;
 RFDaemonServer *srv = NULL;
 thread srvRxThread;
 thread srvTxThread;
+Beam *beam = nullptr;
 
 void interrupt_signal_handler(int signum);
 
@@ -59,6 +61,9 @@ int main(int argc, char *argv[])
 
     cout << "Starting in " << (terminalMode ? "terminal" : "daemon")
          << "mode.\n";
+
+    beam = new Beam(9835, 9836);
+    beam->start();
 
     if (!terminalMode)
         daemonPid = fork();
