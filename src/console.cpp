@@ -284,6 +284,13 @@ int read_linked_file(const nos::argv &args, nos::ostream &out)
         {
             if (file.name == args[2].to_string())
             {
+                if (!nos::osutil::access(file.path))
+                {
+                    out.println("Can`t read file (is it exists?): " +
+                                file.path);
+                    return -1;
+                }
+
                 nos::buffered_file f(file.path, "r");
                 auto s = f.readall();
                 out.println(s);
