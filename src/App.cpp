@@ -1,18 +1,18 @@
 #include "App.h"
 #include "AppManager.h"
-#include <string.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <iostream>
-#include <thread>
-#include <nos/fprint.h>
-#include <igris/util/string.h>
 #include <igris/util/base64.h>
+#include <igris/util/string.h>
+#include <iostream>
+#include <nos/fprint.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <thread>
+#include <unistd.h>
 
-extern AppManager* appManager;
+extern AppManager *appManager;
 
-//std::mutex App::ioMutex;
+// std::mutex App::ioMutex;
 using namespace std::chrono_literals;
 
 igris::trent LinkedFile::to_trent() const
@@ -32,10 +32,11 @@ std::string App::status_string() const
         return "running";
 }
 
-std::string GetStdoutFromCommand(std::string cmd) {
+std::string GetStdoutFromCommand(std::string cmd)
+{
 
     std::string data;
-    FILE* stream;
+    FILE *stream;
     const int max_buffer = 256;
     char buffer[max_buffer];
     cmd.append(" 2>&1");
@@ -53,14 +54,9 @@ std::string GetStdoutFromCommand(std::string cmd) {
     return data;
 }
 
-App::App(
-    int task_index, 
-    const std::string& name, 
-    const std::string& cmd, 
-    RestartMode mode,
-    const std::vector<LinkedFile>& linkeds) 
-    : 
-    _linked_files(linkeds), task_index(task_index), _name(name)
+App::App(int task_index, const std::string &name, const std::string &cmd,
+         RestartMode mode, const std::vector<LinkedFile> &linkeds)
+    : _linked_files(linkeds), task_index(task_index), _name(name)
 {
     tokens = igris::split(cmd);
     _restartMode = mode;
@@ -68,7 +64,8 @@ App::App(
 
 void App::stop()
 {
-    if (!isStopped) {
+    if (!isStopped)
+    {
         _attempts = 0;
         kill(_pid, SIGKILL);
     }
@@ -83,12 +80,12 @@ void App::start()
     }
 }
 
-std::vector<char*> App::tokens_for_execve(const std::vector<std::string>& args)
+std::vector<char *> App::tokens_for_execve(const std::vector<std::string> &args)
 {
-    std::vector<char*> res;
-    for (auto& arg : args)
+    std::vector<char *> res;
+    for (auto &arg : args)
     {
-        res.push_back(const_cast<char*>(arg.c_str()));
+        res.push_back(const_cast<char *>(arg.c_str()));
     }
     res.push_back(nullptr);
     return res;
@@ -121,7 +118,7 @@ pid_t App::appFork()
         isStopped = false;
         usleep(1000);
         _pid = pid;
-        
+
         ssize_t n;
         std::vector<uint8_t> buffer;
         buffer.reserve(2048);
@@ -137,12 +134,12 @@ pid_t App::appFork()
             buffer.push_back((uint8_t)(len >> 8));
             buffer.push_back((uint8_t)(len & 0xFF));
             buffer.insert(buffer.end(), buf, buf + n);
-            appManager->send_spam(buffer);           
+            appManager->send_spam(buffer);
         }
         nos::println("READ END", n);
 
         waitFinish();
-        isStopped = true;  
+        isStopped = true;
     }
     return pid;
 }
@@ -162,12 +159,12 @@ int App::pid() const
     return _pid;
 }
 
-const std::string& App::name() const
+const std::string &App::name() const
 {
     return _name;
 }
 
-//retrurn log pathes
+// retrurn log pathes
 std::vector<std::string> App::logPaths() const
 {
     return {};
@@ -176,7 +173,8 @@ std::vector<std::string> App::logPaths() const
 int64_t App::uptime() const
 {
     return std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now() - _startTime).count();
+               std::chrono::system_clock::now() - _startTime)
+        .count();
 }
 
 void App::restart_attempt_counter()
@@ -212,7 +210,7 @@ void App::watchFunc()
     {
         std::this_thread::sleep_for(10ms);
         appFork();
-        
+
         if (!need_to_another_attempt())
             break;
     }
@@ -222,18 +220,20 @@ void App::watchFunc()
 
 void App::run()
 {
-    if (!_watcher_guard) 
+    if (!_watcher_guard)
     {
         _watcher_guard = true;
         if (_watcher_thread.joinable())
             _watcher_thread.join();
         _watcher_thread = std::thread(&App::watchFunc, this);
     }
-    else 
-        nos::fprintln("Can't start app '{}' because it's wather is already running", name());
+    else
+        nos::fprintln(
+            "Can't start app '{}' because it's wather is already running",
+            name());
 }
 
-std::queue<int>& App::errors()
+std::queue<int> &App::errors()
 {
     return _errors;
 }
@@ -242,9 +242,9 @@ void App::logdata_clear()
 {
     _stdout.clear();
     _stdout.reserve(1024 * 1024);
-} 
+}
 
-void App::logdata_append(const char* data, size_t size)
+void App::logdata_append(const char *data, size_t size)
 {
     _stdout.append(data, size);
 }
@@ -254,7 +254,7 @@ size_t App::logdata_size() const
     return _stdout.size();
 }
 
-int64_t App::logdata_read(char* buf, size_t size, size_t offset)
+int64_t App::logdata_read(char *buf, size_t size, size_t offset)
 {
     if (offset >= _stdout.size())
         return 0;
@@ -265,7 +265,7 @@ int64_t App::logdata_read(char* buf, size_t size, size_t offset)
     return size;
 }
 
-const std::string& App::show_stdout() const
+const std::string &App::show_stdout() const
 {
     return _stdout;
 }
