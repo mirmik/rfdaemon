@@ -259,7 +259,8 @@ vector<uint8_t> RFDaemonServer::parseReceivedData(const vector<uint8_t> &data)
         {
             answer[i * 2 + 2] = (uint8_t)pCmdList[i];
             auto cmd = commands[pCmdList[i]];
-            nos::println("Command: ", cmd.name);
+            if (VERBOSE)
+                nos::println("Command: ", cmd.name);
             auto cmdRet = cmd.cmd(data.data() + argOffset, pArgSizeList[i]);
             argOffset += pArgSizeList[i];
             *(uint32_t *)(answer.data() + i * sizeof(uint32_t) + 2 +
