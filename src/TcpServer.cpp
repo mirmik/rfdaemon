@@ -1,9 +1,9 @@
 #include "TcpServer.h"
-#include <cstring>
-#include <unistd.h>
-#include <signal.h>
-#include "crc32_ccitt.h"
 #include "arpa/inet.h"
+#include "crc32_ccitt.h"
+#include <cstring>
+#include <signal.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -23,19 +23,12 @@ TcpServer::~TcpServer()
 {
     terminateRxThread = true;
     terminateTxThread = true;
-    if (connDesc != -1)
-    {
-        shutdown(connDesc, SHUT_RDWR);
-        connDesc = -1;
-    }
-    if (socketDesc != -1)
-        shutdown(socketDesc, SHUT_RDWR);
-    if (socketDesc != -1)
-    {
-        close(socketDesc);
-        socketDesc = -1;
-    }
-    while (terminateRxThread || terminateTxThread);
+
+    connection.close();
+    socket.close();
+
+    while (terminateRxThread || terminateTxThread)
+        ;
 }
 
 int TcpServer::receiveThread()
@@ -47,26 +40,27 @@ int TcpServer::receiveThread()
             usleep(10000);
             if (!connectionCreated)
                 setupConnection();
-            connDesc = accept(socketDesc, 0, 0);
-            if (connDesc < 0)
+            connection = socket.accept();
+            if (!connection.good())
             {
                 perror("Socket accept error.\n");
-                close(socketDesc);
+                socket.close();
                 break;
             }
-            else
-                connectionAccepted = true;
+
+            connectionAccepted = true;
         }
         else
         {
             ssize_t result = 0;
             do
             {
-                result = recv(connDesc, rxBufferPtr + rxBufferHeaderCollectCnt, bufferLength, 0);
+                char *buffer = (char *)rxBufferPtr + rxBufferHeaderCollectCnt;
+                result = connection.recv(buffer, bufferLength, 0);
 
                 if (result > 0)
                 {
-                    uint8_t* dataStartPtr = rxBufferPtr;
+                    uint8_t *dataStartPtr = rxBufferPtr;
 
                     if (!rxQueueActive)
                     {
@@ -76,19 +70,22 @@ int TcpServer::receiveThread()
                         if (rxBufferHeaderCollectCnt >= sizeof(PacketHeader))
                         {
                             result = rxBufferHeaderCollectCnt;
-                            rxBufferHeaderCollectCnt = 0; // Clear header fragment size counter
+                            rxBufferHeaderCollectCnt =
+                                0; // Clear header fragment size counter
 
                             // Received data contains header at start
-                            PacketHeader* h = (PacketHeader*)&rxBufferPtr;
+                            PacketHeader *h = (PacketHeader *)&rxBufferPtr;
                             if (h->preamble == HeaderPreamble)
                             {
                                 rxQueueActive = true;
                                 rxQueue.clear();
                                 currentHeader = *h;
-                                dataStartPtr = rxBufferPtr + sizeof(PacketHeader);
+                                dataStartPtr =
+                                    rxBufferPtr + sizeof(PacketHeader);
                                 result -= sizeof(PacketHeader);
                                 if (result >= h->size)
-                                    rxQueue.insert(rxQueue.end(), dataStartPtr, dataStartPtr + result);
+                                    rxQueue.insert(rxQueue.end(), dataStartPtr,
+                                                   dataStartPtr + result);
                             }
                         }
                     }
@@ -97,13 +94,16 @@ int TcpServer::receiveThread()
                     {
                         // Received data is not header, it is body part
                         if (rxQueue.size() < currentHeader.size)
-                            rxQueue.insert(rxQueue.end(), dataStartPtr, dataStartPtr + result);
+                            rxQueue.insert(rxQueue.end(), dataStartPtr,
+                                           dataStartPtr + result);
                         else
                         {
                             rxQueueActive = false;
-                            if (crc32_ccitt(rxQueue.data(), currentHeader.size, 0) == currentHeader.crc32)
+                            if (crc32_ccitt(rxQueue.data(), currentHeader.size,
+                                            0) == currentHeader.crc32)
                             {
-                                while (txQueueActive);
+                                while (txQueueActive)
+                                    ;
                                 mQueue.lock();
                                 txQueue = parseReceivedData(rxQueue);
                                 if (txQueue.empty())
@@ -124,16 +124,14 @@ int TcpServer::receiveThread()
             rxQueueActive = false;
             connectionAccepted = false;
             if (result != 0)
-                printf("Socket receive error %d, restart connection.\n", (int)result);
+                printf("Socket receive error %d, restart connection.\n",
+                       (int)result);
             else
                 printf("Client disconnected.\n");
             mConn.lock();
-            shutdown(connDesc, SHUT_RDWR);
-            connDesc = -1;
+            connection.close();
             mConn.unlock();
-            shutdown(socketDesc, SHUT_RDWR);
-            close(socketDesc);
-            socketDesc = -1;
+            socket.close();
             connectionCreated = false;
         }
         if (terminateRxThread)
@@ -161,7 +159,7 @@ int TcpServer::sendThread()
                 if (!txQueueActive)
                 {
                     txQueueActive = true;
-                    PacketHeader* h = (PacketHeader*)txBufferPtr;
+                    PacketHeader *h = (PacketHeader *)txBufferPtr;
                     h->preamble = HeaderPreamble;
                     h->size = (uint32_t)txQueue.size();
                     h->crc32 = crc32_ccitt(txQueue.data(), h->size, 0);
@@ -174,20 +172,25 @@ int TcpServer::sendThread()
                 {
                     if (txQueuePos < txQueue.size())
                     {
-                        // Multipacket transmission not finished, copy next data part to buffer
-                        size_t packetSize = min(txQueue.size() - txQueuePos + headerOffset, bufferLength);
-                        memcpy(txBufferPtr + headerOffset, txQueue.data() + txQueuePos,
-                            packetSize - headerOffset);
-                        
+                        // Multipacket transmission not finished, copy next data
+                        // part to buffer
+                        size_t packetSize =
+                            min(txQueue.size() - txQueuePos + headerOffset,
+                                bufferLength);
+                        memcpy(txBufferPtr + headerOffset,
+                               txQueue.data() + txQueuePos,
+                               packetSize - headerOffset);
+
                         // Send next data part
                         mConn.lock();
-                        result = send(connDesc, txBufferPtr, packetSize, 0);
+                        result = connection.send(txBufferPtr, packetSize, 0);
                         mConn.unlock();
                         if (result > 0)
                             txQueuePos += result - headerOffset;
                         else if (result < 0)
                         {
-                            // In case of error at header transfer, reset header include flag
+                            // In case of error at header transfer, reset header
+                            // include flag
                             if (headerOffset)
                                 txQueueActive = false;
                             printf("Server packet header send error.\n");
@@ -237,46 +240,23 @@ bool TcpServer::clientConnected()
     return connectionAccepted;
 }
 
-string TcpServer::getClientInfo()
-{
-    char info[128];
-    char* client_ip = inet_ntoa(sAddr.sin_addr);
-    int client_port = ntohs(sAddr.sin_port);
-    if (client_ip != nullptr && connectionAccepted)
-        snprintf(info, sizeof(info), "IP:%s Port:%d", client_ip, client_port);
-    else
-        snprintf(info, sizeof(info), "Unable to get client data");
-    return string(info);
-}
-
 void TcpServer::setupConnection()
 {
-    socketDesc = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (socketDesc == -1)
-    {
-        perror("Socket creation error.\n");
-        exit(EXIT_FAILURE);
-    }
-    int reuse = 1;
-    if (setsockopt(socketDesc, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
-        printf("setsockopt(SO_REUSEADDR) failed");
 
-    memset(&sAddr, 0, sizeof(sAddr));
-    sAddr.sin_family = PF_INET;
-    sAddr.sin_port = htons(usedPort);
-    sAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    socket.init();
+    socket.reusing(true);
 
-    if (bind(socketDesc, (sockaddr*)&sAddr, sizeof(sAddr)) == -1)
+    if (socket.bind("0.0.0.0", usedPort) == -1)
     {
         perror("Socket bind error.\n");
-        close(socketDesc);
+        socket.close();
         exit(EXIT_FAILURE);
     }
 
-    if (listen(socketDesc, 1) == -1)
+    if (socket.listen(1) == -1)
     {
         perror("Socket listening error.\n");
-        close(socketDesc);
+        socket.close();
         exit(EXIT_FAILURE);
     }
     connectionCreated = true;

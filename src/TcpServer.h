@@ -1,59 +1,62 @@
 #pragma once
 
+#include <mutex>
+#include <nos/inet/tcp_server.h>
+#include <nos/inet/tcp_socket.h>
 #include <stdint.h>
 #include <vector>
-#include <mutex>
-#include <netinet/in.h>
 
 typedef struct
 {
-	uint32_t preamble;
-	uint32_t crc32;
-	uint32_t size;
+    uint32_t preamble;
+    uint32_t crc32;
+    uint32_t size;
 } PacketHeader;
 
 enum class QueryResult
 {
-	AllOk = 0,
-	CRCError,
-	AppRejected
+    AllOk = 0,
+    CRCError,
+    AppRejected
 };
 
 class TcpServer
 {
 public:
-	TcpServer(uint16_t port, size_t bufferSize = 65535);
-	~TcpServer();
-	int receiveThread();
-	int sendThread();
-	size_t getRxQueueSize() const;
-	size_t getTxQueueSize() const;
-	size_t getBufferSize() const;
-	bool clientConnected();
-	std::string getClientInfo();
-	virtual std::vector<uint8_t> parseReceivedData(const std::vector<uint8_t>& data) = 0;
+    TcpServer(uint16_t port, size_t bufferSize = 65535);
+    ~TcpServer();
+    int receiveThread();
+    int sendThread();
+    size_t getRxQueueSize() const;
+    size_t getTxQueueSize() const;
+    size_t getBufferSize() const;
+    bool clientConnected();
+    virtual std::vector<uint8_t>
+    parseReceivedData(const std::vector<uint8_t> &data) = 0;
+
 private:
-	void setupConnection();
-	static constexpr uint32_t HeaderPreamble = 0x69EA23BE;
-	bool connectionCreated = false;
-	bool connectionAccepted = false;
-	size_t bufferLength = 0;
-	size_t txQueuePos = 0;
-	// Byte counter for receiving packet header in multistep mode
-	// when recv() returns less bytes than size of header
-	size_t rxBufferHeaderCollectCnt = 0;
-	uint8_t rxBufferPtr[65535 + sizeof(PacketHeader)], txBufferPtr[65535 + sizeof(PacketHeader)];
-	bool rxQueueActive = false;
-	bool txQueueActive = false;
-	std::vector<uint8_t> rxQueue, txQueue;
-	PacketHeader currentHeader;
-	QueryResult lastQueryResult = QueryResult::AllOk;
-	sockaddr_in sAddr;
-	uint16_t usedPort = 0;
-	int socketDesc = 0;
-	int connDesc = 0;
-	bool terminateRxThread = false;
-	bool terminateTxThread = false;
-	std::mutex mQueue;
-	std::mutex mConn;
+    void setupConnection();
+    static constexpr uint32_t HeaderPreamble = 0x69EA23BE;
+    bool connectionCreated = false;
+    bool connectionAccepted = false;
+    size_t bufferLength = 0;
+    size_t txQueuePos = 0;
+    // Byte counter for receiving packet header in multistep mode
+    // when recv() returns less bytes than size of header
+    size_t rxBufferHeaderCollectCnt = 0;
+    uint8_t rxBufferPtr[65535 + sizeof(PacketHeader)],
+        txBufferPtr[65535 + sizeof(PacketHeader)];
+    bool rxQueueActive = false;
+    bool txQueueActive = false;
+    std::vector<uint8_t> rxQueue, txQueue;
+    PacketHeader currentHeader;
+    QueryResult lastQueryResult = QueryResult::AllOk;
+    uint16_t usedPort = 0;
+    nos::inet::tcp_server socket;
+    nos::inet::tcp_socket connection;
+
+    bool terminateRxThread = false;
+    bool terminateTxThread = false;
+    std::mutex mQueue;
+    std::mutex mConn;
 };
