@@ -14,7 +14,8 @@
 
 const int API_VERSION = 100;
 extern AppManager *appManager;
-extern void stop_all_threads();
+std::thread server_thread;
+std::thread userIOThread;
 
 int exit(const nos::argv &args, nos::ostream &out)
 {
@@ -375,7 +376,6 @@ int reload_config(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-std::thread server_thread;
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "baba is you", &hello),
     nos::command("q", "exit", &exit),
@@ -486,6 +486,5 @@ int userIOThreadHandler()
 
 void start_stdstream_console()
 {
-    std::thread userIOThread(userIOThreadHandler);
-    userIOThread.detach();
+    userIOThread = std::thread(userIOThreadHandler);
 }

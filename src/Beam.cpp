@@ -1,11 +1,13 @@
 #include <Beam.h>
 
-Beam::Beam(uint16_t sendport, uint16_t recvport)
+Beam::Beam()
 {
-    this->recvport = recvport;
-    beam_socket.init();
-    beam_socket.bind(sendport);
-    beam_socket.allow_broadcast();
+    recv_socket.init();
+    recv_socket.bind(RECVPORT);
+
+    send_socket.init();
+    send_socket.bind(SENDPORT);
+    send_socket.allow_broadcast();
 }
 
 void Beam::start()
@@ -15,9 +17,10 @@ void Beam::start()
 
 void Beam::beam_thread_func()
 {
+    nos::println("starting beam thread");
     for (;;)
     {
-        beam_socket.send_broadcast("Hello, world!", 12, recvport);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        auto [data, ip, port] = recv_socket.recvfrom();
+        nos::println(data);
     }
 }

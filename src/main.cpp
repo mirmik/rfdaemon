@@ -11,18 +11,16 @@
 #include <thread>
 #include <unistd.h>
 
-using namespace std;
-
 bool VERBOSE = false;
 bool WITHOUT_RFMEASK = false;
-
+bool terminalMode = true;
 int tcp_console_port = 5000;
 uint16_t port = DEFAULT_TCP_PORT;
-AppManager *appManager = NULL;
-RFDaemonServer *srv = NULL;
-thread srvRxThread;
-thread srvTxThread;
-Beam *beam = nullptr;
+std::unique_ptr<AppManager> appManager = {};
+std::unique_ptr<RFDaemonServer> srv = {};
+std::unique_ptr<Beam> beam = {};
+std::thread srvRxThread;
+std::thread srvTxThread;
 
 void interrupt_signal_handler(int signum);
 
@@ -48,8 +46,7 @@ void interrupt_child(int signum)
 
 int main(int argc, char *argv[])
 {
-    string configFileName;
-    bool terminalMode = false, serverOnlyMode = false;
+    std::string configFileName;
     pid_t daemonPid = 0;
 
     signal(SIGINT, interrupt_signal_handler);
@@ -59,40 +56,53 @@ int main(int argc, char *argv[])
 
     checkRunArgs(argc, argv, port, configFileName, terminalMode);
 
-    cout << "Starting in " << (terminalMode ? "terminal" : "daemon")
-         << "mode.\n";
+    nos::fprintln("Starting in {} mode.\n",
+                  terminalMode ? "terminal" : "server");
 
-    beam = new Beam(9835, 9836);
+    beam = std::make_unique<Beam>();
     beam->start();
 
     if (!terminalMode)
         daemonPid = fork();
     if (daemonPid == -1) // main process code part
-        cout << "Error: RFDaemon process fork failed.";
+        nos::println("Error: RFDaemon process fork failed.");
     else if (daemonPid == 0) // fork process code part
     {
-        srv = new RFDaemonServer(port);
-        appManager = new AppManager(configFileName);
+        srv = std::make_unique<RFDaemonServer>(port);
+        appManager = std::make_unique<AppManager>(configFileName);
 
         int appfile_error = appManager->loadConfigFile();
         if (appfile_error)
         {
-            serverOnlyMode = true;
-            cout << "Application script has errors. Server-only mode runned.\n";
+            nos::println(
+                "Application script has errors. Server-only mode runned.");
         }
-
-        if (!serverOnlyMode)
-            appManager->runApps();
+        appManager->runApps();
 
         start_tcp_console(tcp_console_port);
-        srvRxThread = thread(tcpServerReceiveThreadHandler);
-        srvTxThread = thread(tcpServerSendThreadHandler);
+        srvRxThread = std::thread(tcpServerReceiveThreadHandler);
+        srvTxThread = std::thread(tcpServerSendThreadHandler);
         if (terminalMode)
         {
             start_stdstream_console();
         }
-        srvTxThread.join();
-        srvRxThread.join();
+        try
+        {
+            srvTxThread.join();
+        }
+        catch (const std::exception &e)
+        {
+            nos::println("Error: {}", e.what());
+        }
+
+        try
+        {
+            srvRxThread.join();
+        }
+        catch (const std::exception &e)
+        {
+            nos::println("Error: {}", e.what());
+        }
     }
     return 0;
 }
@@ -116,7 +126,7 @@ void print_help()
 }
 
 bool checkRunArgs(int argc, char *argv[], uint16_t &port,
-                  string &appListFileName, bool &terminalMode)
+                  std::string &appListFileName, bool &terminalMode)
 {
     uint16_t portVal = 0;
     size_t portArgLen = 0;
@@ -171,7 +181,7 @@ bool checkRunArgs(int argc, char *argv[], uint16_t &port,
             if (len > 5)
             {
                 if (!strcmp(optarg + len - 5, ".json"))
-                    appListFileName = string(optarg);
+                    appListFileName = std::string(optarg);
                 else
                     wrongArg = true;
             }
@@ -208,7 +218,7 @@ bool checkRunArgs(int argc, char *argv[], uint16_t &port,
 
 int tcpServerSendThreadHandler()
 {
-    srv->setAppManager(appManager);
+    srv->setAppManager(appManager.get());
     return srv->sendThread();
 }
 
@@ -221,19 +231,18 @@ int tcpServerReceiveThreadHandler()
 
 void exitHandler(int sig)
 {
-    delete srv;
-    srv = nullptr;
     quick_exit(sig);
+}
+
+// TODO
+void stop_world()
+{
+    appManager->closeApps();
 }
 
 void interrupt_signal_handler(int sig)
 {
-    cout << "Interrupt signal received.\n";
-    appManager->closeApps();
+    nos::println("Interrupt signal received.");
+    stop_world();
     exitHandler(sig);
-}
-
-// TODO
-void stop_all_threads()
-{
 }

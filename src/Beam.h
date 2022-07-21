@@ -6,12 +6,15 @@
 
 class Beam
 {
-    nos::inet::udp_broadcast_socket beam_socket;
+    nos::inet::udp_broadcast_socket recv_socket;
+    nos::inet::udp_broadcast_socket send_socket;
     std::thread beam_thread;
-    uint16_t recvport;
+
+    static constexpr int RECVPORT = 9835;
+    static constexpr int SENDPORT = 9836;
 
 public:
-    Beam(uint16_t sendport, uint16_t recvport);
+    Beam();
     void start();
 
 private:
