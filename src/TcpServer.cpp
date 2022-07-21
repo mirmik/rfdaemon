@@ -6,8 +6,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-using namespace std;
-
 TcpServer::TcpServer(uint16_t port, size_t bufferSize)
 {
     bufferLength = bufferSize;
@@ -176,8 +174,8 @@ int TcpServer::sendThread()
                         // Multipacket transmission not finished, copy next data
                         // part to buffer
                         size_t packetSize =
-                            min(txQueue.size() - txQueuePos + headerOffset,
-                                bufferLength);
+                            std::min(txQueue.size() - txQueuePos + headerOffset,
+                                     bufferLength);
                         memcpy(txBufferPtr + headerOffset,
                                txQueue.data() + txQueuePos,
                                packetSize - headerOffset);
