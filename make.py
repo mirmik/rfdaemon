@@ -8,7 +8,7 @@ licant.cxx_application("rfdaemon",
 		"src/*.cpp",
 	],
 	include_paths = [ "./src" ],
-	libs = ["pthread", "z", "nos", "igris", "ssl", "crypto"],
+	libs = ["pthread", "z", "nos", "igris"],
 	cxx_flags = "-pedantic-errors -Werror=all -Werror=extra -g",
 )
 
