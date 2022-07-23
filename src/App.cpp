@@ -119,6 +119,7 @@ pid_t App::appFork()
         isStopped = false;
         _pid = pid;
         ssize_t n;
+
         std::vector<uint8_t> buffer;
         char buf[1024];
         buffer.reserve(2048);
@@ -200,17 +201,6 @@ void App::increment_attempt_counter()
 bool App::need_to_another_attempt() const
 {
     return _attempts != 0;
-}
-
-pid_t App::waitFinish()
-{
-    nos::fprintln("wait finish '{}' : {}", name(), _pid);
-    waitpid(_pid, &_exitStatus, 0);
-    if (_exitStatus)
-        _errors.push(_exitStatus);
-    if (_errors.size() > 100)
-        _errors.pop();
-    return _pid;
 }
 
 void App::watchFunc()

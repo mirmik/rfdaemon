@@ -39,6 +39,7 @@ void interrupt_child(int signum)
         pid_t p = waitpid(-1, &status, WUNTRACED | WNOHANG);
         if (p < 0)
         {
+            nos::println(status, p);
             perror("waitpid");
             exit(1);
         }
@@ -49,6 +50,25 @@ void interrupt_child(int signum)
     }
 }
 
+
+void proc_exit(int sig)
+{
+        (void) sig;
+        int retcode;
+        
+        while (true) 
+        {
+            pid_t pid = wait3(&retcode, WNOHANG, (struct rusage *)NULL);
+            if (pid == 0 || pid == -1) 
+            {
+                // it is not a error
+                return;
+            }
+            nos::fprintln("Proccess {} was stopped. (SIGCHLD)", pid);
+            appManager->on_child_finished(pid);
+        }
+}
+
 int main(int argc, char *argv[])
 {
     pid_t daemonPid = 0;
@@ -56,7 +76,7 @@ int main(int argc, char *argv[])
     signal(SIGINT, interrupt_signal_handler);
     signal(SIGTERM, interrupt_signal_handler);
     signal(SIGSEGV, interrupt_signal_handler);
-    signal(SIGCHLD, interrupt_child);
+    signal(SIGCHLD, proc_exit);
 
     checkRunArgs(argc, argv);
 

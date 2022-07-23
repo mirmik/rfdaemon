@@ -1,28 +1,8 @@
 {
     "apps": [
         {
-            "command": "/home/rfmeas/project/rfmeask/rfmeas --config /home/rfmeas/project/settings.json --runtime /home/rfmeas/project/runtime.json > /home/rfmeas/project/rfmeas_log",
-            "name": "rfmeas",
-            "restart": "always"
-        },
-        {
             "command": "/usr/local/bin/crowker --udp 10009",
             "name": "crowker",
-            "restart": "always"
-        },
-        {
-            "command": "/usr/local/bin/ctrans --udp 10014 --serial /dev/ttyS0:115200:e:8:1 --retrans --noconsole",
-            "name": "ctrans",
-            "restart": "always"
-        },
-        {
-            "command": "/home/rfmeas/project/dataproxy/dataproxy",
-            "name": "dataproxy",
-            "restart": "always"
-        },
-	{
-            "command": "/home/rfmeas/project/ModbusRemoteControl/ModbusRemoteControl",
-            "name": "ModbusRemoteControl",
             "restart": "always"
         }
     ]
