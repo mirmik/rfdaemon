@@ -46,6 +46,7 @@ public:
     std::vector<std::string> logPaths() const;
     std::queue<int> &errors();
     std::string status_string() const;
+    std::string command() const;
 
     bool need_to_another_attempt() const;
     void increment_attempt_counter();

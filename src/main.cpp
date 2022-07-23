@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+#include <httpserver.h>
 
 bool VERBOSE = false;
 bool TERMINAL_MODE = true;
@@ -121,6 +122,7 @@ int main(int argc, char *argv[])
         }
         appManager->runApps();
 
+        start_httpserver();
         start_tcp_console(TCP_CONSOLE_PORT);
         srvRxThread = std::thread(tcpServerReceiveThreadHandler);
         srvTxThread = std::thread(tcpServerSendThreadHandler);

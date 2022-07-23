@@ -32,6 +32,16 @@ std::string App::status_string() const
         return "running";
 }
 
+std::string App::command() const
+{
+    std::string cmd = "";
+    for (auto &arg : _args)
+    {
+        cmd += arg + " ";
+    }
+    return cmd;
+}
+
 std::string GetStdoutFromCommand(std::string cmd)
 {
 

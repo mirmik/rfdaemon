@@ -4,6 +4,12 @@
             "command": "/usr/local/bin/crowker --udp 10009",
             "name": "crowker",
             "restart": "always"
+        },
+
+        {
+            "command": "/usr/local/bin/crowker --udp 10010",
+            "name": "crowker2",
+            "restart": "always"
         }
     ]
 }
