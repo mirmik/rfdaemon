@@ -57,10 +57,7 @@ void start_httpserver()
   <title>Тег BUTTON</title>
  </head>
  <body>
-  <p style="text-align: center"><button>Кнопка с текстом</button>
-  <button><img src="images/umbrella.gif" alt="Зонтик" 
-         style="vertical-align: middle"> Кнопка с рисунком</button></p>
-
+		<center><p>Тестовая консоль управления демонов RFDaemon</center>
 		 {tasks}
  </body>
 </html>
