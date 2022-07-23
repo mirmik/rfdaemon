@@ -54,25 +54,25 @@ bool AppManager::loadConfigFile()
         closeApps();
         apps.clear();
 
-        std::map<int, int> orderList;
-        for (int i = 0; i < arraySize; i++)
-            orderList[i] = root["apps"][i]["order"].as_numer() - 1;
-
+        nos::println("Parse application list:");
         for (int i = 0; i < arraySize; i++)
         {
+            auto& apptrent = root["apps"][i];
+
             std::vector<LinkedFile> linked_files;
-            int order = orderList[orderList[i]];
-            std::string name = root["apps"][order]["name"].as_string();
-            std::string cmd = root["apps"][order]["command"].as_string();
-            auto logs = root["apps"][order]["logs"];
-            auto files = root["apps"][order]["files"].as_list();
+            std::string name = apptrent["name"].as_string();
+            std::string cmd = apptrent["command"].as_string();
+            auto logs = apptrent["logs"];
+            auto files = apptrent["files"].as_list();
+
+            nos::fprintln("\t{}", name);
 
             if (!cmd.empty() && !name.empty())
             {
                 App::RestartMode restartMode;
-                if (root["apps"][order]["restart"].as_string() == "error")
+                if (apptrent["restart"].as_string() == "error")
                     restartMode = App::RestartMode::ERROR;
-                else if (root["apps"][order]["restart"].as_string() == "never")
+                else if (apptrent["restart"].as_string() == "never")
                     restartMode = App::RestartMode::NEVER;
                 else
                     restartMode = App::RestartMode::ALWAYS;
@@ -80,7 +80,7 @@ bool AppManager::loadConfigFile()
                 if (!files.empty())
                 {
                     for (const auto &rec :
-                         root["apps"][order]["files"].as_list())
+                         apptrent["files"].as_list())
                     {
                         LinkedFile file;
                         file.path = rec["path"].as_string();
