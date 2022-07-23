@@ -226,8 +226,9 @@ std::vector<AppManager::Log> AppManager::packLogs()
             std::string s(std::istreambuf_iterator<char>{f}, {});
             size_t fileSize = s.size();
             size_t packedSize = fileSize;
+            uLongf ulf_packedSize = fileSize;
             std::vector<uint8_t> output(fileSize);
-            if (compress(output.data(), &packedSize, (Bytef *)s.data(),
+            if (compress(output.data(), &ulf_packedSize, (Bytef *)s.data(),
                          fileSize) == Z_OK)
             {
                 std::vector<uint8_t> packed(4);
