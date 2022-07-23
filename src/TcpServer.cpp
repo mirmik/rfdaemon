@@ -82,7 +82,7 @@ int TcpServer::receiveThread()
                                 dataStartPtr =
                                     rxBufferPtr + sizeof(PacketHeader);
                                 result -= sizeof(PacketHeader);
-                                if (result >= h->size)
+                                if ((size_t)result >= h->size)
                                     rxQueue.insert(rxQueue.end(), dataStartPtr,
                                                    dataStartPtr + result);
                             }
