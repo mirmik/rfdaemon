@@ -1,70 +1,114 @@
 //#define CPPHTTPLIB_OPENSSL_SUPPORT
-#include <httplib.h>
 #include <AppManager.h>
-#include <memory>
-#include <nos/io/sstream.h>
-#include <nos/fprint.h>
-#include <thread>
 #include <chrono>
+#include <httplib.h>
+#include <ircc/ircc.h>
+#include <memory>
+#include <nos/fprint.h>
+#include <nos/io/sstream.h>
+#include <thread>
 
 extern std::unique_ptr<AppManager> appManager;
 using namespace nos::argument_literal;
 using namespace std::chrono_literals;
 
-void start_httpserver() 
+void bind_static_html_resource(httplib::Server &srv, std::string path,
+                               std::string resource)
 {
-	std::thread([](){
-		// HTTP
-		httplib::Server svr;
-		
-		// HTTPS
-//		httplib::SSLServer svr;
+    srv.Get(
+        path,
+        [&srv, path, resource](const httplib::Request &, httplib::Response &res)
+        {
+            std::string text = ircc_string(resource.c_str());
+            res.set_content(text, "text/html");
+        });
+}
 
-		svr.Get("/", [](const httplib::Request &req, httplib::Response &res) {
-			std::string cmd = req.get_param_value("cmd");
-			
-			if (cmd == "stop") 
-			{
-				int arg = std::stoi(req.get_param_value("arg"));
-				nos::println(cmd, arg);
-				appManager->applications()[arg].stop();
-				std::this_thread::sleep_for(200ms);
-			}
+void bind_all_resources_with_prefix(httplib::Server &srv, std::string path,
+                                    std::string prefix)
+{
+    auto resources = ircc_keys();
+    for (auto &resource : resources)
+    {
+        if (resource.find(prefix) == 0)
+        {
+            auto resource_without_prefix = resource.substr(prefix.length());
+            bind_static_html_resource(srv, path + resource_without_prefix,
+                                      resource);
+        }
+    }
+}
 
-			if (cmd == "start") 
-			{
-				int arg = std::stoi(req.get_param_value("arg"));
-				nos::println(cmd, arg);
-				appManager->applications()[arg].start();
-				std::this_thread::sleep_for(200ms);
-			}
+void start_httpserver()
+{
+    std::thread(
+        []()
+        {
+            httplib::Server server;
+            bind_static_html_resource(server, "/", "/web/index.html");
+            bind_all_resources_with_prefix(server, "/", "/web/");
 
-			auto& apps = appManager->applications();
-			nos::stringstream ss;
-    		for (size_t i=0; i<apps.size(); i++)
-			{
-				auto& app = apps[i];
-				std::string button_stop = nos::format(R"(<button type="button" onclick="window.location.href='/?cmd=start&arg={}';">start</button>)", i);
-				std::string button_start = nos::format(R"(<button type="button" onclick="window.location.href='/?cmd=stop&arg={}';">stop</button>)", i);
-        		nos::fprintln_to(ss, R"(<p>{} : {} : {} {} {})", app.name(), app.status_string(),
-                    app.pid(), button_stop, button_start);
-			}
-			std::string text = nos::format(R"(
-<!DOCTYPE HTML>
-<html>
- <head>
-  <meta charset="utf-8">
-  <title>Тег BUTTON</title>
- </head>
- <body>
-		<center><p>Тестовая консоль управления демонов RFDaemon</center>
-		 {tasks}
- </body>
-</html>
-			)", "tasks"_a=ss.str()); 
-			res.set_content(text, "text/html");
-		});
-		
-		svr.listen("0.0.0.0", 8080);
-	}).detach();
+            server.Get(
+                "/apps_state.json",
+                [&server](const httplib::Request &, httplib::Response &res)
+                {
+                    auto &apps = appManager->applications();
+                    nos::stringstream ss;
+                    ss << "{\"apps\":[";
+                    for (size_t i = 0; i < apps.size(); i++)
+                    {
+                        ss << "{";
+                        ss << "\"name\":\"" << apps[i].name() << "\",";
+                        ss << "\"state\":\"" << apps[i].status_string()
+                           << "\",";
+                        ss << "\"pid\":" << apps[i].pid();
+                        ss << "}";
+                        if (i < apps.size() - 1)
+                            ss << ",";
+                    }
+                    ss << "]}";
+                    res.set_content(ss.str(), "application/json");
+                });
+
+            server.Get(
+                "/stop_all.action",
+                [&server](const httplib::Request &, httplib::Response &res)
+                {
+                    std::cout << "stop_all" << std::endl;
+                    appManager->stop_all();
+                    res.set_content("{\"status\":\"ok\"}", "application/json");
+                });
+
+            server.Get(
+                "/start_all.action",
+                [&server](const httplib::Request &, httplib::Response &res)
+                {
+                    std::cout << "start_all" << std::endl;
+                    appManager->start_all();
+                    res.set_content("{\"status\":\"ok\"}", "application/json");
+                });
+
+            server.Get(
+                "/stop.action",
+                [&server](const httplib::Request &req, httplib::Response &res)
+                {
+                    auto index = std::stoi(req.get_param_value("index"));
+                    std::cout << "stop " << index << std::endl;
+                    appManager->applications()[index].stop();
+                    res.set_content("{\"status\":\"ok\"}", "application/json");
+                });
+
+            server.Get(
+                "/start.action",
+                [&server](const httplib::Request &req, httplib::Response &res)
+                {
+                    auto index = std::stoi(req.get_param_value("index"));
+                    std::cout << "start " << index << std::endl;
+                    appManager->applications()[index].start();
+                    res.set_content("{\"status\":\"ok\"}", "application/json");
+                });
+
+            server.listen("0.0.0.0", 9000);
+        })
+        .detach();
 }

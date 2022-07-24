@@ -61,6 +61,8 @@ public:
     int64_t logdata_read(char *data, size_t size, size_t offset);
     void on_child_finished();
 
+    bool is_runned() { return !isStopped; }
+
     const std::string &show_stdout() const;
     const std::vector<LinkedFile> &linked_files() const
     {

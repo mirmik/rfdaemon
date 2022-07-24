@@ -34,7 +34,9 @@ public:
     AppManager(const std::string &appListFileName);
     bool loadConfigFile();
     void runApps();
+    void start_all() { runApps(); }
     void closeApps();
+    void stop_all() { closeApps(); }
     void restartApps();
     std::vector<App> &getAppsList();
     size_t getAppCount() const;
