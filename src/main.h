@@ -3,12 +3,10 @@
 #include <stdint.h>
 #include <string>
 
-#define DEFAULT_TCP_PORT 27015
-#define RFMEASK_TCP_PORT 5025
+#define DEFAULT_RFDAEMON_PROTO_PORT 27015
 
 void exitHandler(int sig);
-bool checkRunArgs(int argc, char *argv[], uint16_t &port,
-                  std::string &appListFileName, bool &terminalMode);
+bool checkRunArgs(int argc, char *argv[]);
 int tcpServerSendThreadHandler();
 int tcpServerReceiveThreadHandler();
 int userIOThreadHandler();
