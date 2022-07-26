@@ -74,3 +74,4 @@ Release
 
 rfdaemon
 errlog.txt
+*.gen.cpp
