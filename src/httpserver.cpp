@@ -93,6 +93,8 @@ void start_httpserver()
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
-        server.listen("0.0.0.0", 9000);
+        int port = 9000;
+        nos::fprint("Starting HTTP server on port {}\n", port);
+        server.listen("0.0.0.0", port);
     }).detach();
 }
