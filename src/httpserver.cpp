@@ -93,12 +93,12 @@ void start_httpserver()
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
-        server.set_error_handler([](const auto &, auto &res) {
-            auto fmt =
-                "<p>Error Status: <span style='color:red;'>%d</span></p>";
+        server.set_error_handler([](const auto &req, auto &res) {
+            auto fmt = "<p>Error Path:%s Status: <span "
+                       "style='color:red;'>%d</span></p>";
             char buf[BUFSIZ];
-            nos::fprintln("Error: {}", res.status);
-            snprintf(buf, sizeof(buf), fmt, res.status);
+            nos::fprintln("Error: request:{} status:{}", req.path, res.status);
+            snprintf(buf, sizeof(buf), fmt, req.path, res.status);
             res.set_content(buf, "text/html");
         });
 
