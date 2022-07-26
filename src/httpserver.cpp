@@ -93,6 +93,15 @@ void start_httpserver()
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
+        server.set_error_handler([](const auto &, auto &res) {
+            auto fmt =
+                "<p>Error Status: <span style='color:red;'>%d</span></p>";
+            char buf[BUFSIZ];
+            nos::fprintln("Error: {}", res.status);
+            snprintf(buf, sizeof(buf), fmt, res.status);
+            res.set_content(buf, "text/html");
+        });
+
         int port = 9000;
         nos::fprint("Starting HTTP server on port {}\n", port);
         server.listen("0.0.0.0", port);
