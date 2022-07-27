@@ -124,8 +124,8 @@ int main(int argc, char *argv[])
 
         start_httpserver();
         start_tcp_console(TCP_CONSOLE_PORT);
-        srvRxThread = std::thread(tcpServerReceiveThreadHandler);
-        srvTxThread = std::thread(tcpServerSendThreadHandler);
+        srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(), appManager.get());
+        srvTxThread = std::thread(tcpServerSendThreadHandler, srv.get(), appManager.get());
         if (TERMINAL_MODE && !NOCONSOLE_MODE)
         {
             start_stdstream_console();
@@ -270,13 +270,13 @@ bool checkRunArgs(int argc, char *argv[])
     return 0;
 }
 
-int tcpServerSendThreadHandler()
+int tcpServerSendThreadHandler(RFDaemonServer * srv, AppManager * appManager)
 {
-    srv->setAppManager(appManager.get());
+    srv->setAppManager(appManager);
     return srv->sendThread();
 }
 
-int tcpServerReceiveThreadHandler()
+int tcpServerReceiveThreadHandler(RFDaemonServer * srv, AppManager *)
 {
     while (!srv)
         usleep(1000);

@@ -15,13 +15,11 @@ using namespace std::chrono_literals;
 void bind_static_html_resource(httplib::Server &srv, std::string path,
                                std::string resource)
 {
-    srv.Get(
-        path,
-        [&srv, path, resource](const httplib::Request &, httplib::Response &res)
-        {
-            std::string text = ircc_string(resource.c_str());
-            res.set_content(text, "text/html");
-        });
+    srv.Get(path, [&srv, path, resource](const httplib::Request &,
+                                         httplib::Response &res) {
+        std::string text = ircc_string(resource.c_str());
+        res.set_content(text, "text/html");
+    });
 }
 
 void bind_all_resources_with_prefix(httplib::Server &srv, std::string path,
@@ -41,74 +39,71 @@ void bind_all_resources_with_prefix(httplib::Server &srv, std::string path,
 
 void start_httpserver()
 {
-    std::thread(
-        []()
-        {
-            httplib::Server server;
-            bind_static_html_resource(server, "/", "/web/index.html");
-            bind_all_resources_with_prefix(server, "/", "/web/");
+    std::thread([]() {
+        httplib::Server server;
+        bind_static_html_resource(server, "/", "/web/index.html");
+        bind_all_resources_with_prefix(server, "/", "/web/");
 
-            server.Get(
-                "/apps_state.json",
-                [&server](const httplib::Request &, httplib::Response &res)
-                {
-                    auto &apps = appManager->applications();
-                    nos::stringstream ss;
-                    ss << "{\"apps\":[";
-                    for (size_t i = 0; i < apps.size(); i++)
-                    {
-                        ss << "{";
-                        ss << "\"name\":\"" << apps[i].name() << "\",";
-                        ss << "\"state\":\"" << apps[i].status_string()
-                           << "\",";
-                        ss << "\"pid\":" << apps[i].pid();
-                        ss << "}";
-                        if (i < apps.size() - 1)
-                            ss << ",";
-                    }
-                    ss << "]}";
-                    res.set_content(ss.str(), "application/json");
-                });
+        server.Get("/apps_state.json", [&server](const httplib::Request &,
+                                                 httplib::Response &res) {
+            auto &apps = appManager->applications();
+            nos::stringstream ss;
+            ss << "{\"apps\":[";
+            for (size_t i = 0; i < apps.size(); i++)
+            {
+                ss << "{";
+                ss << "\"name\":\"" << apps[i].name() << "\",";
+                ss << "\"state\":\"" << apps[i].status_string() << "\",";
+                ss << "\"pid\":" << apps[i].pid();
+                ss << "}";
+                if (i < apps.size() - 1)
+                    ss << ",";
+            }
+            ss << "]}";
+            res.set_content(ss.str(), "application/json");
+        });
 
-            server.Get(
-                "/stop_all.action",
-                [&server](const httplib::Request &, httplib::Response &res)
-                {
-                    std::cout << "stop_all" << std::endl;
-                    appManager->stop_all();
-                    res.set_content("{\"status\":\"ok\"}", "application/json");
-                });
+        server.Get("/stop_all.action", [&server](const httplib::Request &,
+                                                 httplib::Response &res) {
+            std::cout << "stop_all" << std::endl;
+            appManager->stop_all();
+            res.set_content("{\"status\":\"ok\"}", "application/json");
+        });
 
-            server.Get(
-                "/start_all.action",
-                [&server](const httplib::Request &, httplib::Response &res)
-                {
-                    std::cout << "start_all" << std::endl;
-                    appManager->start_all();
-                    res.set_content("{\"status\":\"ok\"}", "application/json");
-                });
+        server.Get("/start_all.action", [&server](const httplib::Request &,
+                                                  httplib::Response &res) {
+            std::cout << "start_all" << std::endl;
+            appManager->start_all();
+            res.set_content("{\"status\":\"ok\"}", "application/json");
+        });
 
-            server.Get(
-                "/stop.action",
-                [&server](const httplib::Request &req, httplib::Response &res)
-                {
-                    auto index = std::stoi(req.get_param_value("index"));
-                    std::cout << "stop " << index << std::endl;
-                    appManager->applications()[index].stop();
-                    res.set_content("{\"status\":\"ok\"}", "application/json");
-                });
+        server.Get("/stop.action", [&server](const httplib::Request &req,
+                                             httplib::Response &res) {
+            auto index = std::stoi(req.get_param_value("index"));
+            std::cout << "stop " << index << std::endl;
+            appManager->applications()[index].stop();
+            res.set_content("{\"status\":\"ok\"}", "application/json");
+        });
 
-            server.Get(
-                "/start.action",
-                [&server](const httplib::Request &req, httplib::Response &res)
-                {
-                    auto index = std::stoi(req.get_param_value("index"));
-                    std::cout << "start " << index << std::endl;
-                    appManager->applications()[index].start();
-                    res.set_content("{\"status\":\"ok\"}", "application/json");
-                });
+        server.Get("/start.action", [&server](const httplib::Request &req,
+                                              httplib::Response &res) {
+            auto index = std::stoi(req.get_param_value("index"));
+            std::cout << "start " << index << std::endl;
+            appManager->applications()[index].start();
+            res.set_content("{\"status\":\"ok\"}", "application/json");
+        });
 
-            server.listen("0.0.0.0", 9000);
-        })
-        .detach();
+        server.set_error_handler([](const auto &req, auto &res) {
+            auto fmt = "<p>Error Path:%s Status: <span "
+                       "style='color:red;'>%d</span></p>";
+            char buf[BUFSIZ];
+            nos::fprintln("Error: request:{} status:{}", req.path, res.status);
+            snprintf(buf, sizeof(buf), fmt, req.path, res.status);
+            res.set_content(buf, "text/html");
+        });
+
+        int port = 9000;
+        nos::fprint("Starting HTTP server on port {}\n", port);
+        server.listen("0.0.0.0", port);
+    }).detach();
 }

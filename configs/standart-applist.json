@@ -42,9 +42,14 @@
             "name": "dataproxy",
             "restart": "always"
         },
-	{
+	    {
             "command": "/home/rfmeas/project/ModbusRemoteControl/ModbusRemoteControl",
             "name": "ModbusRemoteControl",
+            "restart": "always"
+        },
+        {
+            "command": "/usr/bin/reproxy --static.enabled --static.rule=*,/control/(.*),http://127.0.0.1:9000/$1 --assets.location=/home/rfmeas/web/ -l 0.0.0.0:8080",
+            "name": "crowker",
             "restart": "always"
         }
     ]
