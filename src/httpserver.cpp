@@ -13,16 +13,16 @@ using namespace nos::argument_literal;
 using namespace std::chrono_literals;
 
 void bind_static_html_resource(httplib::Server &srv, std::string path,
-                               std::string resource)
+                               std::string resource, std::string content_type)
 {
-    srv.Get(path, [&srv, path, resource](const httplib::Request &,
+    srv.Get(path, [&srv, path, resource, content_type](const httplib::Request &,
                                          httplib::Response &res) {
         std::string text = ircc_string(resource.c_str());
-        res.set_content(text, "text/html");
+        res.set_content(text, content_type);
     });
 }
 
-void bind_all_resources_with_prefix(httplib::Server &srv, std::string path,
+/*void bind_all_resources_with_prefix(httplib::Server &srv, std::string path,
                                     std::string prefix)
 {
     auto resources = ircc_keys();
@@ -35,14 +35,16 @@ void bind_all_resources_with_prefix(httplib::Server &srv, std::string path,
                                       resource);
         }
     }
-}
+}*/
 
 void start_httpserver()
 {
     std::thread([]() {
         httplib::Server server;
-        bind_static_html_resource(server, "/", "/web/index.html");
-        bind_all_resources_with_prefix(server, "/", "/web/");
+        bind_static_html_resource(server, "/", "/web/index.html", "text/html");
+        bind_static_html_resource(server, "/index.html", "/web/index.html", "text/html");
+        bind_static_html_resource(server, "/functions.js", "/web/functions.js", "text/javascript");
+        bind_static_html_resource(server, "/style.css", "/web/style.css", "text/css");
 
         server.Get("/apps_state.json", [&server](const httplib::Request &,
                                                  httplib::Response &res) {
