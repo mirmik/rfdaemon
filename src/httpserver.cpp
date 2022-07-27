@@ -95,6 +95,14 @@ void start_httpserver()
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
+        server.Get("/restart.action", [&server](const httplib::Request &req,
+                                                httplib::Response &res) {
+            auto index = std::stoi(req.get_param_value("index"));
+            std::cout << "restart " << index << std::endl;
+            appManager->applications()[index].restart();
+            res.set_content("{\"status\":\"ok\"}", "application/json");
+        });
+
         server.set_error_handler([](const auto &req, auto &res) {
             auto fmt = "<p>Error Path:%s Status: <span "
                        "style='color:red;'>%d</span></p>";
