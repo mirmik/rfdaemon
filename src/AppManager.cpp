@@ -1,5 +1,4 @@
 #include "AppManager.h"
-#include "zlib.h"
 #include <byteswap.h>
 #include <cctype>
 #include <fstream>
@@ -223,7 +222,7 @@ std::vector<AppManager::Log> AppManager::packLogs()
         std::ifstream f(path);
         if (f.is_open())
         {
-            std::string s(std::istreambuf_iterator<char>{f}, {});
+            /*std::string s(std::istreambuf_iterator<char>{f}, {});
             size_t fileSize = s.size();
             size_t packedSize = fileSize;
             uLongf ulf_packedSize = fileSize;
@@ -236,7 +235,7 @@ std::vector<AppManager::Log> AppManager::packLogs()
                 packed.insert(packed.end(), output.begin(),
                               output.begin() + packedSize);
                 data.push_back({path, packed});
-            }
+            }*/
         }
     }
     return data;
