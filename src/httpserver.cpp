@@ -63,6 +63,26 @@ void start_httpserver()
             res.set_content(ss.str(), "application/json");
         });
 
+        server.Get("/apps_full_state.json", [&server](const httplib::Request &,
+                                                 httplib::Response &res) {
+            auto &apps = appManager->applications();
+            nos::stringstream ss;
+            ss << "{\"apps\":[";
+            for (size_t i = 0; i < apps.size(); i++)
+            {
+                ss << "{";
+                ss << "\"name\":\"" << apps[i].name() << "\",";
+                ss << "\"state\":\"" << apps[i].status_string() << "\",";
+                ss << "\"pid\":" << apps[i].pid()  << "\",";
+                ss << "\"command\":" << apps[i].command();
+                ss << "}";
+                if (i < apps.size() - 1)
+                    ss << ",";
+            }
+            ss << "]}";
+            res.set_content(ss.str(), "application/json");
+        });
+
         server.Get("/stop_all.action", [&server](const httplib::Request &,
                                                  httplib::Response &res) {
             std::cout << "stop_all" << std::endl;

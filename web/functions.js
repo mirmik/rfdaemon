@@ -1,10 +1,9 @@
 texts = []
 
-function init_function() 
-{
+function init_function() {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", "apps_state.json", false ); // false for synchronous request
-    xmlHttp.send( null );
+    xmlHttp.open("GET", "apps_full_state.json", false); // false for synchronous request
+    xmlHttp.send(null);
     response = xmlHttp.responseText
     json = JSON.parse(response);
     var divtext = document.getElementById("divtext");
@@ -34,15 +33,18 @@ function init_function()
         };
         div.appendChild(start_btn);
 
+        var command_label = document.createElement("label");
+        command_label.innerHTML = json.apps[i].command;
+        div.appendChild(command_label);
+
         divtext.appendChild(div);
     }
 }
 
-function state_update_loop() 
-{
-    setInterval(function(){
+function state_update_loop() {
+    setInterval(function () {
         var xmlHttp = new XMLHttpRequest();
-        xmlHttp.open( "GET", "apps_state.json", true ); // false for synchronous request
+        xmlHttp.open("GET", "apps_state.json", true); // false for synchronous request
         xmlHttp.onload = function (e) {
             response = xmlHttp.responseText
             json = JSON.parse(response);
@@ -52,34 +54,30 @@ function state_update_loop()
                 text.innerHTML = json.apps[i].name + ": " + json.apps[i].state;
             }
         };
-        xmlHttp.send( null );
+        xmlHttp.send(null);
     }, 100);
 }
 
-function stop_all() 
-{
+function stop_all() {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", "stop_all.action", false ); // false for synchronous request
-    xmlHttp.send( null );
+    xmlHttp.open("GET", "stop_all.action", false); // false for synchronous request
+    xmlHttp.send(null);
 }
 
-function start_all() 
-{
+function start_all() {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", "start_all.action", false ); // false for synchronous request
-    xmlHttp.send( null );
+    xmlHttp.open("GET", "start_all.action", false); // false for synchronous request
+    xmlHttp.send(null);
 }
 
-function stop(i) 
-{
+function stop(i) {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", "stop.action?index=" + i, false ); // false for synchronous request
-    xmlHttp.send( null );
-} 
+    xmlHttp.open("GET", "stop.action?index=" + i, false); // false for synchronous request
+    xmlHttp.send(null);
+}
 
-function start(i) 
-{
+function start(i) {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", "start.action?index=" + i, false ); // false for synchronous request
-    xmlHttp.send( null );
+    xmlHttp.open("GET", "start.action?index=" + i, false); // false for synchronous request
+    xmlHttp.send(null);
 } 

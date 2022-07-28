@@ -376,12 +376,34 @@ int reload_config(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
+int application_command(const nos::argv &args, nos::ostream &out)
+{
+    if (args.size() < 2)
+    {
+        out.println("Usage: application_command <app_name>");
+        return -1;
+    }
+    auto *app = appManager->findApp(args[1].to_string());
+    if (!app)
+    {
+        out.println("Application not found");
+        return -1;
+    }
+    auto ret = app->command();
+    if (ret.size() > 0)
+    {
+        out.println(ret);
+    }
+    return 0;
+}
+
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "baba is you", &hello),
     nos::command("q", "exit", &exit),
     nos::command("exit", "exit", &exit),
     nos::command("reload", "reload", &reload_config),
     nos::command("list", "list of applications", &list_of_applications),
+    nos::command("command", "show application command", &application_command),
     nos::command("stop", "stop application", &stop_application),
     nos::command("start", "start application", &start_application),
     nos::command("stop_id", "stop application", &stop_id_application),

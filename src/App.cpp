@@ -35,7 +35,7 @@ std::string App::status_string() const
 std::string App::command() const
 {
     std::string cmd = "";
-    for (auto &arg : _args)
+    for (auto &arg : tokens)
     {
         cmd += arg + " ";
     }
