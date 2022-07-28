@@ -34,6 +34,7 @@ public:
     App(App &&) = default;
     void stop();
     void start();
+    void restart();
     bool stopped() const;
     RestartMode restartMode() const;
     int pid() const;

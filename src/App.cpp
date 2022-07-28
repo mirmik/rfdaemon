@@ -81,6 +81,13 @@ void App::stop()
     }
 }
 
+void App::restart() 
+{
+    stop();
+    std::this_thread::sleep_for(0.5s);
+    start();
+}
+
 void App::start()
 {
     if (isStopped)

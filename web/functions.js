@@ -1,5 +1,12 @@
 texts = []
 
+function make_button(text, func) {
+    var button = document.createElement("button");
+    button.innerHTML = text;
+    button.onclick = func;
+    return button;
+}
+
 function init_function() {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", "apps_full_state.json", false); // false for synchronous request
@@ -19,19 +26,9 @@ function init_function() {
         texts.push(text);
         div.appendChild(text);
 
-        let stop_btn = document.createElement("button");
-        stop_btn.innerHTML = "Stop";
-        stop_btn.onclick = function () {
-            stop(index);
-        };
-        div.appendChild(stop_btn);
-
-        let start_btn = document.createElement("button");
-        start_btn.innerHTML = "Start";
-        start_btn.onclick = function () {
-            start(index);
-        };
-        div.appendChild(start_btn);
+        div.appendChild(make_button("Stop", function () { stop(index); }))
+        div.appendChild(make_button("Start", function () { start(index); }))
+        div.appendChild(make_button("Restart", function () { restart(index); }))
 
         var command_label = document.createElement("label");
         command_label.innerHTML = json.apps[i].command;
@@ -79,5 +76,11 @@ function stop(i) {
 function start(i) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", "start.action?index=" + i, false); // false for synchronous request
+    xmlHttp.send(null);
+}
+
+function restart(i) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open("GET", "restart.action?index=" + i, false); // false for synchronous request
     xmlHttp.send(null);
 } 
