@@ -37,8 +37,9 @@ licant.cxx_application("rfdaemon",
 		"build/ircc_resource.gen.cpp"
 	],
 	include_paths = [ "./src" ],
-	libs = ["pthread", "nos", "igris"],
+	libs = ["nos", "igris"],
 	cxx_flags = "-pedantic-errors -Werror=all -Werror=extra -g",
+    ld_flags = "-static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
 )
 
 licant.install.install_application(tgt="install", src="rfdaemon", dst="rfdaemon")

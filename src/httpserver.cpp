@@ -38,9 +38,10 @@ void bind_static_html_resource(httplib::Server &srv, std::string path,
     }
 }*/
 
+std::thread httpserver_thread;
 void start_httpserver()
 {
-    std::thread([]() {
+    httpserver_thread = std::thread([]() {
         httplib::Server server;
         bind_static_html_resource(server, "/", "/web/index.html", "text/html");
         bind_static_html_resource(server, "/index.html", "/web/index.html", "text/html");
@@ -124,5 +125,5 @@ void start_httpserver()
         int port = 9000;
         nos::fprint("Starting HTTP server on port {}\n", port);
         server.listen("0.0.0.0", port);
-    }).detach();
+    });
 }
