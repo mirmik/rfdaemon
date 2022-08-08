@@ -113,6 +113,17 @@ void start_httpserver()
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
+        server.Get("/get_logs.action", [](const httplib::Request &req,
+                                                httplib::Response &res) {
+            auto index = std::stoi(req.get_param_value("index"));
+            std::cout << "get_logs " << index << std::endl;
+            auto &app = appManager->applications()[index];
+            auto logs = httplib::detail::base64_encode(app.show_stdout());
+            igris::trent tr;
+            tr["stdout"] = logs;
+            res.set_content(igris::json::to_string(tr), "application/json");
+        });
+
         server.set_error_handler([](const auto &req, auto &res) {
             auto fmt = "<p>Error Path:%s Status: <span "
                        "style='color:red;'>%d</span></p>";

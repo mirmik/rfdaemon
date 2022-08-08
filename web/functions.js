@@ -29,6 +29,7 @@ function init_function() {
         div.appendChild(make_button("Stop", function () { stop(index); }))
         div.appendChild(make_button("Start", function () { start(index); }))
         div.appendChild(make_button("Restart", function () { restart(index); }))
+        div.appendChild(make_button("stdout", function () { get_stdout(index); }))
 
         var command_label = document.createElement("label");
         command_label.innerHTML = json.apps[i].command;
@@ -82,5 +83,18 @@ function start(i) {
 function restart(i) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", "restart.action?index=" + i, false); // false for synchronous request
+    xmlHttp.send(null);
+}
+
+function get_stdout(i) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open("GET", "get_logs.action?index=" + i, true);
+    xmlHttp.onload = function (e) {
+        response = xmlHttp.responseText
+        json = JSON.parse(response);
+        log = atob(json.stdout);
+        var log_area = document.getElementById("log_area");
+        log_area.innerHTML = log;
+    }
     xmlHttp.send(null);
 } 
