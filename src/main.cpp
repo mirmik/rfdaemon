@@ -17,7 +17,6 @@ bool TERMINAL_MODE = true;
 bool NOCONSOLE_MODE = false;
 bool WITHOUT_RFMEASK = false;
 bool EDIT_MODE = false;
-std::optional<std::string> CONFIG_DIRECTORY;
 int TCP_CONSOLE_PORT = 5000;
 uint16_t RFDAEMON_PORT = DEFAULT_RFDAEMON_PROTO_PORT;
 
@@ -185,7 +184,6 @@ bool checkRunArgs(int argc, char *argv[])
         {"daemon", no_argument, NULL, 'd'},
         {"debug", no_argument, NULL, 'v'},
         {"config", required_argument, NULL, 'c'},
-        {"confdir", required_argument, NULL, 'C'},
         {"noext", no_argument, NULL, 'n'},
         {"noconsole", no_argument, NULL, 'N'},
         {"port", required_argument, NULL, 'p'},
