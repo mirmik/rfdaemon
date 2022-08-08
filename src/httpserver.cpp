@@ -1,7 +1,7 @@
 //#define CPPHTTPLIB_OPENSSL_SUPPORT
 #include <AppManager.h>
 #include <chrono>
-#include <httplib.h>
+#include <httplib_static.h>
 #include <ircc/ircc.h>
 #include <memory>
 #include <nos/fprint.h>

@@ -37,6 +37,25 @@ bool AppManager::loadConfigFile()
     igris::trent root;
     try
     {
+        // read json file
+        std::string text;
+        std::ifstream file(appFilename, std::ios::in);
+        if (!file.is_open())
+        {
+            nos::println("failed to open config file", appFilename);
+            perror("read");
+            return false;
+        }
+        // read all text from file
+        std::string line;
+        while (std::getline(file, line))
+        {
+            text += line;
+        }
+        if (VERBOSE) {
+            nos::println("config file content:\n", text);
+        }
+
         root = igris::json::parse_file(appFilename);
     }
     catch (const std::exception &ex)
