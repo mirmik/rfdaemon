@@ -16,7 +16,7 @@ using namespace std::chrono_literals;
 void bind_static_html_resource(httplib::Server &srv, std::string path,
                                std::string resource, std::string content_type)
 {
-    srv.Get(path, [&srv, path, resource, content_type](const httplib::Request &,
+    srv.Get(path, [path, resource, content_type](const httplib::Request &,
                                          httplib::Response &res) {
         std::string text = ircc_string(resource.c_str());
         res.set_content(text, content_type);
@@ -48,7 +48,7 @@ void start_httpserver()
         bind_static_html_resource(server, "/functions.js", "/web/functions.js", "text/javascript");
         bind_static_html_resource(server, "/style.css", "/web/style.css", "text/css");
 
-        server.Get("/apps_state.json", [&server](const httplib::Request &,
+        server.Get("/apps_state.json", [](const httplib::Request &,
                                                  httplib::Response &res) {
             auto &apps = appManager->applications();
             igris::trent tr;
@@ -61,7 +61,7 @@ void start_httpserver()
             res.set_content(igris::json::to_string(tr), "application/json");
         });
 
-        server.Get("/apps_full_state.json", [&server](const httplib::Request &,
+        server.Get("/apps_full_state.json", [](const httplib::Request &,
                                                  httplib::Response &res) {
             auto &apps = appManager->applications();
             igris::trent tr;
@@ -75,21 +75,21 @@ void start_httpserver()
             res.set_content(igris::json::to_string(tr), "application/json");
         });
 
-        server.Get("/stop_all.action", [&server](const httplib::Request &,
+        server.Get("/stop_all.action", [](const httplib::Request &,
                                                  httplib::Response &res) {
             std::cout << "stop_all" << std::endl;
             appManager->stop_all();
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
-        server.Get("/start_all.action", [&server](const httplib::Request &,
+        server.Get("/start_all.action", [](const httplib::Request &,
                                                   httplib::Response &res) {
             std::cout << "start_all" << std::endl;
             appManager->start_all();
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
-        server.Get("/stop.action", [&server](const httplib::Request &req,
+        server.Get("/stop.action", [](const httplib::Request &req,
                                              httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "stop " << index << std::endl;
@@ -97,7 +97,7 @@ void start_httpserver()
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
-        server.Get("/start.action", [&server](const httplib::Request &req,
+        server.Get("/start.action", [](const httplib::Request &req,
                                               httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "start " << index << std::endl;
@@ -105,7 +105,7 @@ void start_httpserver()
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
-        server.Get("/restart.action", [&server](const httplib::Request &req,
+        server.Get("/restart.action", [](const httplib::Request &req,
                                                 httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "restart " << index << std::endl;
@@ -118,7 +118,7 @@ void start_httpserver()
                        "style='color:red;'>%d</span></p>";
             char buf[BUFSIZ];
             nos::fprintln("Error: request:{} status:{}", req.path, res.status);
-            snprintf(buf, sizeof(buf), fmt, req.path, res.status);
+            snprintf(buf, sizeof(buf), fmt, req.path.c_str(), res.status);
             res.set_content(buf, "text/html");
         });
 

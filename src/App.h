@@ -30,8 +30,12 @@ public:
     };
     App(int task_index, const std::string &name, const std::string &cmd,
         RestartMode mode, const std::vector<LinkedFile> &linkeds);
-    App(const App &) = default;
-    App(App &&) = default;
+        
+    App(const App&) = delete;
+    App& operator=(const App&) = delete;
+    App(App&&) = default;
+    App& operator=(App&&) = default;
+
     void stop();
     void start();
     void restart();
