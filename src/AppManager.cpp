@@ -14,7 +14,7 @@ using namespace std::chrono_literals;
 AppManager::AppManager(const std::string &appListFileName)
 {
     appFilename = appListFileName;
-    spamserver.start(5001);
+    spamserver.start(6743);
 }
 
 void AppManager::send_spam(const std::string &message)
@@ -81,9 +81,9 @@ bool AppManager::loadConfigFile()
             std::vector<LinkedFile> linked_files;
             std::string name = apptrent["name"].as_string();
             std::string cmd = apptrent["command"].as_string();
+            std::string user = apptrent["user"].as_string();
             auto logs = apptrent["logs"];
             auto files = apptrent["files"].as_list();
-
             nos::fprintln("\t{}", name);
 
             if (!cmd.empty() && !name.empty())
@@ -108,7 +108,7 @@ bool AppManager::loadConfigFile()
                     }
                 }
                 apps.emplace_back(apps.size(), name, cmd, restartMode,
-                                  linked_files);
+                                  linked_files, user);
             }
             else
             {

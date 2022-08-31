@@ -31,7 +31,8 @@ public:
         NEVER
     };
     App(int task_index, const std::string &name, const std::string &cmd,
-        RestartMode mode, const std::vector<LinkedFile> &linkeds);
+        RestartMode mode, const std::vector<LinkedFile> &linkeds,
+        std::string user);
 
     App(const App &) = delete;
     App &operator=(const App &) = delete;
@@ -42,6 +43,7 @@ public:
     void start();
     void restart();
     bool stopped() const;
+    void set_user(const std::string &user);
     RestartMode restartMode() const;
     int pid() const;
     const std::string &name() const;
@@ -97,8 +99,8 @@ private:
     pid_t appFork();
 
 private:
-    std::optional<std::string> _username;
-    std::optional<uid_t> _uid;
+    std::string _username = {};
+    uid_t _uid = 0;
     std::vector<std::string> _args;
     std::vector<LinkedFile> _linked_files;
     int task_index;

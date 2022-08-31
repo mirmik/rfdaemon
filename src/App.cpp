@@ -4,6 +4,7 @@
 #include <igris/util/string.h>
 #include <iostream>
 #include <nos/fprint.h>
+#include <pwd.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -22,6 +23,20 @@ nos::trent LinkedFile::to_trent() const
     tr["name"] = name;
     tr["editable"] = editable;
     return tr;
+}
+
+void App::set_user(const std::string &user)
+{
+    this->_username = user;
+    if (!user.empty())
+    {
+        struct passwd *pw = getpwnam(user.c_str());
+        if (pw)
+        {
+            this->_uid = pw->pw_uid;
+            //    this->_gid = pw->pw_gid;
+        }
+    }
 }
 
 std::string App::status_string() const
@@ -65,11 +80,13 @@ std::string GetStdoutFromCommand(std::string cmd)
 }
 
 App::App(int task_index, const std::string &name, const std::string &cmd,
-         RestartMode mode, const std::vector<LinkedFile> &linkeds)
+         RestartMode mode, const std::vector<LinkedFile> &linkeds,
+         std::string user)
     : _linked_files(linkeds), task_index(task_index), _name(name)
 {
     tokens = igris::split(cmd);
     _restartMode = mode;
+    set_user(user);
 }
 
 void App::stop()
