@@ -476,6 +476,7 @@ void server_spin(int port)
     server.bind("0.0.0.0", port);
     server.listen();
 
+    nos::println("Starting tcp console on port", port);
     while (true)
     {
         nos::println("Waiting for client...");
