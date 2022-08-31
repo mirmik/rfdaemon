@@ -1,11 +1,11 @@
 #include <Beam.h>
-#include <igris/trent/json.h>
-#include <igris/trent/json_print.h>
+#include <nos/trent/json.h>
+#include <nos/trent/json_print.h>
 
-std::map<std::string, igris::trent(Beam::*)(const igris::trent&)> Beam::method_map = {
-    { "getsettings", &Beam::getsettings },
+std::map<std::string, nos::trent (Beam::*)(const nos::trent &)>
+    Beam::method_map = {
+        {"getsettings", &Beam::getsettings},
 };
-
 
 Beam::Beam()
 {
@@ -30,32 +30,32 @@ void Beam::beam_thread_func()
         auto [data, ip, port] = recv_socket.recvfrom();
         nos::println("NewBeamMessage:", data);
 
-        try 
+        try
         {
-            igris::trent tr = igris::json::parse(data);
+            nos::trent tr = nos::json::parse(data);
             on_new_command(tr, ip, port);
-        } 
-        catch (const std::exception& e)
+        }
+        catch (const std::exception &e)
         {
             nos::println("Beam error:", e.what());
         }
     }
 }
 
-igris::trent Beam::getsettings(const igris::trent& tr) 
+nos::trent Beam::getsettings(const nos::trent &tr)
 {
     return tr;
 }
 
-void Beam::on_new_command(const igris::trent& tr, std::string ip, int port) 
+void Beam::on_new_command(const nos::trent &tr, std::string ip, int port)
 {
-    if (!tr.have("cmd")) 
+    if (!tr.have("cmd"))
     {
         throw std::runtime_error("cmd field is required");
     }
     auto cmd = tr["cmd"].as_string();
 
     auto rettr = (this->*method_map[cmd])(tr);
-    auto json = igris::json::to_string(rettr, false);
+    auto json = nos::json::to_string(rettr, false);
     send_socket.sendto(json.data(), json.size(), ip, port);
 }

@@ -1,14 +1,15 @@
 #ifndef BEAM_H
 #define BEAM_H
 
-#include <nos/inet/udp_socket.h>
-#include <thread>
 #include <map>
-#include <igris/trent/trent.h>
+#include <nos/inet/udp_socket.h>
+#include <nos/trent/trent.h>
+#include <thread>
 
 class Beam
 {
-    static std::map<std::string, igris::trent(Beam::*)(const igris::trent&)> method_map;
+    static std::map<std::string, nos::trent (Beam::*)(const nos::trent &)>
+        method_map;
     nos::inet::udp_broadcast_socket recv_socket;
     nos::inet::udp_broadcast_socket send_socket;
     std::thread beam_thread;
@@ -19,9 +20,9 @@ class Beam
 public:
     Beam();
     void start();
-    void on_new_command(const igris::trent& tr, std::string ip, int port);
+    void on_new_command(const nos::trent &tr, std::string ip, int port);
 
-    igris::trent getsettings(const igris::trent& tr); 
+    nos::trent getsettings(const nos::trent &tr);
 
 private:
     void beam_thread_func();

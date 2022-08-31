@@ -15,9 +15,9 @@ extern AppManager *appManager;
 // std::mutex App::ioMutex;
 using namespace std::chrono_literals;
 
-igris::trent LinkedFile::to_trent() const
+nos::trent LinkedFile::to_trent() const
 {
-    igris::trent tr;
+    nos::trent tr;
     tr["path"] = path;
     tr["name"] = name;
     tr["editable"] = editable;
@@ -81,7 +81,7 @@ void App::stop()
     }
 }
 
-void App::restart() 
+void App::restart()
 {
     stop();
     std::this_thread::sleep_for(0.5s);

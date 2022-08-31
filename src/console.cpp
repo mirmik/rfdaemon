@@ -1,7 +1,5 @@
 #include <AppManager.h>
 #include <console.h>
-#include <igris/trent/json.h>
-#include <igris/trent/json_print.h>
 #include <igris/util/base64.h>
 #include <iostream>
 #include <modes.h>
@@ -10,6 +8,8 @@
 #include <nos/io/buffered_file.h>
 #include <nos/shell/argv.h>
 #include <nos/shell/executor.h>
+#include <nos/trent/json.h>
+#include <nos/trent/json_print.h>
 #include <thread>
 
 const int API_VERSION = 100;
@@ -30,7 +30,7 @@ int hello(const nos::argv &args, nos::ostream &out)
 {
     (void)args;
     (void)out;
-    out.println("Hello");
+    nos::println_to(out, "Hello");
     return 0;
 }
 
@@ -38,7 +38,7 @@ int start_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: start_application <app_name>");
+        nos::println_to(out, "Usage: start_application <app_name>");
         return -1;
     }
 
@@ -46,11 +46,11 @@ int start_application(const nos::argv &args, nos::ostream &out)
     if (app)
     {
         app->start();
-        out.println("Started application: " + app->name());
+        nos::println_to(out, "Started application: " + app->name());
     }
     else
     {
-        out.println("Application not found: " + args[1].to_string());
+        nos::println_to(out, "Application not found: " + args[1].to_string());
         return -1;
     }
 
@@ -61,7 +61,7 @@ int stop_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: stop_application <app_name>");
+        nos::println_to(out, "Usage: stop_application <app_name>");
         return -1;
     }
 
@@ -69,11 +69,11 @@ int stop_application(const nos::argv &args, nos::ostream &out)
     if (app)
     {
         app->stop();
-        out.println("Stopped application: " + app->name());
+        nos::println_to(out, "Stopped application: " + app->name());
     }
     else
     {
-        out.println("Application not found: " + args[1].to_string());
+        nos::println_to(out, "Application not found: " + args[1].to_string());
         return -1;
     }
 
@@ -84,7 +84,7 @@ int stop_id_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: stop_id_application <app_id>");
+        nos::println_to(out, "Usage: stop_id_application <app_id>");
         return -1;
     }
 
@@ -92,11 +92,11 @@ int stop_id_application(const nos::argv &args, nos::ostream &out)
     if (app)
     {
         app->stop();
-        out.println("Stopped application: " + app->name());
+        nos::println_to(out, "Stopped application: " + app->name());
     }
     else
     {
-        out.println("Application not found: " + args[1].to_string());
+        nos::println_to(out, "Application not found: " + args[1].to_string());
         return -1;
     }
 
@@ -107,7 +107,7 @@ int start_id_application(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: start_id_application <app_id>");
+        nos::println_to(out, "Usage: start_id_application <app_id>");
         return -1;
     }
 
@@ -115,11 +115,11 @@ int start_id_application(const nos::argv &args, nos::ostream &out)
     if (app)
     {
         app->start();
-        out.println("Started application: " + app->name());
+        nos::println_to(out, "Started application: " + app->name());
     }
     else
     {
-        out.println("Application not found: " + args[1].to_string());
+        nos::println_to(out, "Application not found: " + args[1].to_string());
         return -1;
     }
 
@@ -164,7 +164,7 @@ int show_application_stdout(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: show_application_stdout <app_name>");
+        nos::println_to(out, "Usage: show_application_stdout <app_name>");
         return -1;
     }
 
@@ -188,7 +188,7 @@ int show_application_stdout_base64(const nos::argv &args, nos::ostream &out)
     nos::println("show_application_stdout: {}", args[1]);
     if (args.size() < 2)
     {
-        out.println("Usage: show_application_stdout <app_name>");
+        nos::println_to(out, "Usage: show_application_stdout <app_name>");
         return -1;
     }
 
@@ -212,7 +212,7 @@ int send_spam(const nos::argv &args, nos::ostream &out)
     (void)out;
     if (args.size() < 2)
     {
-        out.println("Usage: send_spam <word>");
+        nos::println_to(out, "Usage: send_spam <word>");
         return -1;
     }
 
@@ -224,7 +224,7 @@ int send_spam(const nos::argv &args, nos::ostream &out)
 int api_version(const nos::argv &args, nos::ostream &out)
 {
     (void)args;
-    out.println(API_VERSION);
+    nos::println_to(out, API_VERSION);
     return 0;
 }
 
@@ -232,19 +232,19 @@ int app_linked_files(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: linkeds <app_name>");
+        nos::println_to(out, "Usage: linkeds <app_name>");
         return -1;
     }
 
     auto *app = appManager->findApp(args[1].to_string());
     const auto &linked_files = app->linked_files();
 
-    igris::trent tr(igris::trent::type::list);
+    nos::trent tr(nos::trent::type::list);
     for (auto &file : linked_files)
     {
         tr.push_back(file.to_trent());
     }
-    out.print(igris::json::to_string(tr));
+    nos::print_to(out, nos::json::to_string(tr));
     return 0;
 }
 
@@ -252,19 +252,19 @@ int app_linked_files_b64(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: linkeds_b64 <app_name>");
+        nos::println_to(out, "Usage: linkeds_b64 <app_name>");
         return -1;
     }
 
     auto *app = appManager->findApp(args[1].to_string());
     const auto &linked_files = app->linked_files();
 
-    igris::trent tr(igris::trent::type::list);
+    nos::trent tr(nos::trent::type::list);
     for (auto &file : linked_files)
     {
         tr.push_back(file.to_trent());
     }
-    out.println(igris::base64_encode(igris::json::to_string(tr)));
+    nos::println_to(out, igris::base64_encode(nos::json::to_string(tr)));
     return 0;
 }
 
@@ -272,7 +272,7 @@ int read_linked_file(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 3)
     {
-        out.println("Usage: read_linked <app_name> <file_name>");
+        nos::println_to(out, "Usage: read_linked <app_name> <file_name>");
         return -1;
     }
 
@@ -286,20 +286,20 @@ int read_linked_file(const nos::argv &args, nos::ostream &out)
             {
                 if (!nos::osutil::is_accessible(file.path))
                 {
-                    out.println("Can`t read file (is it exists?): " +
-                                file.path);
+                    nos::println_to(out, "Can`t read file (is it exists?): " +
+                                             file.path);
                     return -1;
                 }
 
                 nos::buffered_file f(file.path, "r");
                 auto s = f.readall();
-                out.println(s);
+                nos::println_to(out, s);
                 return 0;
             }
         }
     }
 
-    out.println("File not found");
+    nos::println_to(out, "File not found");
     return -1;
 }
 
@@ -307,7 +307,7 @@ int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 3)
     {
-        out.println("Usage: read_linked_b64 <app_name> <file_name>");
+        nos::println_to(out, "Usage: read_linked_b64 <app_name> <file_name>");
         return -1;
     }
 
@@ -321,21 +321,23 @@ int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
             {
                 if (!nos::osutil::is_accessible(file.path))
                 {
-                    out.println(igris::base64_encode(
-                        "Can`t read file (is it exists?): " + file.path));
+                    nos::println_to(
+                        out,
+                        igris::base64_encode(
+                            "Can`t read file (is it exists?): " + file.path));
                     return -1;
                 }
 
                 nos::buffered_file f(file.path, "r");
                 auto s = f.readall();
                 auto b = igris::base64_encode(s);
-                out.println(b);
+                nos::println_to(out, b);
                 return 0;
             }
         }
     }
 
-    out.println("File not found");
+    nos::println_to(out, "File not found");
     return -1;
 }
 
@@ -345,7 +347,7 @@ int apps_config_b64(const nos::argv &args, nos::ostream &out)
     auto path = appManager->getAppConfigFilename();
     auto file = nos::buffered_file(path.c_str(), "r");
     auto text = nos::readall_from(file);
-    out.println(igris::base64_encode(text));
+    nos::println_to(out, igris::base64_encode(text));
     file.close();
     return 0;
 }
@@ -354,7 +356,7 @@ int set_apps_config_b64(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: set_apps_config_b64 <config_b64>");
+        nos::println_to(out, "Usage: set_apps_config_b64 <config_b64>");
         return -1;
     }
     // nos::println("set_apps_config_b64: {}", args[1].to_string());
@@ -380,19 +382,19 @@ int application_command(const nos::argv &args, nos::ostream &out)
 {
     if (args.size() < 2)
     {
-        out.println("Usage: application_command <app_name>");
+        nos::println_to(out, "Usage: application_command <app_name>");
         return -1;
     }
     auto *app = appManager->findApp(args[1].to_string());
     if (!app)
     {
-        out.println("Application not found");
+        nos::println_to(out, "Application not found");
         return -1;
     }
     auto ret = app->command();
     if (ret.size() > 0)
     {
-        out.println(ret);
+        nos::println_to(out, ret);
     }
     return 0;
 }

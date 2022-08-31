@@ -2,9 +2,9 @@
 #include <byteswap.h>
 #include <cctype>
 #include <fstream>
-#include <igris/trent/json.h>
 #include <iostream>
 #include <mutex>
+#include <nos/trent/json.h>
 #include <unistd.h>
 
 extern bool VERBOSE;
@@ -20,7 +20,7 @@ AppManager::AppManager(const std::string &appListFileName)
 void AppManager::send_spam(const std::string &message)
 {
     std::lock_guard<std::mutex> lock(spam_mutex);
-    spamserver.print(message);
+    nos::print_to(spamserver, message);
 }
 
 void AppManager::send_spam(const std::vector<uint8_t> &message)
@@ -34,7 +34,7 @@ bool AppManager::loadConfigFile()
     if (VERBOSE)
         nos::println("loading config file from", appFilename);
 
-    igris::trent root;
+    nos::trent root;
     try
     {
         // read json file
@@ -52,11 +52,12 @@ bool AppManager::loadConfigFile()
         {
             text += line;
         }
-        if (VERBOSE) {
+        if (VERBOSE)
+        {
             nos::println("config file content:\n", text);
         }
 
-        root = igris::json::parse_file(appFilename);
+        root = nos::json::parse_file(appFilename);
     }
     catch (const std::exception &ex)
     {
@@ -75,7 +76,7 @@ bool AppManager::loadConfigFile()
         nos::println("Parse application list:");
         for (int i = 0; i < arraySize; i++)
         {
-            auto& apptrent = root["apps"][i];
+            auto &apptrent = root["apps"][i];
 
             std::vector<LinkedFile> linked_files;
             std::string name = apptrent["name"].as_string();
@@ -97,8 +98,7 @@ bool AppManager::loadConfigFile()
 
                 if (!files.empty())
                 {
-                    for (const auto &rec :
-                         apptrent["files"].as_list())
+                    for (const auto &rec : apptrent["files"].as_list())
                     {
                         LinkedFile file;
                         file.path = rec["path"].as_string();

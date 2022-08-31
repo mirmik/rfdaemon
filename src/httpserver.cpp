@@ -5,8 +5,8 @@
 #include <ircc/ircc.h>
 #include <memory>
 #include <nos/fprint.h>
-#include <igris/trent/json_print.h>
 #include <nos/io/sstream.h>
+#include <nos/trent/json_print.h>
 #include <thread>
 
 extern std::unique_ptr<AppManager> appManager;
@@ -17,7 +17,7 @@ void bind_static_html_resource(httplib::Server &srv, std::string path,
                                std::string resource, std::string content_type)
 {
     srv.Get(path, [path, resource, content_type](const httplib::Request &,
-                                         httplib::Response &res) {
+                                                 httplib::Response &res) {
         std::string text = ircc_string(resource.c_str());
         res.set_content(text, content_type);
     });
@@ -44,53 +44,56 @@ void start_httpserver()
     httpserver_thread = std::thread([]() {
         httplib::Server server;
         bind_static_html_resource(server, "/", "/web/index.html", "text/html");
-        bind_static_html_resource(server, "/index.html", "/web/index.html", "text/html");
-        bind_static_html_resource(server, "/functions.js", "/web/functions.js", "text/javascript");
-        bind_static_html_resource(server, "/style.css", "/web/style.css", "text/css");
+        bind_static_html_resource(server, "/index.html", "/web/index.html",
+                                  "text/html");
+        bind_static_html_resource(server, "/functions.js", "/web/functions.js",
+                                  "text/javascript");
+        bind_static_html_resource(server, "/style.css", "/web/style.css",
+                                  "text/css");
 
         server.Get("/apps_state.json", [](const httplib::Request &,
-                                                 httplib::Response &res) {
+                                          httplib::Response &res) {
             auto &apps = appManager->applications();
-            igris::trent tr;
+            nos::trent tr;
             for (size_t i = 0; i < apps.size(); i++)
             {
-                tr["apps"][i]["name"] = apps[i].name();
-                tr["apps"][i]["state"] = apps[i].status_string();
-                tr["apps"][i]["pid"] = apps[i].pid();
+                tr["apps"][(int)i]["name"] = apps[i].name();
+                tr["apps"][(int)i]["state"] = apps[i].status_string();
+                tr["apps"][(int)i]["pid"] = apps[i].pid();
             }
-            res.set_content(igris::json::to_string(tr), "application/json");
+            res.set_content(nos::json::to_string(tr), "application/json");
         });
 
         server.Get("/apps_full_state.json", [](const httplib::Request &,
-                                                 httplib::Response &res) {
+                                               httplib::Response &res) {
             auto &apps = appManager->applications();
-            igris::trent tr;
+            nos::trent tr;
             for (size_t i = 0; i < apps.size(); i++)
             {
-                tr["apps"][i]["name"] = apps[i].name();
-                tr["apps"][i]["state"] = apps[i].status_string();
-                tr["apps"][i]["pid"] = apps[i].pid();
-                tr["apps"][i]["command"] = apps[i].command();
+                tr["apps"][(int)i]["name"] = apps[i].name();
+                tr["apps"][(int)i]["state"] = apps[i].status_string();
+                tr["apps"][(int)i]["pid"] = apps[i].pid();
+                tr["apps"][(int)i]["command"] = apps[i].command();
             }
-            res.set_content(igris::json::to_string(tr), "application/json");
+            res.set_content(nos::json::to_string(tr), "application/json");
         });
 
         server.Get("/stop_all.action", [](const httplib::Request &,
-                                                 httplib::Response &res) {
+                                          httplib::Response &res) {
             std::cout << "stop_all" << std::endl;
             appManager->stop_all();
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
         server.Get("/start_all.action", [](const httplib::Request &,
-                                                  httplib::Response &res) {
+                                           httplib::Response &res) {
             std::cout << "start_all" << std::endl;
             appManager->start_all();
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
         server.Get("/stop.action", [](const httplib::Request &req,
-                                             httplib::Response &res) {
+                                      httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "stop " << index << std::endl;
             appManager->applications()[index].stop();
@@ -98,7 +101,7 @@ void start_httpserver()
         });
 
         server.Get("/start.action", [](const httplib::Request &req,
-                                              httplib::Response &res) {
+                                       httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "start " << index << std::endl;
             appManager->applications()[index].start();
@@ -106,7 +109,7 @@ void start_httpserver()
         });
 
         server.Get("/restart.action", [](const httplib::Request &req,
-                                                httplib::Response &res) {
+                                         httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "restart " << index << std::endl;
             appManager->applications()[index].restart();
@@ -114,14 +117,14 @@ void start_httpserver()
         });
 
         server.Get("/get_logs.action", [](const httplib::Request &req,
-                                                httplib::Response &res) {
+                                          httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "get_logs " << index << std::endl;
             auto &app = appManager->applications()[index];
             auto logs = httplib::detail::base64_encode(app.show_stdout());
-            igris::trent tr;
+            nos::trent tr;
             tr["stdout"] = logs;
-            res.set_content(igris::json::to_string(tr), "application/json");
+            res.set_content(nos::json::to_string(tr), "application/json");
         });
 
         server.set_error_handler([](const auto &req, auto &res) {

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <igris/trent/trent.h>
 #include <mutex>
+#include <nos/trent/trent.h>
+#include <optional>
+#include <pwd.h>
 #include <queue>
 #include <string>
 #include <thread>
@@ -14,7 +16,7 @@ public:
     std::string name = {};
     bool editable = {};
 
-    igris::trent to_trent() const;
+    nos::trent to_trent() const;
     LinkedFile() = default;
     LinkedFile(const LinkedFile &) = default;
 };
@@ -30,11 +32,11 @@ public:
     };
     App(int task_index, const std::string &name, const std::string &cmd,
         RestartMode mode, const std::vector<LinkedFile> &linkeds);
-        
-    App(const App&) = delete;
-    App& operator=(const App&) = delete;
-    App(App&&) = default;
-    App& operator=(App&&) = default;
+
+    App(const App &) = delete;
+    App &operator=(const App &) = delete;
+    App(App &&) = default;
+    App &operator=(App &&) = default;
 
     void stop();
     void start();
@@ -66,7 +68,10 @@ public:
     int64_t logdata_read(char *data, size_t size, size_t offset);
     void on_child_finished();
 
-    bool is_runned() { return !isStopped; }
+    bool is_runned()
+    {
+        return !isStopped;
+    }
 
     const std::string &show_stdout() const;
     const std::vector<LinkedFile> &linked_files() const
@@ -92,6 +97,8 @@ private:
     pid_t appFork();
 
 private:
+    std::optional<std::string> _username;
+    std::optional<uid_t> _uid;
     std::vector<std::string> _args;
     std::vector<LinkedFile> _linked_files;
     int task_index;
@@ -107,7 +114,6 @@ private:
     std::string _name;
     std::queue<int> _errors;
     int _pid = 0;
-
     bool cancel_reading = false;
     std::string _stdout_record;
 };
