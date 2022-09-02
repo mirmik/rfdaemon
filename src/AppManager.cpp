@@ -14,7 +14,7 @@ using namespace std::chrono_literals;
 AppManager::AppManager(const std::string &appListFileName)
 {
     appFilename = appListFileName;
-    spamserver.start(6743);
+    spamserver.start(5001);
 }
 
 void AppManager::send_spam(const std::string &message)
