@@ -25,7 +25,7 @@ std::unique_ptr<RFDaemonServer> srv = {};
 std::unique_ptr<Beam> beam = {};
 std::thread srvRxThread;
 std::thread srvTxThread;
-std::string APPLICATION_LIST_FILE_NAME = {};
+std::string APPLICATION_LIST_FILE_NAME = "/etc/rfdaemon/applications.json";
 
 void interrupt_signal_handler(int signum);
 
