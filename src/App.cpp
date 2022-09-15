@@ -234,7 +234,7 @@ void App::increment_attempt_counter()
 
 bool App::need_to_another_attempt() const
 {
-    return _attempts != 0;
+    return restartMode() == RestartMode::ALWAYS && _attempts != 0;
 }
 
 void App::watchFunc()

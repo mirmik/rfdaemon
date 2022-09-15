@@ -27,8 +27,7 @@ public:
     enum RestartMode
     {
         ALWAYS = 0,
-        ERROR,
-        NEVER
+        ONCE = 1,
     };
     App(int task_index, const std::string &name, const std::string &cmd,
         RestartMode mode, const std::vector<LinkedFile> &linkeds,

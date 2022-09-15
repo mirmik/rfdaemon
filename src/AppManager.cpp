@@ -89,12 +89,19 @@ bool AppManager::loadConfigFile()
             if (!cmd.empty() && !name.empty())
             {
                 App::RestartMode restartMode;
-                if (apptrent["restart"].as_string() == "error")
-                    restartMode = App::RestartMode::ERROR;
-                else if (apptrent["restart"].as_string() == "never")
-                    restartMode = App::RestartMode::NEVER;
-                else
+                if (apptrent["restart"].as_string() == "once")
+                {
+                    restartMode = App::RestartMode::ONCE;
+                }
+                else if (apptrent["restart"].as_string() == "always")
+                {
                     restartMode = App::RestartMode::ALWAYS;
+                }
+                else
+                {
+                    nos::println("Unknown restart mode for app", name);
+                    restartMode = App::RestartMode::ONCE;
+                }
 
                 if (!files.empty())
                 {
