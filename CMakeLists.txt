@@ -9,11 +9,21 @@ add_compile_options(
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CC_STANDARD 11)
 
+execute_process(COMMAND ircc resources.txt -o ircc_resources.gen.cpp --sources-cmake
+                OUTPUT_VARIABLE RESOURCE_LIST)
+add_custom_command(
+    OUTPUT ircc_resources.gen.cpp
+    COMMAND ircc resources.txt -o ircc_resources.gen.cpp
+    DEPENDS ${RESOURCE_LIST}
+)
+
 file(GLOB SOURCES
   src/*.cpp
 )
 
-add_executable(rfdaemon ${SOURCES})
+add_executable(rfdaemon 
+  ircc_resources.gen.cpp
+  ${SOURCES})
 target_include_directories(rfdaemon PRIVATE src)
 
 target_link_libraries(rfdaemon
