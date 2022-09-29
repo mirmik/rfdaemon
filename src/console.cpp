@@ -447,24 +447,25 @@ std::string execute_tokens(nos::tokens &tokens)
 
 void client_spin(nos::inet::tcp_socket client)
 {
-    try
+    while (true)
     {
-        while (true)
+        auto expected_line = nos::readline_from(client);
+        if (!expected_line)
         {
-            std::string line = nos::readline_from(client);
-            if (line.size() == 0)
-                return;
-
-            nos::tokens tokens(line);
-            auto sb = execute_tokens(tokens);
-            if (sb.size() == 0)
-                continue;
-            client.write(sb.data(), sb.size());
+            if (VERBOSE)
+                nos::println("Client disconnected");
+            return;
         }
-    }
-    catch (const std::exception &ex)
-    {
-        nos::println("client finished by exception", ex.what());
+
+        auto line = expected_line.value();
+        if (line.size() == 0)
+            return;
+
+        nos::tokens tokens(line);
+        auto sb = execute_tokens(tokens);
+        if (sb.size() == 0)
+            continue;
+        client.write(sb.data(), sb.size());
     }
 }
 
