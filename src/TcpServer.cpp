@@ -189,7 +189,7 @@ int TcpServer::sendThread()
                             nos::print_dump(txBufferPtr, packetSize);
                         }
 
-                        result = connection.send(txBufferPtr, packetSize, 0);
+                        result = connection.write(txBufferPtr, packetSize);
                         mConn.unlock();
                         if (result > 0)
                             txQueuePos += result - headerOffset;

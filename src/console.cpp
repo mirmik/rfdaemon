@@ -3,8 +3,9 @@
 #include <igris/util/base64.h>
 #include <iostream>
 #include <modes.h>
+#include <nos/inet/tcp_client.h>
 #include <nos/inet/tcp_server.h>
-#include <nos/inet/tcp_socket.h>
+#include <nos/input.h>
 #include <nos/io/buffered_file.h>
 #include <nos/shell/argv.h>
 #include <nos/shell/executor.h>
@@ -292,7 +293,7 @@ int read_linked_file(const nos::argv &args, nos::ostream &out)
                 }
 
                 nos::buffered_file f(file.path, "r");
-                auto s = f.readall();
+                auto s = nos::readall_from(f);
                 nos::println_to(out, s);
                 return 0;
             }
@@ -329,8 +330,8 @@ int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
                 }
 
                 nos::buffered_file f(file.path, "r");
-                auto s = f.readall();
-                auto b = igris::base64_encode(s);
+                auto s = readall_from(f);
+                auto b = igris::base64_encode(*s);
                 nos::println_to(out, b);
                 return 0;
             }
@@ -347,7 +348,7 @@ int apps_config_b64(const nos::argv &args, nos::ostream &out)
     auto path = appManager->getAppConfigFilename();
     auto file = nos::buffered_file(path.c_str(), "r");
     auto text = nos::readall_from(file);
-    nos::println_to(out, igris::base64_encode(text));
+    nos::println_to(out, igris::base64_encode(*text));
     file.close();
     return 0;
 }
@@ -445,7 +446,7 @@ std::string execute_tokens(nos::tokens &tokens)
     return sb.str();
 }
 
-void client_spin(nos::inet::tcp_socket client)
+void client_spin(nos::inet::tcp_client client)
 {
     while (true)
     {
@@ -481,7 +482,7 @@ void server_spin(int port)
     while (true)
     {
         nos::println("Waiting for client...");
-        nos::inet::tcp_socket client = server.accept();
+        nos::inet::tcp_client client = server.accept();
         nos::println("Client connected");
         std::thread client_thread(client_spin, client);
         client_thread.detach();

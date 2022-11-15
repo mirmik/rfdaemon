@@ -1,8 +1,8 @@
 #pragma once
 
 #include <mutex>
+#include <nos/inet/tcp_client.h>
 #include <nos/inet/tcp_server.h>
-#include <nos/inet/tcp_socket.h>
 #include <stdint.h>
 #include <vector>
 
@@ -53,7 +53,7 @@ private:
     QueryResult lastQueryResult = QueryResult::AllOk;
     uint16_t usedPort = 0;
     nos::inet::tcp_server socket;
-    nos::inet::tcp_socket connection;
+    nos::inet::tcp_client connection;
 
     bool terminateRxThread = false;
     bool terminateTxThread = false;
