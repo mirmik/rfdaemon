@@ -125,6 +125,28 @@ std::vector<char *> App::tokens_for_execve(const std::vector<std::string> &args)
     return res;
 }
 
+std::vector<std::string> App::envp_base_for_execve()
+{
+    std::vector<std::string> res;
+    for (auto &arg : _env)
+    {
+        std::string str = arg.first + "=" + arg.second;
+        res.push_back(str);
+    }
+    return res;
+}
+
+std::vector<char *> App::envp_for_execve(const std::vector<std::string> &args)
+{
+    std::vector<char *> res;
+    for (auto &arg : args)
+    {
+        res.push_back(const_cast<char *>(arg.c_str()));
+    }
+    res.push_back(nullptr);
+    return res;
+}
+
 // Call only in a separate thread
 pid_t App::appFork()
 {
@@ -143,9 +165,13 @@ pid_t App::appFork()
         close(wr[1]);
         nos::fprintln("Execv app : {}", tokens);
 
+        auto envp_base = envp_base_for_execve();
+        auto envp = envp_for_execve(envp_base);
+        auto args = tokens_for_execve(tokens);
+
         // Timeout for main thread can connect to the pipe
         std::this_thread::sleep_for(100ms);
-        exit(execv(tokens[0].data(), tokens_for_execve(tokens).data()));
+        exit(execve(tokens[0].data(), args.data(), envp.data()));
     }
     else if (pid > 0)
     {
@@ -306,4 +332,10 @@ const std::string &App::show_stdout() const
 void App::on_child_finished()
 {
     cancel_reading = true;
+}
+
+void App::set_environment_variables(
+    const std::unordered_map<std::string, std::string> &env)
+{
+    _env = env;
 }

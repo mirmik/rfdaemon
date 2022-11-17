@@ -80,48 +80,59 @@ bool AppManager::loadConfigFile()
 
             std::vector<LinkedFile> linked_files;
             std::string name = apptrent["name"].as_string();
+            if (name.empty())
+            {
+                nos::println("Error: app name is empty");
+                continue;
+            }
+
             std::string cmd = apptrent["command"].as_string();
+            if (name.empty())
+            {
+                nos::println("Error: app command is empty");
+                continue;
+            }
+
             std::string user = apptrent["user"].as_string();
             auto logs = apptrent["logs"];
             auto files = apptrent["files"].as_list();
+            auto env = apptrent["env"].as_dict();
             nos::fprintln("\t{}", name);
 
-            if (!cmd.empty() && !name.empty())
+            App::RestartMode restartMode;
+            if (apptrent["restart"].as_string() == "once")
             {
-                App::RestartMode restartMode;
-                if (apptrent["restart"].as_string() == "once")
-                {
-                    restartMode = App::RestartMode::ONCE;
-                }
-                else if (apptrent["restart"].as_string() == "always")
-                {
-                    restartMode = App::RestartMode::ALWAYS;
-                }
-                else
-                {
-                    nos::println("Unknown restart mode for app", name);
-                    restartMode = App::RestartMode::ONCE;
-                }
-
-                if (!files.empty())
-                {
-                    for (const auto &rec : apptrent["files"].as_list())
-                    {
-                        LinkedFile file;
-                        file.path = rec["path"].as_string();
-                        file.name = rec["name"].as_string();
-                        file.editable = rec["editable"].as_bool();
-                        linked_files.push_back(file);
-                    }
-                }
-                apps.emplace_back(apps.size(), name, cmd, restartMode,
-                                  linked_files, user);
+                restartMode = App::RestartMode::ONCE;
+            }
+            else if (apptrent["restart"].as_string() == "always")
+            {
+                restartMode = App::RestartMode::ALWAYS;
             }
             else
             {
-                error = true;
-                break;
+                nos::println("Unknown restart mode for app", name);
+                restartMode = App::RestartMode::ONCE;
             }
+
+            if (!files.empty())
+            {
+                for (const auto &rec : apptrent["files"].as_list())
+                {
+                    LinkedFile file;
+                    file.path = rec["path"].as_string();
+                    file.name = rec["name"].as_string();
+                    file.editable = rec["editable"].as_bool();
+                    linked_files.push_back(file);
+                }
+            }
+            apps.emplace_back(apps.size(), name, cmd, restartMode, linked_files,
+                              user);
+            auto &app = apps.back();
+
+            std::unordered_map<std::string, std::string> env_map;
+            for (const auto &rec : env)
+                env_map[rec.first] = rec.second.as_string();
+            app.set_environment_variables(env_map);
         }
     }
     else

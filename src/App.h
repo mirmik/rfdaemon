@@ -7,6 +7,7 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 class LinkedFile
@@ -29,6 +30,30 @@ public:
         ALWAYS = 0,
         ONCE = 1,
     };
+
+private:
+    std::string _username = {};
+    uid_t _uid = 0;
+    std::vector<std::string> _args;
+    std::vector<LinkedFile> _linked_files;
+    int task_index;
+    std::chrono::time_point<std::chrono::system_clock> _startTime;
+    std::vector<std::string> tokens;
+    int32_t _attempts_initializer = 5;
+    int32_t _attempts = _attempts_initializer;
+    bool _watcher_guard = false;
+    std::thread _watcher_thread = {};
+    bool isStopped = true;
+    int _exitStatus = 0;
+    RestartMode _restartMode = RestartMode::ALWAYS;
+    std::string _name;
+    std::queue<int> _errors;
+    int _pid = 0;
+    bool cancel_reading = false;
+    std::string _stdout_record;
+    std::unordered_map<std::string, std::string> _env;
+
+public:
     App(int task_index, const std::string &name, const std::string &cmd,
         RestartMode mode, const std::vector<LinkedFile> &linkeds,
         std::string user);
@@ -55,6 +80,8 @@ public:
     std::queue<int> &errors();
     std::string status_string() const;
     std::string command() const;
+    std::vector<std::string> envp_base_for_execve();
+    std::vector<char *> envp_for_execve(const std::vector<std::string> &args);
 
     bool need_to_another_attempt() const;
     void increment_attempt_counter();
@@ -68,6 +95,8 @@ public:
     void logdata_clear();
     int64_t logdata_read(char *data, size_t size, size_t offset);
     void on_child_finished();
+    void set_environment_variables(
+        const std::unordered_map<std::string, std::string> &env);
 
     bool is_runned()
     {
@@ -96,25 +125,4 @@ public:
 private:
     void watchFunc();
     pid_t appFork();
-
-private:
-    std::string _username = {};
-    uid_t _uid = 0;
-    std::vector<std::string> _args;
-    std::vector<LinkedFile> _linked_files;
-    int task_index;
-    std::chrono::time_point<std::chrono::system_clock> _startTime;
-    std::vector<std::string> tokens;
-    int32_t _attempts_initializer = 5;
-    int32_t _attempts = _attempts_initializer;
-    bool _watcher_guard = false;
-    std::thread _watcher_thread = {};
-    bool isStopped = true;
-    int _exitStatus = 0;
-    RestartMode _restartMode = RestartMode::ALWAYS;
-    std::string _name;
-    std::queue<int> _errors;
-    int _pid = 0;
-    bool cancel_reading = false;
-    std::string _stdout_record;
 };
