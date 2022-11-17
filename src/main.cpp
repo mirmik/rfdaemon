@@ -4,13 +4,13 @@
 #include <Beam.h>
 #include <console.h>
 #include <getopt.h>
+#include <httpserver.h>
 #include <iostream>
 #include <signal.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
-#include <httpserver.h>
 
 bool VERBOSE = false;
 bool TERMINAL_MODE = true;
@@ -50,23 +50,22 @@ void interrupt_child(int signum)
     }
 }
 
-
 void proc_exit(int sig)
 {
-        (void) sig;
-        int retcode;
-        
-        while (true) 
+    (void)sig;
+    int retcode;
+
+    while (true)
+    {
+        pid_t pid = wait3(&retcode, WNOHANG, (struct rusage *)NULL);
+        if (pid == 0 || pid == -1)
         {
-            pid_t pid = wait3(&retcode, WNOHANG, (struct rusage *)NULL);
-            if (pid == 0 || pid == -1) 
-            {
-                // it is not a error
-                return;
-            }
-            nos::fprintln("Proccess {} was stopped. (SIGCHLD)", pid);
-            appManager->on_child_finished(pid);
+            // it is not a error
+            return;
         }
+        nos::fprintln("Proccess {} was stopped. (SIGCHLD)", pid);
+        appManager->on_child_finished(pid);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -80,11 +79,13 @@ int main(int argc, char *argv[])
 
     checkRunArgs(argc, argv);
 
-    if (EDIT_MODE) 
+    if (EDIT_MODE)
     {
         nos::println("Edit mode");
-        std::vector<char *> args = { (char*)"/usr/bin/nano", (char*)APPLICATION_LIST_FILE_NAME.c_str(), 0 };
-        int sts = execve(args[0], args.data(), {} );
+        std::vector<char *> args = {(char *)"/usr/bin/nano",
+                                    (char *)APPLICATION_LIST_FILE_NAME.c_str(),
+                                    0};
+        int sts = execve(args[0], args.data(), {});
         nos::println("execve status:", sts);
         perror("execve");
         exit(0);
@@ -102,15 +103,17 @@ int main(int argc, char *argv[])
         nos::println("Error: RFDaemon process fork failed.");
     else if (daemonPid == 0) // fork process code part
     {
-        try 
+        try
         {
             srv = std::make_unique<RFDaemonServer>(RFDAEMON_PORT);
         }
-        catch (const std::exception& ex) 
+        catch (const std::exception &ex)
         {
-            nos::fprintln("Server exception (maybe the daemon is already running): {}", ex.what());
+            nos::fprintln(
+                "Server exception (maybe the daemon is already running): {}",
+                ex.what());
         }
-        
+
         appManager = std::make_unique<AppManager>(APPLICATION_LIST_FILE_NAME);
 
         int appfile_error = appManager->loadConfigFile();
@@ -123,8 +126,10 @@ int main(int argc, char *argv[])
 
         start_httpserver();
         start_tcp_console(TCP_CONSOLE_PORT);
-        srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(), appManager.get());
-        srvTxThread = std::thread(tcpServerSendThreadHandler, srv.get(), appManager.get());
+        srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(),
+                                  appManager.get());
+        srvTxThread = std::thread(tcpServerSendThreadHandler, srv.get(),
+                                  appManager.get());
         if (TERMINAL_MODE && !NOCONSOLE_MODE)
         {
             start_stdstream_console();
@@ -229,19 +234,8 @@ bool checkRunArgs(int argc, char *argv[])
             exit(0);
 
         case 'c':
-        {
-            size_t len = strlen(optarg);
-            if (len > 5)
-            {
-                if (!strcmp(optarg + len - 5, ".json"))
-                    APPLICATION_LIST_FILE_NAME = std::string(optarg);
-                else
-                    wrongArg = true;
-            }
-            else
-                wrongArg = true;
-        }
-        break;
+            APPLICATION_LIST_FILE_NAME = std::string(optarg);
+            break;
 
         case 'p':
         {
@@ -269,13 +263,13 @@ bool checkRunArgs(int argc, char *argv[])
     return 0;
 }
 
-int tcpServerSendThreadHandler(RFDaemonServer * srv, AppManager * appManager)
+int tcpServerSendThreadHandler(RFDaemonServer *srv, AppManager *appManager)
 {
     srv->setAppManager(appManager);
     return srv->sendThread();
 }
 
-int tcpServerReceiveThreadHandler(RFDaemonServer * srv, AppManager *)
+int tcpServerReceiveThreadHandler(RFDaemonServer *srv, AppManager *)
 {
     while (!srv)
         usleep(1000);
