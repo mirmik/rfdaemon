@@ -19,6 +19,7 @@ bool WITHOUT_RFMEASK = false;
 bool EDIT_MODE = false;
 int TCP_CONSOLE_PORT = 5000;
 uint16_t RFDAEMON_PORT = DEFAULT_RFDAEMON_PROTO_PORT;
+std::string VERSION = "0.3.0";
 
 std::unique_ptr<AppManager> appManager = {};
 std::unique_ptr<RFDaemonServer> srv = {};
@@ -171,6 +172,7 @@ void print_help()
         "  -v, --debug - Print more information\n"
         "  -h  --help - print this\n"
         "  -T, --immediate-exit, Immediate exit for library linking test\n"
+        "  -V, --version, Print version\n"
         "\n");
 }
 
@@ -194,6 +196,7 @@ bool checkRunArgs(int argc, char *argv[])
         {"port", required_argument, NULL, 'p'},
         {"edit", no_argument, NULL, 'e'},
         {"immediate-exit", no_argument, NULL, 'T'},
+        {"version", no_argument, NULL, 'V'},
         {NULL, 0, NULL, 0}};
 
     while ((opt = getopt_long(argc, argv, "htdvc:np:eTN", long_options,
@@ -231,6 +234,10 @@ bool checkRunArgs(int argc, char *argv[])
 
         case 'T':
             nos::println("immediate exit");
+            exit(0);
+
+        case 'V':
+            nos::println("RFDaemon version: {}", VERSION);
             exit(0);
 
         case 'c':
