@@ -49,7 +49,7 @@ nos::trent Beam::getsettings(const nos::trent &tr)
 
 void Beam::on_new_command(const nos::trent &tr, std::string ip, int port)
 {
-    if (!tr.have("cmd"))
+    if (!tr.contains("cmd"))
     {
         throw std::runtime_error("cmd field is required");
     }
