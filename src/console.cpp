@@ -392,7 +392,7 @@ int application_command(const nos::argv &args, nos::ostream &out)
         nos::println_to(out, "Application not found");
         return -1;
     }
-    auto ret = app->command();
+    auto ret = app->token_list_as_string();
     if (ret.size() > 0)
     {
         nos::println_to(out, ret);
