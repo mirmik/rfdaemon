@@ -57,6 +57,21 @@ std::string App::command() const
     return cmd;
 }
 
+std::string App::token_list_as_string() const
+{
+    std::string cmd = "";
+    cmd += "[";
+    for (unsigned int i = 0; i < tokens.size(); ++i)
+    {
+        auto &arg = tokens[i];
+        cmd += arg;
+        if (i != tokens.size() - 1)
+            cmd += ",";
+    }
+    cmd += "]";
+    return cmd;
+}
+
 std::string GetStdoutFromCommand(std::string cmd)
 {
 
@@ -84,7 +99,7 @@ App::App(int task_index, const std::string &name, const std::string &cmd,
          std::string user)
     : _linked_files(linkeds), task_index(task_index), _name(name)
 {
-    tokens = igris::split(cmd);
+    tokens = igris::split_cmdargs(cmd);
     _restartMode = mode;
     set_user(user);
 }

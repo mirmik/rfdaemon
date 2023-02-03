@@ -98,6 +98,8 @@ public:
     void set_environment_variables(
         const std::unordered_map<std::string, std::string> &env);
 
+    std::string token_list_as_string() const;
+
     bool is_runned()
     {
         return !isStopped;
