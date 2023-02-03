@@ -237,7 +237,7 @@ bool checkRunArgs(int argc, char *argv[])
             exit(0);
 
         case 'V':
-            nos::println("RFDaemon version: {}", VERSION);
+            nos::fprintln("RFDaemon version: {}", VERSION);
             exit(0);
 
         case 'c':
