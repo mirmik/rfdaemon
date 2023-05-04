@@ -11,6 +11,7 @@
 #include <nos/shell/executor.h>
 #include <nos/trent/json.h>
 #include <nos/trent/json_print.h>
+#include <nos/util/expected_print.h>
 #include <thread>
 
 const int API_VERSION = 100;
@@ -451,7 +452,7 @@ void client_spin(nos::inet::tcp_client client)
     while (true)
     {
         auto expected_line = nos::readline_from(client);
-        if (!expected_line)
+        if (expected_line.is_error())
         {
             if (VERBOSE)
                 nos::println("Client disconnected");

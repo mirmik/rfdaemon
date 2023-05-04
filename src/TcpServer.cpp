@@ -55,7 +55,11 @@ int TcpServer::receiveThread()
             do
             {
                 char *buffer = (char *)rxBufferPtr + rxBufferHeaderCollectCnt;
-                result = connection.recv(buffer, bufferLength, 0);
+                auto eresult = connection.recv(buffer, bufferLength, 0);
+                if (eresult.is_ok())
+                    result = *eresult;
+                else
+                    result = -1;
 
                 if (result > 0)
                 {
@@ -189,7 +193,13 @@ int TcpServer::sendThread()
                             nos::print_dump(txBufferPtr, packetSize);
                         }
 
-                        result = connection.write(txBufferPtr, packetSize);
+                        auto eresult =
+                            connection.write(txBufferPtr, packetSize);
+                        if (eresult.is_ok())
+                            result = *eresult;
+                        else
+                            result = -1;
+
                         mConn.unlock();
                         if (result > 0)
                             txQueuePos += result - headerOffset;
