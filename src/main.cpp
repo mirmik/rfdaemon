@@ -3,6 +3,7 @@
 #include "RFDaemonServer.h"
 #include <Beam.h>
 #include <console.h>
+#include <defs.h>
 #include <getopt.h>
 #include <httpserver.h>
 #include <iostream>
@@ -17,9 +18,11 @@ bool TERMINAL_MODE = true;
 bool NOCONSOLE_MODE = false;
 bool WITHOUT_RFMEASK = false;
 bool EDIT_MODE = false;
-int TCP_CONSOLE_PORT = 5000;
+int API_CONSOLE_PORT = RFDAEMON_DEFAULT_API_PORT;
 uint16_t RFDAEMON_PORT = DEFAULT_RFDAEMON_PROTO_PORT;
-std::string VERSION = "0.3.0";
+bool NO_HTTP_SERVER = false;
+int HTTP_SERVER_PORT = RFDAEMON_DEFAULT_HTTP_PORT;
+std::string VERSION = "0.4.0";
 
 std::unique_ptr<AppManager> appManager = {};
 std::unique_ptr<RFDaemonServer> srv = {};
@@ -106,6 +109,8 @@ int main(int argc, char *argv[])
     {
         try
         {
+            nos::fprintln("Starting RFDaemon legacy server on port {}",
+                          RFDAEMON_PORT);
             srv = std::make_unique<RFDaemonServer>(RFDAEMON_PORT);
         }
         catch (const std::exception &ex)
@@ -125,8 +130,10 @@ int main(int argc, char *argv[])
         }
         appManager->runApps();
 
-        start_httpserver();
-        start_tcp_console(TCP_CONSOLE_PORT);
+        if (!NO_HTTP_SERVER)
+            start_httpserver(HTTP_SERVER_PORT);
+
+        start_tcp_console(API_CONSOLE_PORT);
         srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(),
                                   appManager.get());
         srvTxThread = std::thread(tcpServerSendThreadHandler, srv.get(),
@@ -168,6 +175,9 @@ void print_help()
         "  -t, --terminal - Start terminal mode \n"
         "  -n, --noext - Disable rfmeask extention \n"
         "  -e, --edit - Edit configuration file \n"
+        "  -J, --nohttp - Without http server \n"
+        "  -H, --http_port - Http server port \n"
+        "  -A, --http_port - API server port \n"
         "Debug:\n"
         "  -v, --debug - Print more information\n"
         "  -h  --help - print this\n"
@@ -197,6 +207,9 @@ bool checkRunArgs(int argc, char *argv[])
         {"edit", no_argument, NULL, 'e'},
         {"immediate-exit", no_argument, NULL, 'T'},
         {"version", no_argument, NULL, 'V'},
+        {"nohttp", no_argument, NULL, 'J'},
+        {"http_port", required_argument, NULL, 'H'},
+        {"api_port", required_argument, NULL, 'A'},
         {NULL, 0, NULL, 0}};
 
     while ((opt = getopt_long(argc, argv, "htdvc:np:eTN", long_options,
@@ -242,6 +255,18 @@ bool checkRunArgs(int argc, char *argv[])
 
         case 'c':
             APPLICATION_LIST_FILE_NAME = std::string(optarg);
+            break;
+
+        case 'J':
+            NO_HTTP_SERVER = true;
+            break;
+
+        case 'H':
+            HTTP_SERVER_PORT = std::stoi(std::string(optarg));
+            break;
+
+        case 'A':
+            API_CONSOLE_PORT = std::stoi(std::string(optarg));
             break;
 
         case 'p':

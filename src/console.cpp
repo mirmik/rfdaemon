@@ -132,6 +132,13 @@ int list_of_applications(const nos::argv &args, nos::ostream &out)
 {
     (void)args;
     auto &apps = appManager->applications();
+
+    if (apps.empty())
+    {
+        nos::println_to(out, "No applications");
+        return 0;
+    }
+
     for (auto &app : apps)
         nos::fprintln_to(out, "{} : {} : {}", app.name(), app.status_string(),
                          app.pid());
@@ -401,6 +408,24 @@ int application_command(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
+int b64out(const nos::argv &args, nos::ostream &out)
+{
+    extern nos::executor executor; //< executor forward declaration
+
+    if (args.size() < 2)
+    {
+        nos::println_to(out, "Usage: b64out <command> [ARGUMENTS]");
+        return -1;
+    }
+
+    nos::string_buffer buf;
+    executor.execute(args.without(1), buf);
+
+    auto b64 = igris::base64_encode(buf.str());
+    nos::println_to(out, b64);
+    return 0;
+}
+
 nos::executor executor(std::vector<nos::command>{
     nos::command("hello", "baba is you", &hello),
     nos::command("q", "exit", &exit),
@@ -427,6 +452,7 @@ nos::executor executor(std::vector<nos::command>{
     nos::command("apps_config_b64", "get apps config", &apps_config_b64),
     nos::command("set_apps_config_b64", "set apps config",
                  &set_apps_config_b64),
+    nos::command("b64out", "wrap any command output to base64", b64out),
     nos::command("read_linked", "read linked file", &read_linked_file),
     nos::command("read_linked_b64", "read linked file",
                  &read_linked_file_b64)});

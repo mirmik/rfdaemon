@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 import os
-import licant 
-import licant.install 
+import licant
+import licant.install
 import subprocess
+
 
 def ircc(tgt, src):
     def self_need():
         with subprocess.Popen(f"ircc {src} -o {tgt} --is-rebuild-needed", shell=True, stdout=subprocess.PIPE) as proc:
-            ans = str(proc.communicate()[0].decode("utf-8")).strip() 
+            ans = str(proc.communicate()[0].decode("utf-8")).strip()
             if ans == "yes":
                 return True
             else:
@@ -29,19 +30,37 @@ def ircc(tgt, src):
     )
     return tgt
 
+
 ircc("./build/ircc_resource.gen.cpp", "resources.txt")
 
 licant.cxx_application("rfdaemon",
-	sources = [
-		"src/*.cpp",
-		"build/ircc_resource.gen.cpp"
-	],
-	include_paths = [ "./src" ],
-	libs = ["nos", "igris"],
-	cxx_flags = "-pedantic-errors -Werror=all -Werror=extra -g",
-    ld_flags = "-static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
-)
+                       sources=[
+                           "src/*.cpp",
+                           "build/ircc_resource.gen.cpp"
+                       ],
+                       include_paths=["./src"],
+                       libs=["nos", "igris"],
+                       cxx_flags="-pedantic-errors -Werror=all -Werror=extra -g",
+                       ld_flags="-static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
+                       )
 
-licant.install.install_application(tgt="install", src="rfdaemon", dst="rfdaemon")
+licant.cxx_application("rfdaemonctl",
+                       sources=[
+                           "src/rfdaemonctl/*.cpp"
+                       ],
+                       include_paths=["./src"],
+                       libs=["nos", "igris"],
+                       cxx_flags="-pedantic-errors -Werror=all -Werror=extra -g",
+                       ld_flags="-static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
+                       )
 
-licant.ex("rfdaemon")
+a = licant.install.install_application(
+    tgt="install_rfdaemon", src="rfdaemon", dst="rfdaemon")
+
+a = licant.install.install_application(
+    tgt="install_rfdaemonctl", src="rfdaemonctl", dst="rfdaemonctl")
+
+licant.fileset("all", targets=["rfdaemon", "rfdaemonctl"])
+licant.fileset("install", targets=["install_rfdaemon", "install_rfdaemonctl"])
+
+licant.ex("all")

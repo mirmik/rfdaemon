@@ -1,0 +1,7 @@
+#ifndef DEFS_H
+#define DEFS_H
+
+#define RFDAEMON_DEFAULT_API_PORT 15129
+#define RFDAEMON_DEFAULT_HTTP_PORT 9893
+
+#endif
