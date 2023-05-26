@@ -73,6 +73,7 @@ Debug
 Release
 
 rfdaemon
+rfdaemonctl
 errlog.txt
 *.gen.cpp
 
