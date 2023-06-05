@@ -18,6 +18,7 @@ bool TERMINAL_MODE = true;
 bool NOCONSOLE_MODE = false;
 bool WITHOUT_RFMEASK = false;
 bool EDIT_MODE = false;
+bool USE_LEGACY_API_PORT = true;
 int API_CONSOLE_PORT = RFDAEMON_DEFAULT_API_PORT;
 uint16_t RFDAEMON_PORT = DEFAULT_RFDAEMON_PROTO_PORT;
 bool NO_HTTP_SERVER = false;
@@ -134,6 +135,11 @@ int main(int argc, char *argv[])
             start_httpserver(HTTP_SERVER_PORT);
 
         start_tcp_console(API_CONSOLE_PORT);
+        if (USE_LEGACY_API_PORT)
+        {
+            nos::fprintln("Legacy API port {} is used", 5000);
+            start_tcp_console(5000);
+        }
         srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(),
                                   appManager.get());
         srvTxThread = std::thread(tcpServerSendThreadHandler, srv.get(),
@@ -176,6 +182,8 @@ void print_help()
         "  -n, --noext - Disable rfmeask extention \n"
         "  -e, --edit - Edit configuration file \n"
         "  -J, --nohttp - Without http server \n"
+        "  -u  --nolegacyapi - Without legacy api port 5000"
+        "  -U  --uselegacyapi - Force use legacy api port 5000"
         "  -H, --http_port - Http server port \n"
         "  -A, --http_port - API server port \n"
         "Debug:\n"
@@ -208,11 +216,12 @@ bool checkRunArgs(int argc, char *argv[])
         {"immediate-exit", no_argument, NULL, 'T'},
         {"version", no_argument, NULL, 'V'},
         {"nohttp", no_argument, NULL, 'J'},
+        {"nolegacyapi", no_argument, NULL, 'U'},
         {"http_port", required_argument, NULL, 'H'},
         {"api_port", required_argument, NULL, 'A'},
         {NULL, 0, NULL, 0}};
 
-    while ((opt = getopt_long(argc, argv, "htdvc:np:eTN", long_options,
+    while ((opt = getopt_long(argc, argv, "htdvc:np:eTNU", long_options,
                               &long_index)) != -1)
     {
         switch (opt)
@@ -267,6 +276,14 @@ bool checkRunArgs(int argc, char *argv[])
 
         case 'A':
             API_CONSOLE_PORT = std::stoi(std::string(optarg));
+            break;
+
+        case 'U':
+            USE_LEGACY_API_PORT = true;
+            break;
+
+        case 'u':
+            USE_LEGACY_API_PORT = false;
             break;
 
         case 'p':

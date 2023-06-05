@@ -16,7 +16,7 @@
 
 const int API_VERSION = 100;
 extern AppManager *appManager;
-std::thread server_thread;
+std::vector<std::thread> server_threads;
 std::thread userIOThread;
 
 int exit(const nos::argv &args, nos::ostream &out)
@@ -518,7 +518,7 @@ void server_spin(int port)
 
 void start_tcp_console(int tcp_console_port)
 {
-    server_thread = std::thread(server_spin, tcp_console_port);
+    server_threads.emplace_back(std::thread(server_spin, tcp_console_port));
 }
 
 int userIOThreadHandler()
