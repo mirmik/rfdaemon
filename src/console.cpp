@@ -11,7 +11,6 @@
 #include <nos/shell/executor.h>
 #include <nos/trent/json.h>
 #include <nos/trent/json_print.h>
-#include <nos/util/expected_print.h>
 #include <thread>
 
 const int API_VERSION = 100;
@@ -302,7 +301,7 @@ int read_linked_file(const nos::argv &args, nos::ostream &out)
 
                 nos::buffered_file f(file.path, "r");
                 auto s = nos::readall_from(f);
-                nos::println_to(out, s);
+                nos::println_to(out, *s);
                 return 0;
             }
         }
