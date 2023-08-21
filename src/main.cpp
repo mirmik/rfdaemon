@@ -23,6 +23,7 @@ int API_CONSOLE_PORT = RFDAEMON_DEFAULT_API_PORT;
 uint16_t RFDAEMON_PORT = DEFAULT_RFDAEMON_PROTO_PORT;
 bool NO_HTTP_SERVER = false;
 int HTTP_SERVER_PORT = RFDAEMON_DEFAULT_HTTP_PORT;
+bool PRINT_LOGS = false;
 std::string VERSION = "0.4.0";
 
 std::unique_ptr<AppManager> appManager = {};
@@ -191,6 +192,7 @@ void print_help()
         "  -h  --help - print this\n"
         "  -T, --immediate-exit, Immediate exit for library linking test\n"
         "  -V, --version, Print version\n"
+        "  -P, --print-logs - Print logs \n"
         "\n");
 }
 
@@ -219,6 +221,7 @@ bool checkRunArgs(int argc, char *argv[])
         {"nolegacyapi", no_argument, NULL, 'U'},
         {"http_port", required_argument, NULL, 'H'},
         {"api_port", required_argument, NULL, 'A'},
+        {"print-logs", no_argument, NULL, 'P'},
         {NULL, 0, NULL, 0}};
 
     while ((opt = getopt_long(argc, argv, "htdvc:np:eTNU", long_options,
@@ -252,6 +255,10 @@ bool checkRunArgs(int argc, char *argv[])
 
         case 'n':
             WITHOUT_RFMEASK = true;
+            break;
+
+        case 'P':
+            PRINT_LOGS = true;
             break;
 
         case 'T':

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <igris/sclonner.h>
 #include <mutex>
 #include <nos/trent/trent.h>
 #include <optional>
@@ -46,9 +47,10 @@ private:
     bool isStopped = true;
     int _exitStatus = 0;
     RestartMode _restartMode = RestartMode::ALWAYS;
-    std::string _name;
-    std::queue<int> _errors;
-    int _pid = 0;
+    std::string _name = {};
+    std::queue<int> _errors = {};
+    // int _pid = 0;
+    igris::subprocess proc = {};
     bool cancel_reading = false;
     std::string _stdout_record;
     std::unordered_map<std::string, std::string> _env;
@@ -126,5 +128,5 @@ public:
 
 private:
     void watchFunc();
-    pid_t appFork();
+    void appFork();
 };

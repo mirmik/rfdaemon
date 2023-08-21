@@ -3,6 +3,7 @@
 #include <igris/util/base64.h>
 #include <igris/util/string.h>
 #include <iostream>
+#include <modes.h>
 #include <nos/fprint.h>
 #include <pwd.h>
 #include <string.h>
@@ -109,7 +110,8 @@ void App::stop()
     if (!isStopped)
     {
         _attempts = 0;
-        kill(_pid, SIGKILL);
+        // kill(_pid, SIGKILL);
+        proc.kill();
     }
 }
 
@@ -163,16 +165,53 @@ std::vector<char *> App::envp_for_execve(const std::vector<std::string> &args)
 }
 
 // Call only in a separate thread
-pid_t App::appFork()
+void App::appFork()
 {
     _exitStatus = 0;
     increment_attempt_counter();
 
-    int wr[2];
-    pipe(wr);
+    // int wr[2];
+    // pipe(wr);
     _startTime = std::chrono::system_clock::now();
 
-    pid_t pid = fork();
+    auto envp_base = envp_base_for_execve();
+    auto envp = envp_for_execve(envp_base);
+    auto args = tokens_for_execve(tokens);
+
+    proc.exec(tokens[0].data(), args, envp);
+    perror("casdcascd");
+
+    int fd = proc.output_fd();
+
+    std::vector<uint8_t> buffer;
+    char buf[1024];
+    buffer.reserve(2048);
+    // nos::osutil::nonblock(fd, true);
+    // fcntl(fd, F_SETPIPE_SZ, 1);
+    while (true)
+    {
+        // ioctl(fd, I_FLUSH, FLUSHR);
+        int n = read(fd, buf, sizeof(buf));
+        if (n > 0)
+        {
+            logdata_append(buf, n);
+            buffer.clear();
+            buffer.push_back((uint8_t)task_index);
+            buffer.push_back((uint8_t)name().size());
+            buffer.insert(buffer.end(), _name.begin(), _name.end());
+            uint16_t len = n;
+            buffer.push_back((uint8_t)(len >> 8));
+            buffer.push_back((uint8_t)(len & 0xFF));
+            buffer.insert(buffer.end(), buf, buf + n);
+            appManager->send_spam(buffer);
+        }
+
+        if (cancel_reading)
+            break;
+        std::this_thread::sleep_for(100ms);
+    }
+
+    /*pid_t pid = fork();
     if (pid == 0)
     {
         close(wr[0]);
@@ -206,7 +245,8 @@ pid_t App::appFork()
             n = read(wr[0], buf, sizeof(buf));
             if (n > 0)
             {
-                _stdout_record.append(std::string(buf, n));
+                nos::println("DEBUG:", this->name(), "PIPEREADED:", n);
+                logdata_append(buf, n);
                 buffer.clear();
                 buffer.push_back((uint8_t)task_index);
                 buffer.push_back((uint8_t)name().size());
@@ -226,7 +266,7 @@ pid_t App::appFork()
         cancel_reading = false;
         isStopped = true;
     }
-    return pid;
+    return pid;*/
 }
 
 bool App::stopped() const
@@ -241,7 +281,7 @@ App::RestartMode App::restartMode() const
 
 int App::pid() const
 {
-    return _pid;
+    return proc.pid();
 }
 
 const std::string &App::name() const
@@ -289,7 +329,8 @@ void App::watchFunc()
             break;
     }
     _watcher_guard = false;
-    _pid = 0;
+    //_pid = 0;
+    proc.invalidate();
 }
 
 void App::run()
@@ -320,6 +361,8 @@ void App::logdata_clear()
 
 void App::logdata_append(const char *data, size_t size)
 {
+    if (PRINT_LOGS)
+        nos::print(nos::buffer(data, size));
     _stdout_record.append(data, size);
 }
 
