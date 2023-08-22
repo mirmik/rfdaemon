@@ -107,12 +107,9 @@ App::App(int task_index, const std::string &name, const std::string &cmd,
 
 void App::stop()
 {
-    nos::println("stop");
     if (!isStopped)
     {
-        nos::println("try to stop");
         _attempts = 0;
-        // kill(_pid, SIGKILL);
         proc.kill();
     }
 }
@@ -180,6 +177,7 @@ void App::appFork()
     auto envp = envp_for_execve(envp_base);
     auto args = tokens_for_execve(tokens);
 
+    nos::println("Start subprocess:", name());
     proc.exec(tokens[0].data(), args, envp);
     int fd = proc.output_fd();
 
@@ -211,6 +209,7 @@ void App::appFork()
     }
     isStopped = true;
     cancel_reading = false;
+    nos::println("Finish subprocess:", name());
 }
 
 bool App::stopped() const
