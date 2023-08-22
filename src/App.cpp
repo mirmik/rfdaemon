@@ -181,8 +181,6 @@ void App::appFork()
     auto args = tokens_for_execve(tokens);
 
     proc.exec(tokens[0].data(), args, envp);
-    perror("casdcascd");
-
     int fd = proc.output_fd();
 
     std::vector<uint8_t> buffer;

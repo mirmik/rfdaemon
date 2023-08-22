@@ -553,19 +553,18 @@ void client_spin(nos::inet::tcp_client client)
 {
     client_context context([&](std::string str)
                            { client.send(str.data(), str.size()); });
+    nos::println("Client connected");
     while (true)
     {
         auto expected_line = nos::readline_from(client);
         if (expected_line.is_error())
         {
-            if (VERBOSE)
-                nos::println("Client disconnected");
-            return;
+            break;
         }
 
         auto line = expected_line.value();
         if (line.size() == 0)
-            return;
+            break;
 
         nos::tokens tokens(line);
         auto sb = execute_tokens(tokens, &context);
@@ -573,6 +572,7 @@ void client_spin(nos::inet::tcp_client client)
             continue;
         client.write(sb.data(), sb.size());
     }
+    nos::println("Client disconnected");
 }
 
 void server_spin(int port)
@@ -588,7 +588,6 @@ void server_spin(int port)
     {
         nos::println("Waiting for client...");
         nos::inet::tcp_client client = server.accept();
-        nos::println("Client connected");
         std::thread client_thread(client_spin, client);
         client_thread.detach();
     }
