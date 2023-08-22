@@ -107,8 +107,10 @@ App::App(int task_index, const std::string &name, const std::string &cmd,
 
 void App::stop()
 {
+    nos::println("stop");
     if (!isStopped)
     {
+        nos::println("try to stop");
         _attempts = 0;
         // kill(_pid, SIGKILL);
         proc.kill();
@@ -186,11 +188,10 @@ void App::appFork()
     std::vector<uint8_t> buffer;
     char buf[1024];
     buffer.reserve(2048);
-    // nos::osutil::nonblock(fd, true);
-    // fcntl(fd, F_SETPIPE_SZ, 1);
+
+    isStopped = false;
     while (true)
     {
-        // ioctl(fd, I_FLUSH, FLUSHR);
         int n = read(fd, buf, sizeof(buf));
         if (n > 0)
         {
@@ -210,63 +211,8 @@ void App::appFork()
             break;
         std::this_thread::sleep_for(100ms);
     }
-
-    /*pid_t pid = fork();
-    if (pid == 0)
-    {
-        close(wr[0]);
-        dup2(wr[1], STDOUT_FILENO);
-        close(wr[1]);
-        nos::fprintln("Execv app : {}", tokens);
-
-        auto envp_base = envp_base_for_execve();
-        auto envp = envp_for_execve(envp_base);
-        auto args = tokens_for_execve(tokens);
-
-        // Timeout for main thread can connect to the pipe
-        std::this_thread::sleep_for(100ms);
-        exit(execve(tokens[0].data(), args.data(), envp.data()));
-    }
-    else if (pid > 0)
-    {
-        close(wr[1]);
-        isStopped = false;
-        _pid = pid;
-        ssize_t n;
-
-        std::vector<uint8_t> buffer;
-        char buf[1024];
-        buffer.reserve(2048);
-
-        nos::osutil::nonblock(wr[0], true);
-
-        while (true)
-        {
-            n = read(wr[0], buf, sizeof(buf));
-            if (n > 0)
-            {
-                nos::println("DEBUG:", this->name(), "PIPEREADED:", n);
-                logdata_append(buf, n);
-                buffer.clear();
-                buffer.push_back((uint8_t)task_index);
-                buffer.push_back((uint8_t)name().size());
-                buffer.insert(buffer.end(), _name.begin(), _name.end());
-                uint16_t len = n;
-                buffer.push_back((uint8_t)(len >> 8));
-                buffer.push_back((uint8_t)(len & 0xFF));
-                buffer.insert(buffer.end(), buf, buf + n);
-                appManager->send_spam(buffer);
-            }
-
-            if (cancel_reading)
-                break;
-            std::this_thread::sleep_for(100ms);
-        }
-
-        cancel_reading = false;
-        isStopped = true;
-    }
-    return pid;*/
+    isStopped = true;
+    cancel_reading = false;
 }
 
 bool App::stopped() const
