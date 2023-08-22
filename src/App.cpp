@@ -309,6 +309,7 @@ void App::logdata_append(const char *data, size_t size)
 {
     if (PRINT_LOGS)
         nos::print(nos::buffer(data, size));
+    logstream_subject.get_subscriber().on_next(std::string{data, size});
     _stdout_record.append(data, size);
 }
 

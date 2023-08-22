@@ -1,5 +1,6 @@
 #include <AppManager.h>
 #include <console.h>
+#include <functional>
 #include <igris/util/base64.h>
 #include <iostream>
 #include <modes.h>
@@ -11,6 +12,7 @@
 #include <nos/shell/executor.h>
 #include <nos/trent/json.h>
 #include <nos/trent/json_print.h>
+#include <rxcpp/rx.hpp>
 #include <thread>
 
 const int API_VERSION = 100;
@@ -18,7 +20,31 @@ extern AppManager *appManager;
 std::vector<std::thread> server_threads;
 std::thread userIOThread;
 
-int exit(const nos::argv &args, nos::ostream &out)
+struct client_context
+{
+    std::vector<rxcpp::subscription> subscriptions;
+    std::function<void(std::string)> _print;
+
+public:
+    client_context(std::function<void(std::string)> p) : _print(p)
+    {
+    }
+
+    void print(const std::string &a)
+    {
+        _print(a);
+    }
+
+    ~client_context()
+    {
+        for (auto &s : subscriptions)
+            s.unsubscribe();
+    }
+};
+
+using Context = client_context *;
+
+int exit(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     (void)out;
@@ -27,7 +53,7 @@ int exit(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int hello(const nos::argv &args, nos::ostream &out)
+int hello(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     (void)out;
@@ -35,7 +61,7 @@ int hello(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int start_application(const nos::argv &args, nos::ostream &out)
+int start_application(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -58,7 +84,7 @@ int start_application(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int stop_application(const nos::argv &args, nos::ostream &out)
+int stop_application(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -81,7 +107,7 @@ int stop_application(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int stop_id_application(const nos::argv &args, nos::ostream &out)
+int stop_id_application(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -104,7 +130,7 @@ int stop_id_application(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int start_id_application(const nos::argv &args, nos::ostream &out)
+int start_id_application(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -127,7 +153,7 @@ int start_id_application(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int list_of_applications(const nos::argv &args, nos::ostream &out)
+int list_of_applications(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     auto &apps = appManager->applications();
@@ -144,7 +170,7 @@ int list_of_applications(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int stop_all_applications(const nos::argv &args, nos::ostream &out)
+int stop_all_applications(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     (void)out;
@@ -152,7 +178,7 @@ int stop_all_applications(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int start_all_applications(const nos::argv &args, nos::ostream &out)
+int start_all_applications(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     (void)out;
@@ -160,7 +186,7 @@ int start_all_applications(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int restart_all_applications(const nos::argv &args, nos::ostream &out)
+int restart_all_applications(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     (void)out;
@@ -168,7 +194,7 @@ int restart_all_applications(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int show_application_stdout(const nos::argv &args, nos::ostream &out)
+int show_application_stdout(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -191,7 +217,35 @@ int show_application_stdout(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int show_application_stdout_base64(const nos::argv &args, nos::ostream &out)
+int show_application_stdout_stream(const nos::argv &args, nos::ostream &out,
+                                   Context context)
+{
+    if (args.size() < 2)
+    {
+        nos::println_to(out, "Usage: show_application_stdout <app_name>");
+        return -1;
+    }
+
+    auto *app = appManager->findApp(args[1].to_string());
+    if (app)
+    {
+        const std::string &stdout_string = app->show_stdout();
+        context->print(stdout_string);
+        context->subscriptions.push_back(
+            app->logstream_subject_observable().subscribe(
+                [context](std::string str) { context->print(str); }));
+    }
+    else
+    {
+        nos::println_to(out, "Application not found: " + args[1].to_string());
+        return -1;
+    }
+
+    return 0;
+}
+
+int show_application_stdout_base64(const nos::argv &args, nos::ostream &out,
+                                   Context)
 {
     nos::println("show_application_stdout: {}", args[1]);
     if (args.size() < 2)
@@ -215,7 +269,7 @@ int show_application_stdout_base64(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int send_spam(const nos::argv &args, nos::ostream &out)
+int send_spam(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)out;
     if (args.size() < 2)
@@ -229,14 +283,14 @@ int send_spam(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int api_version(const nos::argv &args, nos::ostream &out)
+int api_version(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     nos::println_to(out, API_VERSION);
     return 0;
 }
 
-int app_linked_files(const nos::argv &args, nos::ostream &out)
+int app_linked_files(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -256,7 +310,7 @@ int app_linked_files(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int app_linked_files_b64(const nos::argv &args, nos::ostream &out)
+int app_linked_files_b64(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -276,7 +330,7 @@ int app_linked_files_b64(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int read_linked_file(const nos::argv &args, nos::ostream &out)
+int read_linked_file(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 3)
     {
@@ -311,7 +365,7 @@ int read_linked_file(const nos::argv &args, nos::ostream &out)
     return -1;
 }
 
-int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
+int read_linked_file_b64(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 3)
     {
@@ -349,7 +403,7 @@ int read_linked_file_b64(const nos::argv &args, nos::ostream &out)
     return -1;
 }
 
-int apps_config_b64(const nos::argv &args, nos::ostream &out)
+int apps_config_b64(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     auto path = appManager->getAppConfigFilename();
@@ -360,7 +414,7 @@ int apps_config_b64(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int set_apps_config_b64(const nos::argv &args, nos::ostream &out)
+int set_apps_config_b64(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -378,7 +432,7 @@ int set_apps_config_b64(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int reload_config(const nos::argv &args, nos::ostream &out)
+int reload_config(const nos::argv &args, nos::ostream &out, Context)
 {
     (void)args;
     (void)out;
@@ -386,7 +440,7 @@ int reload_config(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int application_command(const nos::argv &args, nos::ostream &out)
+int application_command(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
     {
@@ -407,9 +461,9 @@ int application_command(const nos::argv &args, nos::ostream &out)
     return 0;
 }
 
-int b64out(const nos::argv &args, nos::ostream &out)
+int b64out(const nos::argv &args, nos::ostream &out, Context ctxt)
 {
-    extern nos::executor executor; //< executor forward declaration
+    extern nos::executor_t<Context> executor; //< executor forward declaration
 
     if (args.size() < 2)
     {
@@ -418,45 +472,57 @@ int b64out(const nos::argv &args, nos::ostream &out)
     }
 
     nos::string_buffer buf;
-    executor.execute(args.without(1), buf);
+    executor.execute(args.without(1), buf, ctxt);
 
     auto b64 = igris::base64_encode(buf.str());
     nos::println_to(out, b64);
     return 0;
 }
 
-nos::executor executor(std::vector<nos::command>{
-    nos::command("hello", "baba is you", &hello),
-    nos::command("q", "exit", &exit),
-    nos::command("exit", "exit", &exit),
-    nos::command("reload", "reload", &reload_config),
-    nos::command("list", "list of applications", &list_of_applications),
-    nos::command("command", "show application command", &application_command),
-    nos::command("stop", "stop application", &stop_application),
-    nos::command("start", "start application", &start_application),
-    nos::command("stop_id", "stop application", &stop_id_application),
-    nos::command("start_id", "start application", &start_id_application),
-    nos::command("stop_all", "stop all applications", &stop_all_applications),
-    nos::command("start_all", "start all applications",
-                 &start_all_applications),
-    nos::command("restart_all", "restart all applications",
-                 &restart_all_applications),
-    nos::command("log", "show application stdout", &show_application_stdout),
-    nos::command("log_base64", "show application stdout",
-                 &show_application_stdout_base64),
-    nos::command("spam", "send spam", &send_spam),
-    nos::command("api_version", "api version", &api_version),
-    nos::command("linkeds", "linked files", &app_linked_files),
-    nos::command("linkeds_b64", "linked files", &app_linked_files_b64),
-    nos::command("apps_config_b64", "get apps config", &apps_config_b64),
-    nos::command("set_apps_config_b64", "set apps config",
-                 &set_apps_config_b64),
-    nos::command("b64out", "wrap any command output to base64", b64out),
-    nos::command("read_linked", "read linked file", &read_linked_file),
-    nos::command("read_linked_b64", "read linked file",
-                 &read_linked_file_b64)});
+nos::executor_t<Context> executor(std::vector<nos::command_t<Context>>{
+    nos::command_t<Context>("hello", "baba is you", &hello),
+    nos::command_t<Context>("q", "exit", &exit),
+    nos::command_t<Context>("exit", "exit", &exit),
+    nos::command_t<Context>("reload", "reload", &reload_config),
+    nos::command_t<Context>("list", "list of applications",
+                            &list_of_applications),
+    nos::command_t<Context>("command", "show application command",
+                            &application_command),
+    nos::command_t<Context>("stop", "stop application", &stop_application),
+    nos::command_t<Context>("start", "start application", &start_application),
+    nos::command_t<Context>("stop_id", "stop application",
+                            &stop_id_application),
+    nos::command_t<Context>("start_id", "start application",
+                            &start_id_application),
+    nos::command_t<Context>("stop_all", "stop all applications",
+                            &stop_all_applications),
+    nos::command_t<Context>("start_all", "start all applications",
+                            &start_all_applications),
+    nos::command_t<Context>("restart_all", "restart all applications",
+                            &restart_all_applications),
+    nos::command_t<Context>("log", "show application stdout",
+                            &show_application_stdout),
+    nos::command_t<Context>("logstream", "show application stdout stream",
+                            &show_application_stdout_stream),
+    nos::command_t<Context>("log_base64", "show application stdout",
+                            &show_application_stdout_base64),
+    nos::command_t<Context>("spam", "send spam", &send_spam),
+    nos::command_t<Context>("api_version", "api version", &api_version),
+    nos::command_t<Context>("linkeds", "linked files", &app_linked_files),
+    nos::command_t<Context>("linkeds_b64", "linked files",
+                            &app_linked_files_b64),
+    nos::command_t<Context>("apps_config_b64", "get apps config",
+                            &apps_config_b64),
+    nos::command_t<Context>("set_apps_config_b64", "set apps config",
+                            &set_apps_config_b64),
+    nos::command_t<Context>("b64out", "wrap any command output to base64",
+                            b64out),
+    nos::command_t<Context>("read_linked", "read linked file",
+                            &read_linked_file),
+    nos::command_t<Context>("read_linked_b64", "read linked file",
+                            &read_linked_file_b64)});
 
-std::string execute_tokens(nos::tokens &tokens)
+std::string execute_tokens(nos::tokens &tokens, client_context *context)
 {
     if (VERBOSE)
     {
@@ -468,12 +534,14 @@ std::string execute_tokens(nos::tokens &tokens)
     nos::string_buffer sb;
     if (tokens.size() == 0)
         return "";
-    executor.execute(tokens, sb);
+    executor.execute(tokens, sb, context);
     return sb.str();
 }
 
 void client_spin(nos::inet::tcp_client client)
 {
+    client_context context([&](std::string str)
+                           { client.send(str.data(), str.size()); });
     while (true)
     {
         auto expected_line = nos::readline_from(client);
@@ -489,7 +557,7 @@ void client_spin(nos::inet::tcp_client client)
             return;
 
         nos::tokens tokens(line);
-        auto sb = execute_tokens(tokens);
+        auto sb = execute_tokens(tokens, &context);
         if (sb.size() == 0)
             continue;
         client.write(sb.data(), sb.size());
@@ -524,12 +592,13 @@ int userIOThreadHandler()
 {
     std::string str;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    client_context context([](std::string str) { nos::print(str); });
     while (1)
     {
         std::cout << "$ ";
         getline(std::cin, str);
         nos::tokens tokens(str);
-        auto sb = execute_tokens(tokens);
+        auto sb = execute_tokens(tokens, &context);
         if (sb.size() == 0)
             continue;
         std::cout << sb;

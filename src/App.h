@@ -6,10 +6,13 @@
 #include <optional>
 #include <pwd.h>
 #include <queue>
+#include <rxcpp/rx.hpp>
 #include <string>
 #include <thread>
 #include <unordered_map>
 #include <vector>
+
+#include <rxcpp/rx-subjects.hpp>
 
 class LinkedFile
 {
@@ -55,7 +58,14 @@ private:
     std::string _stdout_record;
     std::unordered_map<std::string, std::string> _env;
 
+    rxcpp::subjects::subject<std::string> logstream_subject;
+
 public:
+    auto logstream_subject_observable()
+    {
+        return logstream_subject.get_observable();
+    }
+
     App(int task_index, const std::string &name, const std::string &cmd,
         RestartMode mode, const std::vector<LinkedFile> &linkeds,
         std::string user);

@@ -1,0 +1,1095 @@
+OBJECT /home/mirmik/project/rfdaemon/build/src/App.o
+OBJECT /home/mirmik/project/rfdaemon/build/src/httpserver.o
+OBJECT /home/mirmik/project/rfdaemon/build/src/console.o
+OBJECT /home/mirmik/project/rfdaemon/build/src/AppManager.o
+In file included from /usr/local/include/rxcpp/rx-operators.hpp:531,
+                 from /usr/local/include/rxcpp/rx-includes.hpp:212,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/AppManager.h:3,
+                 from ./src/AppManager.cpp:1:
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:25: error: ‘rxsub’ does not name a type
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:30: error: expected ‘>’ before ‘::’ token
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:102:12: error: ‘Result’ does not name a type
+  102 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:25: error: ‘rxsub’ does not name a type
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:30: error: expected ‘>’ before ‘::’ token
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:114:12: error: ‘Result’ does not name a type
+  114 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:25: error: ‘rxsub’ does not name a type
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:30: error: expected ‘>’ before ‘::’ token
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:126:12: error: ‘Result’ does not name a type
+  126 |     static Result member(Observable&& o, T first, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:25: error: ‘rxsub’ does not name a type
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:30: error: expected ‘>’ before ‘::’ token
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:150:12: error: ‘Result’ does not name a type
+  150 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:236,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/AppManager.h:3,
+                 from ./src/AppManager.cpp:1:
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:85:26: error: ‘rxsub’ does not name a type
+   85 |     using subject_type = rxsub::subject<marble_type>;
+      |                          ^~~~~
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 2 is invalid
+   87 |     using key_subscriber_map_type = std::map<key_type, typename subject_type::subscriber_type, predicate_type>;
+      |                                                                                                              ^
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 4 is invalid
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:246,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/AppManager.h:3,
+                 from ./src/AppManager.cpp:1:
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:25: error: ‘rxsub’ does not name a type
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:30: error: expected ‘>’ before ‘::’ token
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:108:12: error: ‘Result’ does not name a type
+  108 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:25: error: ‘rxsub’ does not name a type
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:30: error: expected ‘>’ before ‘::’ token
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:120:12: error: ‘Result’ does not name a type
+  120 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:25: error: ‘rxsub’ does not name a type
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:30: error: expected ‘>’ before ‘::’ token
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:133:12: error: ‘Result’ does not name a type
+  133 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:25: error: ‘rxsub’ does not name a type
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:30: error: expected ‘>’ before ‘::’ token
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:146:12: error: ‘Result’ does not name a type
+  146 |     static Result member(Observable&& o, Count count, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:25: error: ‘rxsub’ does not name a type
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:30: error: expected ‘>’ before ‘::’ token
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:160:12: error: ‘Result’ does not name a type
+  160 |     static Result member(Observable&& o, Count count, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:25: error: ‘rxsub’ does not name a type
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:30: error: expected ‘>’ before ‘::’ token
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:174:12: error: ‘Result’ does not name a type
+  174 |     static Result member(Observable&& o, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:25: error: ‘rxsub’ does not name a type
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:30: error: expected ‘>’ before ‘::’ token
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:189:12: error: ‘Result’ does not name a type
+  189 |     static Result member(Observable&& o, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:25: error: ‘rxsub’ does not name a type
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:30: error: expected ‘>’ before ‘::’ token
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:204:12: error: ‘Result’ does not name a type
+  204 |     static Result member(Observable&& o, Count count, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:25: error: ‘rxsub’ does not name a type
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:30: error: expected ‘>’ before ‘::’ token
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:220:12: error: ‘Result’ does not name a type
+  220 |     static Result member(Observable&& o, Count count, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:267,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/AppManager.h:3,
+                 from ./src/AppManager.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:35: error: ‘subjects’ is not a member of ‘rxcpp’
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 1 is invalid
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                      ^~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window.hpp: In constructor ‘rxcpp::operators::detail::window<T>::window_observer<Subscriber>::window_observer(rxcpp::operators::detail::window<T>::window_observer<Subscriber>::dest_type, rxcpp::operators::detail::window<T>::window_values)’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:18: error: request for member ‘push_back’ in ‘((rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                  ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:35: error: ‘rxcpp::subjects’ has not been declared
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:54: error: expected primary-expression before ‘>’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                      ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:56: error: expected primary-expression before ‘)’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                        ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:87:30: error: invalid types ‘int[int]’ for array subscript
+   87 |             dest.on_next(subj[0].get_observable().as_dynamic());
+      |                              ^
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_next(const T&) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+   90 |             for (const auto& s : subj) {
+      |                                  ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: note: (if you use ‘-fpermissive’, G++ will accept your code, but allowing the use of an undeclared name is deprecated)
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp:96:21: error: invalid types ‘int[int]’ for array subscript
+   96 |                 subj[0].get_subscriber().on_completed();
+      |                     ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:97:22: error: request for member ‘pop_front’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   97 |                 subj.pop_front();
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:22: error: request for member ‘push_back’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:39: error: ‘rxcpp::subjects’ has not been declared
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:58: error: expected primary-expression before ‘>’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                          ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:60: error: expected primary-expression before ‘)’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                            ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:102:40: error: request for member ‘size’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  102 |                 dest.on_next(subj[subj.size() - 1].get_observable().as_dynamic());
+      |                                        ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_error(rxcpp::util::error_ptr) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  107 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_completed() const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  114 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:268,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/AppManager.h:3,
+                 from ./src/AppManager.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:39: error: ‘subjects’ is not a member of ‘rxcpp’
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 1 is invalid
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                          ^~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:51: error: ‘rxcpp::subjects’ has not been declared
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:70: error: expected primary-expression before ‘>’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                      ^
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:72: error: expected primary-expression before ‘)’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                        ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:269,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/AppManager.h:3,
+                 from ./src/AppManager.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:102:28: error: ‘subjects’ in namespace ‘rxcpp’ does not name a type
+  102 |             mutable rxcpp::subjects::subject<T> subj;
+      |                            ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:38: error: ‘rxcpp::subjects’ has not been declared
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:57: error: expected primary-expression before ‘>’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:59: error: expected primary-expression before ‘)’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                           ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:270,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/AppManager.h:3,
+                 from ./src/AppManager.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:38: error: ‘subjects’ is not a member of ‘rxcpp’
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 1 is invalid
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                                         ^~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:86: error: ‘rxcpp::subjects’ has not been declared
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:105: error: expected primary-expression before ‘>’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:107: error: expected primary-expression before ‘)’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                           ^
+[31;1mLicantError[0m: Error while executing task /home/mirmik/project/rfdaemon/build/src/AppManager.o
+In file included from /usr/local/include/rxcpp/rx-operators.hpp:531,
+                 from /usr/local/include/rxcpp/rx-includes.hpp:212,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:25: error: ‘rxsub’ does not name a type
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:30: error: expected ‘>’ before ‘::’ token
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:102:12: error: ‘Result’ does not name a type
+  102 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:25: error: ‘rxsub’ does not name a type
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:30: error: expected ‘>’ before ‘::’ token
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:114:12: error: ‘Result’ does not name a type
+  114 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:25: error: ‘rxsub’ does not name a type
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:30: error: expected ‘>’ before ‘::’ token
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:126:12: error: ‘Result’ does not name a type
+  126 |     static Result member(Observable&& o, T first, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:25: error: ‘rxsub’ does not name a type
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:30: error: expected ‘>’ before ‘::’ token
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:150:12: error: ‘Result’ does not name a type
+  150 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:236,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:85:26: error: ‘rxsub’ does not name a type
+   85 |     using subject_type = rxsub::subject<marble_type>;
+      |                          ^~~~~
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 2 is invalid
+   87 |     using key_subscriber_map_type = std::map<key_type, typename subject_type::subscriber_type, predicate_type>;
+      |                                                                                                              ^
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 4 is invalid
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:246,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:25: error: ‘rxsub’ does not name a type
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:30: error: expected ‘>’ before ‘::’ token
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:108:12: error: ‘Result’ does not name a type
+  108 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:25: error: ‘rxsub’ does not name a type
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:30: error: expected ‘>’ before ‘::’ token
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:120:12: error: ‘Result’ does not name a type
+  120 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:25: error: ‘rxsub’ does not name a type
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:30: error: expected ‘>’ before ‘::’ token
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:133:12: error: ‘Result’ does not name a type
+  133 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:25: error: ‘rxsub’ does not name a type
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:30: error: expected ‘>’ before ‘::’ token
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:146:12: error: ‘Result’ does not name a type
+  146 |     static Result member(Observable&& o, Count count, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:25: error: ‘rxsub’ does not name a type
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:30: error: expected ‘>’ before ‘::’ token
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:160:12: error: ‘Result’ does not name a type
+  160 |     static Result member(Observable&& o, Count count, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:25: error: ‘rxsub’ does not name a type
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:30: error: expected ‘>’ before ‘::’ token
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:174:12: error: ‘Result’ does not name a type
+  174 |     static Result member(Observable&& o, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:25: error: ‘rxsub’ does not name a type
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:30: error: expected ‘>’ before ‘::’ token
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:189:12: error: ‘Result’ does not name a type
+  189 |     static Result member(Observable&& o, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:25: error: ‘rxsub’ does not name a type
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:30: error: expected ‘>’ before ‘::’ token
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:204:12: error: ‘Result’ does not name a type
+  204 |     static Result member(Observable&& o, Count count, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:25: error: ‘rxsub’ does not name a type
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:30: error: expected ‘>’ before ‘::’ token
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:220:12: error: ‘Result’ does not name a type
+  220 |     static Result member(Observable&& o, Count count, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:267,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:35: error: ‘subjects’ is not a member of ‘rxcpp’
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 1 is invalid
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                      ^~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window.hpp: In constructor ‘rxcpp::operators::detail::window<T>::window_observer<Subscriber>::window_observer(rxcpp::operators::detail::window<T>::window_observer<Subscriber>::dest_type, rxcpp::operators::detail::window<T>::window_values)’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:18: error: request for member ‘push_back’ in ‘((rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                  ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:35: error: ‘rxcpp::subjects’ has not been declared
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:54: error: expected primary-expression before ‘>’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                      ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:56: error: expected primary-expression before ‘)’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                        ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:87:30: error: invalid types ‘int[int]’ for array subscript
+   87 |             dest.on_next(subj[0].get_observable().as_dynamic());
+      |                              ^
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_next(const T&) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+   90 |             for (const auto& s : subj) {
+      |                                  ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: note: (if you use ‘-fpermissive’, G++ will accept your code, but allowing the use of an undeclared name is deprecated)
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp:96:21: error: invalid types ‘int[int]’ for array subscript
+   96 |                 subj[0].get_subscriber().on_completed();
+      |                     ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:97:22: error: request for member ‘pop_front’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   97 |                 subj.pop_front();
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:22: error: request for member ‘push_back’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:39: error: ‘rxcpp::subjects’ has not been declared
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:58: error: expected primary-expression before ‘>’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                          ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:60: error: expected primary-expression before ‘)’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                            ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:102:40: error: request for member ‘size’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  102 |                 dest.on_next(subj[subj.size() - 1].get_observable().as_dynamic());
+      |                                        ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_error(rxcpp::util::error_ptr) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  107 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_completed() const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  114 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:268,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:39: error: ‘subjects’ is not a member of ‘rxcpp’
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 1 is invalid
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                          ^~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:51: error: ‘rxcpp::subjects’ has not been declared
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:70: error: expected primary-expression before ‘>’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                      ^
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:72: error: expected primary-expression before ‘)’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                        ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:269,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:102:28: error: ‘subjects’ in namespace ‘rxcpp’ does not name a type
+  102 |             mutable rxcpp::subjects::subject<T> subj;
+      |                            ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:38: error: ‘rxcpp::subjects’ has not been declared
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:57: error: expected primary-expression before ‘>’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:59: error: expected primary-expression before ‘)’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                           ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:270,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:38: error: ‘subjects’ is not a member of ‘rxcpp’
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 1 is invalid
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                                         ^~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:86: error: ‘rxcpp::subjects’ has not been declared
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:105: error: expected primary-expression before ‘>’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:107: error: expected primary-expression before ‘)’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                           ^
+./src/App.cpp: In constructor ‘App::App(int, const string&, const string&, App::RestartMode, const std::vector<LinkedFile>&, std::string)’:
+./src/App.cpp:101:65: error: no matching function for call to ‘rxcpp::subjects::behavior<std::__cxx11::basic_string<char> >::behavior()’
+  101 |     : _linked_files(linkeds), task_index(task_index), _name(name)
+      |                                                                 ^
+In file included from /usr/local/include/rxcpp/rx-subjects.hpp:20,
+                 from ./src/App.h:9,
+                 from ./src/App.cpp:1:
+/usr/local/include/rxcpp/subjects/rx-behavior.hpp:75:14: note: candidate: ‘rxcpp::subjects::behavior<T>::behavior(T, rxcpp::composite_subscription) [with T = std::__cxx11::basic_string<char>]’
+   75 |     explicit behavior(T f, composite_subscription cs = composite_subscription())
+      |              ^~~~~~~~
+/usr/local/include/rxcpp/subjects/rx-behavior.hpp:75:14: note:   candidate expects 2 arguments, 0 provided
+/usr/local/include/rxcpp/subjects/rx-behavior.hpp:70:7: note: candidate: ‘rxcpp::subjects::behavior<std::__cxx11::basic_string<char> >::behavior(const rxcpp::subjects::behavior<std::__cxx11::basic_string<char> >&)’
+   70 | class behavior
+      |       ^~~~~~~~
+/usr/local/include/rxcpp/subjects/rx-behavior.hpp:70:7: note:   candidate expects 1 argument, 0 provided
+/usr/local/include/rxcpp/subjects/rx-behavior.hpp:70:7: note: candidate: ‘rxcpp::subjects::behavior<std::__cxx11::basic_string<char> >::behavior(rxcpp::subjects::behavior<std::__cxx11::basic_string<char> >&&)’
+/usr/local/include/rxcpp/subjects/rx-behavior.hpp:70:7: note:   candidate expects 1 argument, 0 provided
+In file included from /usr/local/include/rxcpp/rx-operators.hpp:531,
+                 from /usr/local/include/rxcpp/rx-includes.hpp:212,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/console.cpp:1:
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:25: error: ‘rxsub’ does not name a type
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:30: error: expected ‘>’ before ‘::’ token
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:102:12: error: ‘Result’ does not name a type
+  102 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:25: error: ‘rxsub’ does not name a type
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:30: error: expected ‘>’ before ‘::’ token
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:114:12: error: ‘Result’ does not name a type
+  114 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:25: error: ‘rxsub’ does not name a type
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:30: error: expected ‘>’ before ‘::’ token
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:126:12: error: ‘Result’ does not name a type
+  126 |     static Result member(Observable&& o, T first, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:25: error: ‘rxsub’ does not name a type
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:30: error: expected ‘>’ before ‘::’ token
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:150:12: error: ‘Result’ does not name a type
+  150 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:236,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/console.cpp:1:
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:85:26: error: ‘rxsub’ does not name a type
+   85 |     using subject_type = rxsub::subject<marble_type>;
+      |                          ^~~~~
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 2 is invalid
+   87 |     using key_subscriber_map_type = std::map<key_type, typename subject_type::subscriber_type, predicate_type>;
+      |                                                                                                              ^
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 4 is invalid
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:246,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/console.cpp:1:
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:25: error: ‘rxsub’ does not name a type
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:30: error: expected ‘>’ before ‘::’ token
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:108:12: error: ‘Result’ does not name a type
+  108 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:25: error: ‘rxsub’ does not name a type
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:30: error: expected ‘>’ before ‘::’ token
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:120:12: error: ‘Result’ does not name a type
+  120 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:25: error: ‘rxsub’ does not name a type
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:30: error: expected ‘>’ before ‘::’ token
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:133:12: error: ‘Result’ does not name a type
+  133 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:25: error: ‘rxsub’ does not name a type
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:30: error: expected ‘>’ before ‘::’ token
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:146:12: error: ‘Result’ does not name a type
+  146 |     static Result member(Observable&& o, Count count, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:25: error: ‘rxsub’ does not name a type
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:30: error: expected ‘>’ before ‘::’ token
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:160:12: error: ‘Result’ does not name a type
+  160 |     static Result member(Observable&& o, Count count, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:25: error: ‘rxsub’ does not name a type
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:30: error: expected ‘>’ before ‘::’ token
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:174:12: error: ‘Result’ does not name a type
+  174 |     static Result member(Observable&& o, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:25: error: ‘rxsub’ does not name a type
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:30: error: expected ‘>’ before ‘::’ token
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:189:12: error: ‘Result’ does not name a type
+  189 |     static Result member(Observable&& o, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:25: error: ‘rxsub’ does not name a type
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:30: error: expected ‘>’ before ‘::’ token
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:204:12: error: ‘Result’ does not name a type
+  204 |     static Result member(Observable&& o, Count count, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:25: error: ‘rxsub’ does not name a type
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:30: error: expected ‘>’ before ‘::’ token
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:220:12: error: ‘Result’ does not name a type
+  220 |     static Result member(Observable&& o, Count count, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:267,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/console.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:35: error: ‘subjects’ is not a member of ‘rxcpp’
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 1 is invalid
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                      ^~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window.hpp: In constructor ‘rxcpp::operators::detail::window<T>::window_observer<Subscriber>::window_observer(rxcpp::operators::detail::window<T>::window_observer<Subscriber>::dest_type, rxcpp::operators::detail::window<T>::window_values)’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:18: error: request for member ‘push_back’ in ‘((rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                  ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:35: error: ‘rxcpp::subjects’ has not been declared
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:54: error: expected primary-expression before ‘>’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                      ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:56: error: expected primary-expression before ‘)’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                        ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:87:30: error: invalid types ‘int[int]’ for array subscript
+   87 |             dest.on_next(subj[0].get_observable().as_dynamic());
+      |                              ^
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_next(const T&) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+   90 |             for (const auto& s : subj) {
+      |                                  ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: note: (if you use ‘-fpermissive’, G++ will accept your code, but allowing the use of an undeclared name is deprecated)
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp:96:21: error: invalid types ‘int[int]’ for array subscript
+   96 |                 subj[0].get_subscriber().on_completed();
+      |                     ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:97:22: error: request for member ‘pop_front’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   97 |                 subj.pop_front();
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:22: error: request for member ‘push_back’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:39: error: ‘rxcpp::subjects’ has not been declared
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:58: error: expected primary-expression before ‘>’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                          ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:60: error: expected primary-expression before ‘)’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                            ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:102:40: error: request for member ‘size’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  102 |                 dest.on_next(subj[subj.size() - 1].get_observable().as_dynamic());
+      |                                        ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_error(rxcpp::util::error_ptr) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  107 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_completed() const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  114 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:268,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/console.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:39: error: ‘subjects’ is not a member of ‘rxcpp’
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 1 is invalid
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                          ^~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:51: error: ‘rxcpp::subjects’ has not been declared
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:70: error: expected primary-expression before ‘>’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                      ^
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:72: error: expected primary-expression before ‘)’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                        ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:269,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/console.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:102:28: error: ‘subjects’ in namespace ‘rxcpp’ does not name a type
+  102 |             mutable rxcpp::subjects::subject<T> subj;
+      |                            ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:38: error: ‘rxcpp::subjects’ has not been declared
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:57: error: expected primary-expression before ‘>’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:59: error: expected primary-expression before ‘)’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                           ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:270,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/console.cpp:1:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:38: error: ‘subjects’ is not a member of ‘rxcpp’
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 1 is invalid
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                                         ^~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:86: error: ‘rxcpp::subjects’ has not been declared
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:105: error: expected primary-expression before ‘>’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:107: error: expected primary-expression before ‘)’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                           ^
+In file included from /usr/local/include/rxcpp/rx-operators.hpp:531,
+                 from /usr/local/include/rxcpp/rx-includes.hpp:212,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/httpserver.cpp:2:
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:25: error: ‘rxsub’ does not name a type
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:98:30: error: expected ‘>’ before ‘::’ token
+   98 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:102:12: error: ‘Result’ does not name a type
+  102 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:25: error: ‘rxsub’ does not name a type
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:110:30: error: expected ‘>’ before ‘::’ token
+  110 |         class Subject = rxsub::subject<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:114:12: error: ‘Result’ does not name a type
+  114 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:25: error: ‘rxsub’ does not name a type
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:122:30: error: expected ‘>’ before ‘::’ token
+  122 |         class Subject = rxsub::behavior<SourceValue>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:126:12: error: ‘Result’ does not name a type
+  126 |     static Result member(Observable&& o, T first, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:25: error: ‘rxsub’ does not name a type
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:146:30: error: expected ‘>’ before ‘::’ token
+  146 |         class Subject = rxsub::synchronize<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-publish.hpp:150:12: error: ‘Result’ does not name a type
+  150 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:236,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/httpserver.cpp:2:
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:85:26: error: ‘rxsub’ does not name a type
+   85 |     using subject_type = rxsub::subject<marble_type>;
+      |                          ^~~~~
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 2 is invalid
+   87 |     using key_subscriber_map_type = std::map<key_type, typename subject_type::subscriber_type, predicate_type>;
+      |                                                                                                              ^
+/usr/local/include/rxcpp/operators/rx-group_by.hpp:87:110: error: template argument 4 is invalid
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:246,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/httpserver.cpp:2:
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:25: error: ‘rxsub’ does not name a type
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:104:30: error: expected ‘>’ before ‘::’ token
+  104 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:108:12: error: ‘Result’ does not name a type
+  108 |     static Result member(Observable&& o) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:25: error: ‘rxsub’ does not name a type
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:116:30: error: expected ‘>’ before ‘::’ token
+  116 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:120:12: error: ‘Result’ does not name a type
+  120 |     static Result member(Observable&& o, composite_subscription cs) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:25: error: ‘rxsub’ does not name a type
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:129:30: error: expected ‘>’ before ‘::’ token
+  129 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:133:12: error: ‘Result’ does not name a type
+  133 |     static Result member(Observable&& o, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:25: error: ‘rxsub’ does not name a type
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:142:30: error: expected ‘>’ before ‘::’ token
+  142 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:146:12: error: ‘Result’ does not name a type
+  146 |     static Result member(Observable&& o, Count count, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:25: error: ‘rxsub’ does not name a type
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:156:30: error: expected ‘>’ before ‘::’ token
+  156 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:160:12: error: ‘Result’ does not name a type
+  160 |     static Result member(Observable&& o, Count count, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:25: error: ‘rxsub’ does not name a type
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:170:30: error: expected ‘>’ before ‘::’ token
+  170 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:174:12: error: ‘Result’ does not name a type
+  174 |     static Result member(Observable&& o, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:25: error: ‘rxsub’ does not name a type
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:185:30: error: expected ‘>’ before ‘::’ token
+  185 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:189:12: error: ‘Result’ does not name a type
+  189 |     static Result member(Observable&& o, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:25: error: ‘rxsub’ does not name a type
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:200:30: error: expected ‘>’ before ‘::’ token
+  200 |         class Subject = rxsub::replay<SourceValue, identity_one_worker>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:204:12: error: ‘Result’ does not name a type
+  204 |     static Result member(Observable&& o, Count count, Duration&& d, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:25: error: ‘rxsub’ does not name a type
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                         ^~~~~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:216:30: error: expected ‘>’ before ‘::’ token
+  216 |         class Subject = rxsub::replay<SourceValue, rxu::decay_t<Coordination>>,
+      |                              ^~
+/usr/local/include/rxcpp/operators/rx-replay.hpp:220:12: error: ‘Result’ does not name a type
+  220 |     static Result member(Observable&& o, Count count, Duration&& d, Coordination&& cn, composite_subscription cs = composite_subscription()) {
+      |            ^~~~~~
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:267,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/httpserver.cpp:2:
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:35: error: ‘subjects’ is not a member of ‘rxcpp’
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 1 is invalid
+   79 |         mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                      ^~
+/usr/local/include/rxcpp/operators/rx-window.hpp:79:54: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window.hpp: In constructor ‘rxcpp::operators::detail::window<T>::window_observer<Subscriber>::window_observer(rxcpp::operators::detail::window<T>::window_observer<Subscriber>::dest_type, rxcpp::operators::detail::window<T>::window_values)’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:18: error: request for member ‘push_back’ in ‘((rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                  ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:35: error: ‘rxcpp::subjects’ has not been declared
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:54: error: expected primary-expression before ‘>’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                      ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:86:56: error: expected primary-expression before ‘)’ token
+   86 |             subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                        ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:87:30: error: invalid types ‘int[int]’ for array subscript
+   87 |             dest.on_next(subj[0].get_observable().as_dynamic());
+      |                              ^
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_next(const T&) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+   90 |             for (const auto& s : subj) {
+      |                                  ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: note: (if you use ‘-fpermissive’, G++ will accept your code, but allowing the use of an undeclared name is deprecated)
+/usr/local/include/rxcpp/operators/rx-window.hpp:90:34: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp:96:21: error: invalid types ‘int[int]’ for array subscript
+   96 |                 subj[0].get_subscriber().on_completed();
+      |                     ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:97:22: error: request for member ‘pop_front’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+   97 |                 subj.pop_front();
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:22: error: request for member ‘push_back’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                      ^~~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:39: error: ‘rxcpp::subjects’ has not been declared
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:58: error: expected primary-expression before ‘>’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                          ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:101:60: error: expected primary-expression before ‘)’ token
+  101 |                 subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                            ^
+/usr/local/include/rxcpp/operators/rx-window.hpp:102:40: error: request for member ‘size’ in ‘((const rxcpp::operators::detail::window<T>::window_observer<Subscriber>*)this)->rxcpp::operators::detail::window<T>::window_observer<Subscriber>::subj’, which is of non-class type ‘int’
+  102 |                 dest.on_next(subj[subj.size() - 1].get_observable().as_dynamic());
+      |                                        ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_error(rxcpp::util::error_ptr) const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  107 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:107:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+/usr/local/include/rxcpp/operators/rx-window.hpp: In member function ‘void rxcpp::operators::detail::window<T>::window_observer<Subscriber>::on_completed() const’:
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘begin’ that depend on a template parameter, so a declaration of ‘begin’ must be available [-fpermissive]
+  114 |             for (auto s : subj) {
+      |                           ^~~~
+/usr/local/include/rxcpp/operators/rx-window.hpp:114:27: error: there are no arguments to ‘end’ that depend on a template parameter, so a declaration of ‘end’ must be available [-fpermissive]
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:268,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/httpserver.cpp:2:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:39: error: ‘subjects’ is not a member of ‘rxcpp’
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                       ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 1 is invalid
+  109 |             mutable std::deque<rxcpp::subjects::subject<T>> subj;
+      |                                                          ^~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:109:58: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_time.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:51: error: ‘rxcpp::subjects’ has not been declared
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                   ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:70: error: expected primary-expression before ‘>’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                      ^
+/usr/local/include/rxcpp/operators/rx-window_time.hpp:158:72: error: expected primary-expression before ‘)’ token
+  158 |                 localState->subj.push_back(rxcpp::subjects::subject<T>());
+      |                                                                        ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:269,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/httpserver.cpp:2:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:102:28: error: ‘subjects’ in namespace ‘rxcpp’ does not name a type
+  102 |             mutable rxcpp::subjects::subject<T> subj;
+      |                            ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:38: error: ‘rxcpp::subjects’ has not been declared
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:57: error: expected primary-expression before ‘>’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_time_count.hpp:151:59: error: expected primary-expression before ‘)’ token
+  151 |                 state->subj = rxcpp::subjects::subject<T>();
+      |                                                           ^
+In file included from /usr/local/include/rxcpp/rx-includes.hpp:270,
+                 from /usr/local/include/rxcpp/rx-subjects.hpp:8,
+                 from ././src/App.h:9,
+                 from ././src/AppManager.h:3,
+                 from ./src/httpserver.cpp:2:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: At global scope:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:38: error: ‘subjects’ is not a member of ‘rxcpp’
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 1 is invalid
+  104 |             mutable std::list<rxcpp::subjects::subject<T>> subj;
+      |                                                         ^~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:104:57: error: template argument 2 is invalid
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp: In lambda function:
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:86: error: ‘rxcpp::subjects’ has not been declared
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                      ^~~~~~~~
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:105: error: expected primary-expression before ‘>’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                         ^
+/usr/local/include/rxcpp/operators/rx-window_toggle.hpp:142:107: error: expected primary-expression before ‘)’ token
+  142 |                     auto it = localState->subj.insert(localState->subj.end(), rxcpp::subjects::subject<T>());
+      |                                                                                                           ^
