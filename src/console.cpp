@@ -290,6 +290,16 @@ int api_version(const nos::argv &args, nos::ostream &out, Context)
     return 0;
 }
 
+int unsubscribe(const nos::argv &, nos::ostream &, Context context)
+{
+    for (auto &sub : context->subscriptions)
+    {
+        sub.unsubscribe();
+    }
+    context->subscriptions.clear();
+    return 0;
+}
+
 int app_linked_files(const nos::argv &args, nos::ostream &out, Context)
 {
     if (args.size() < 2)
@@ -517,6 +527,7 @@ nos::executor_t<Context> executor(std::vector<nos::command_t<Context>>{
                             &set_apps_config_b64),
     nos::command_t<Context>("b64out", "wrap any command output to base64",
                             b64out),
+    nos::command_t<Context>("unsubscribe", "unsubscribe", &unsubscribe),
     nos::command_t<Context>("read_linked", "read linked file",
                             &read_linked_file),
     nos::command_t<Context>("read_linked_b64", "read linked file",
