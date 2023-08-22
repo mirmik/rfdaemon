@@ -119,6 +119,26 @@ int main(int argc, char **argv)
         std::cout << text << std::endl;
         return 0;
     }
+    else if (command == "logstream")
+    {
+        if (args.size() < 2)
+        {
+            std::cout << "No name specified" << std::endl;
+            return -1;
+        }
+
+        nos::print_to(client, nos::format("logstream {}\n", args[1]));
+
+        while (1)
+        {
+            auto estr = nos::readline_from(client);
+            if (estr.is_error())
+                return 0;
+            nos::print(*estr);
+        }
+
+        return 0;
+    }
 
     nos::println("Unknown command");
     return -1;
