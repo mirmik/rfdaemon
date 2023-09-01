@@ -39,7 +39,7 @@ licant.cxx_application("rfdaemon",
                            "build/ircc_resource.gen.cpp"
                        ],
                        include_paths=["./src"],
-                       libs=["nos", "igris"],
+                       libs=["nos", "igris", "util"],
                        cxx_flags="-pedantic-errors -Werror=all -Werror=extra -g",
                        ld_flags="-static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
                        )
