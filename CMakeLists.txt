@@ -32,4 +32,5 @@ target_link_libraries(rfdaemon
   nos
   jsoncpp
   z
+  util
 )
