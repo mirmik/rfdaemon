@@ -1,27 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <script type="text/javascript" src="functions.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFDaemon // Control Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="style.css">
-  <meta charset="utf-8" />
-  <title>RFDaemon. Control panel.</title>
 </head>
 
-<body style="background-color:rgb(52, 50, 53);">
-  <div id="divtext" class="container_tasks"></div>
+<body>
+  <div class="wrapper">
+    <header>
+      <h1>⬡ RFDaemon</h1>
+      <div class="header-controls">
+        <div class="theme-switcher" onclick="toggleTheme()" title="Switch theme">
+          <span class="theme-switcher-icon">◐</span>
+          <span class="theme-switcher-label" id="theme-label">Retrowave</span>
+        </div>
+        <div class="global-controls">
+          <button class="btn btn-danger" onclick="stop_all()">■ Stop All</button>
+          <button class="btn btn-success" onclick="start_all()">▶ Start All</button>
+        </div>
+      </div>
+    </header>
 
+    <main>
+      <section class="apps-section">
+        <h2>▸ Applications</h2>
+        <div id="divtext" class="container_tasks"></div>
+      </section>
+
+      <section class="logs-section">
+        <h2>▸ Terminal Output</h2>
+        <textarea id="log_area" readonly placeholder="[ Select an application and click 'Logs' to view output... ]"></textarea>
+      </section>
+    </main>
+
+    <footer>
+      <span>RFDaemon // Process Manager</span>
+    </footer>
+  </div>
+
+  <script type="text/javascript" src="functions.js"></script>
   <script type="text/javascript">
+    initTheme();
     init_function();
     state_update_loop();
   </script>
-
-  <button onclick="stop_all()">stop all</button>
-  <button onclick="start_all()">start all</button>
-
-  <div>
-    <textarea id="log_area">LogZone</textarea>
-  </div>
 </body>
 
 </html>

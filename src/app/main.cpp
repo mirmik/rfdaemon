@@ -21,8 +21,9 @@ bool EDIT_MODE = false;
 bool USE_LEGACY_API_PORT = true;
 int API_CONSOLE_PORT = RFDAEMON_DEFAULT_API_PORT;
 uint16_t RFDAEMON_PORT = DEFAULT_RFDAEMON_PROTO_PORT;
-bool NO_HTTP_SERVER = false;
-int HTTP_SERVER_PORT = RFDAEMON_DEFAULT_HTTP_PORT;
+bool ENABLE_HTTP_SERVER = false;
+std::string HTTP_SERVER_HOST = "127.0.0.1";
+int HTTP_SERVER_PORT = 8080;
 bool PRINT_LOGS = false;
 
 std::unique_ptr<AppManager> appManager = {};
@@ -127,8 +128,11 @@ int main(int argc, char *argv[])
         }
         appManager->runApps();
 
-        if (!NO_HTTP_SERVER)
-            start_httpserver(HTTP_SERVER_PORT);
+        if (ENABLE_HTTP_SERVER)
+        {
+            nos::fprintln("Starting HTTP server on {}:{}", HTTP_SERVER_HOST, HTTP_SERVER_PORT);
+            start_httpserver(HTTP_SERVER_HOST, HTTP_SERVER_PORT);
+        }
 
         start_tcp_console(API_CONSOLE_PORT);
         if (USE_LEGACY_API_PORT)
@@ -169,26 +173,43 @@ int main(int argc, char *argv[])
 void print_help()
 {
     nos::fprint(
-        "Usage: rfdaemon [OPTION]...\n"
+        "Usage: rfdaemon [OPTIONS]...\n"
         "\n"
-        "Configuration:\n"
-        "  -c, --config - path to settings file\n"
-        "  -p, --port - RFDaemon protocol port\n"
-        "  -d, --daemon - Start daemon mode (default)\n"
-        "  -t, --terminal - Start terminal mode \n"
-        "  -n, --noext - Disable rfmeask extention \n"
-        "  -e, --edit - Edit configuration file \n"
-        "  -J, --nohttp - Without http server \n"
-        "  -u  --nolegacyapi - Without legacy api port 5000"
-        "  -U  --uselegacyapi - Force use legacy api port 5000"
-        "  -H, --http_port - Http server port \n"
-        "  -A, --http_port - API server port \n"
-        "Debug:\n"
-        "  -v, --debug - Print more information\n"
-        "  -h  --help - print this\n"
-        "  -T, --immediate-exit, Immediate exit for library linking test\n"
-        "  -V, --version, Print version\n"
-        "  -P, --print-logs - Print logs \n"
+        "RFDaemon - lightweight process manager for running and monitoring applications.\n"
+        "\n"
+        "OPTIONS:\n"
+        "  General:\n"
+        "    -h, --help                  Show this help message and exit\n"
+        "    -V, --version               Print version and exit\n"
+        "    -v, --verbose               Enable verbose output\n"
+        "\n"
+        "  Configuration:\n"
+        "    -c, --config <FILE>         Path to applications config file\n"
+        "                                (default: /etc/rfdaemon/applications.json)\n"
+        "    -e, --edit                  Open config file in editor (nano)\n"
+        "\n"
+        "  Execution mode:\n"
+        "    -t, --terminal              Run in terminal/foreground mode (default)\n"
+        "    -d, --daemon                Run as background daemon\n"
+        "    -N, --noconsole             Disable interactive console in terminal mode\n"
+        "\n"
+        "  Network:\n"
+        "    -p, --port <PORT>           RFDaemon protocol port (default: 5125)\n"
+        "        --http <HOST:PORT>      Enable HTTP server on specified address\n"
+        "                                Example: --http 0.0.0.0:8080\n"
+        "                                (HTTP server is disabled by default)\n"
+        "    -A, --api-port <PORT>       API console port (default: 15129)\n"
+        "    -u, --nolegacyapi           Disable legacy API on port 5000\n"
+        "    -U, --uselegacyapi          Enable legacy API on port 5000 (default)\n"
+        "\n"
+        "  Debug:\n"
+        "    -P, --print-logs            Print application logs to stdout\n"
+        "    -T, --immediate-exit        Exit immediately (for testing)\n"
+        "\n"
+        "EXAMPLES:\n"
+        "  rfdaemon -c /path/to/apps.json\n"
+        "  rfdaemon --http 127.0.0.1:8080\n"
+        "  rfdaemon --http 0.0.0.0:9000 -d\n"
         "\n");
 }
 
@@ -205,7 +226,7 @@ bool checkRunArgs(int argc, char *argv[])
         {"help", no_argument, NULL, 'h'},
         {"terminal", no_argument, NULL, 't'},
         {"daemon", no_argument, NULL, 'd'},
-        {"debug", no_argument, NULL, 'v'},
+        {"verbose", no_argument, NULL, 'v'},
         {"config", required_argument, NULL, 'c'},
         {"noext", no_argument, NULL, 'n'},
         {"noconsole", no_argument, NULL, 'N'},
@@ -213,14 +234,14 @@ bool checkRunArgs(int argc, char *argv[])
         {"edit", no_argument, NULL, 'e'},
         {"immediate-exit", no_argument, NULL, 'T'},
         {"version", no_argument, NULL, 'V'},
-        {"nohttp", no_argument, NULL, 'J'},
-        {"nolegacyapi", no_argument, NULL, 'U'},
-        {"http_port", required_argument, NULL, 'H'},
-        {"api_port", required_argument, NULL, 'A'},
+        {"http", required_argument, NULL, 'H'},
+        {"nolegacyapi", no_argument, NULL, 'u'},
+        {"uselegacyapi", no_argument, NULL, 'U'},
+        {"api-port", required_argument, NULL, 'A'},
         {"print-logs", no_argument, NULL, 'P'},
         {NULL, 0, NULL, 0}};
 
-    while ((opt = getopt_long(argc, argv, "htdvc:np:eTNU", long_options,
+    while ((opt = getopt_long(argc, argv, "htdvc:np:eTV::NuUH:A:P", long_options,
                               &long_index)) != -1)
     {
         switch (opt)
@@ -265,13 +286,23 @@ bool checkRunArgs(int argc, char *argv[])
             APPLICATION_LIST_FILE_NAME = std::string(optarg);
             break;
 
-        case 'J':
-            NO_HTTP_SERVER = true;
-            break;
-
         case 'H':
-            HTTP_SERVER_PORT = std::stoi(std::string(optarg));
-            break;
+        {
+            ENABLE_HTTP_SERVER = true;
+            std::string http_arg(optarg);
+            size_t colon_pos = http_arg.rfind(':');
+            if (colon_pos != std::string::npos)
+            {
+                HTTP_SERVER_HOST = http_arg.substr(0, colon_pos);
+                HTTP_SERVER_PORT = std::stoi(http_arg.substr(colon_pos + 1));
+            }
+            else
+            {
+                // Only port specified
+                HTTP_SERVER_PORT = std::stoi(http_arg);
+            }
+        }
+        break;
 
         case 'A':
             API_CONSOLE_PORT = std::stoi(std::string(optarg));
