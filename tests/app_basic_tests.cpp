@@ -25,7 +25,7 @@ TEST_CASE("App::status_string зависит только от флага isStop
 {
     std::vector<LinkedFile> linkeds;
     // Используем долгоживущий процесс для проверки состояния running
-    App app(0, "test_app", "sleep 10", RestartMode::ONCE, linkeds, "");
+    App app(0, "test_app", "sleep 10", App::RestartMode::ONCE, linkeds, "");
 
     CHECK_EQ(app.status_string(), std::string("stopped"));
 
@@ -44,7 +44,7 @@ TEST_CASE(
     "App::command и App::token_list_as_string строят строку из токенов команды")
 {
     std::vector<LinkedFile> linkeds;
-    App app(0, "echo_app", "echo 1 2", RestartMode::ONCE, linkeds, "");
+    App app(0, "echo_app", "echo 1 2", App::RestartMode::ONCE, linkeds, "");
 
     CHECK_EQ(app.command(), std::string("echo 1 2 "));
     CHECK_EQ(app.token_list_as_string(), std::string("[echo,1,2]"));
@@ -53,7 +53,7 @@ TEST_CASE(
 TEST_CASE("App::stop корректно завершает процесс и поток")
 {
     std::vector<LinkedFile> linkeds;
-    App app(0, "sleep_app", "sleep 10", RestartMode::ONCE, linkeds, "");
+    App app(0, "sleep_app", "sleep 10", App::RestartMode::ONCE, linkeds, "");
 
     // Проверяем начальное состояние
     CHECK_EQ(app.stopped(), true);
@@ -78,7 +78,7 @@ TEST_CASE("App::start/stop цикл работает корректно")
 {
     std::vector<LinkedFile> linkeds;
     // Используем долгоживущий процесс
-    App app(0, "cycle_test", "sleep 10", RestartMode::ONCE, linkeds, "");
+    App app(0, "cycle_test", "sleep 10", App::RestartMode::ONCE, linkeds, "");
 
     // Проверяем начальное состояние
     CHECK_EQ(app.stopped(), true);

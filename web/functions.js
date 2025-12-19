@@ -76,6 +76,26 @@ function httpGet(url, async = true) {
 }
 
 /**
+ * Performs an async HTTP POST request
+ */
+function httpPost(url, data) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(xhr.responseText);
+            } else {
+                reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+        };
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.send(JSON.stringify(data));
+    });
+}
+
+/**
  * Updates the status text with appropriate styling
  */
 function updateStatusDisplay(textElement, name, state) {
@@ -120,6 +140,7 @@ async function init_function() {
             controls.appendChild(makeButton("Start", () => startApp(index), 'btn-success'));
             controls.appendChild(makeButton("Restart", () => restartApp(index), 'btn-warning'));
             controls.appendChild(makeButton("Logs", () => getStdout(index), 'btn-info'));
+            controls.appendChild(makeButton("×", () => deleteApp(index), 'btn-danger'));
             row.appendChild(controls);
 
             // Command label
@@ -228,5 +249,56 @@ async function getStdout(index) {
         console.error(`Failed to get logs for app ${index}:`, error);
         const logArea = document.getElementById("log_area");
         logArea.value = `Error: Failed to retrieve logs for application ${index}`;
+    }
+}
+
+/**
+ * Adds a new application
+ */
+async function addApp() {
+    const name = prompt("Application name:");
+    if (!name) return;
+
+    const command = prompt("Command to execute:");
+    if (!command) return;
+
+    try {
+        await httpPost("app_add.action", {
+            name: name,
+            command: command,
+            restart: "always"
+        });
+        await init_function();
+    } catch (error) {
+        console.error("Failed to add app:", error);
+        alert("Failed to add application");
+    }
+}
+
+/**
+ * Deletes an application by index
+ */
+async function deleteApp(index) {
+    if (!confirm("Delete this application?")) return;
+
+    try {
+        await httpGet(`app_delete.action?index=${index}`);
+        await init_function();
+    } catch (error) {
+        console.error(`Failed to delete app ${index}:`, error);
+        alert("Failed to delete application");
+    }
+}
+
+/**
+ * Saves current configuration to disk
+ */
+async function saveConfig() {
+    try {
+        await httpGet("save_config.action");
+        alert("Configuration saved!");
+    } catch (error) {
+        console.error("Failed to save config:", error);
+        alert("Failed to save configuration");
     }
 }

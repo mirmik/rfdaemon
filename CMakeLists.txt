@@ -21,6 +21,7 @@ add_custom_command(
 file(GLOB SOURCES CONFIGURE_DEPENDS
   src/*.cpp
 )
+list(REMOVE_ITEM SOURCES "${CMAKE_SOURCE_DIR}/src/main.cpp")
 
 file(GLOB SOURCES_RFDAEMONCTL CONFIGURE_DEPENDS
   src/rfdaemonctl/*.cpp

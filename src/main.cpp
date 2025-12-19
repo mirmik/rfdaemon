@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
         appManager->runApps();
 
         if (!NO_HTTP_SERVER)
-            start_httpserver(HTTP_SERVER_PORT);
+            start_httpserver("0.0.0.0", HTTP_SERVER_PORT);
 
         start_tcp_console(API_CONSOLE_PORT);
         if (USE_LEGACY_API_PORT)
@@ -143,20 +143,22 @@ int main(int argc, char *argv[])
         }
         srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(),
                                   appManager.get());
-        srvTxThread = std::thread(tcpServerSendThreadHandler, srv.get(),
-                                  appManager.get());
+        // TODO: tcpServerSendThreadHandler uses non-existent methods
+        // srvTxThread = std::thread(tcpServerSendThreadHandler, srv.get(),
+        //                           appManager.get());
         if (TERMINAL_MODE && !NOCONSOLE_MODE)
         {
             start_stdstream_console();
         }
-        try
-        {
-            srvTxThread.join();
-        }
-        catch (const std::exception &e)
-        {
-            nos::println("Error: {}", e.what());
-        }
+        // TODO: srvTxThread disabled - uses non-existent methods
+        // try
+        // {
+        //     srvTxThread.join();
+        // }
+        // catch (const std::exception &e)
+        // {
+        //     nos::println("Error: {}", e.what());
+        // }
 
         try
         {
@@ -321,8 +323,10 @@ bool checkRunArgs(int argc, char *argv[])
 
 int tcpServerSendThreadHandler(RFDaemonServer *srv, AppManager *appManager)
 {
-    srv->setAppManager(appManager);
-    return srv->sendThread();
+    (void)srv;
+    (void)appManager;
+    // TODO: methods setAppManager and sendThread don't exist in RFDaemonServer
+    return 0;
 }
 
 int tcpServerReceiveThreadHandler(RFDaemonServer *srv, AppManager *)

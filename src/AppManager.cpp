@@ -5,6 +5,7 @@
 #include <iostream>
 #include <mutex>
 #include <nos/trent/json.h>
+#include <nos/trent/json_print.h>
 #include <unistd.h>
 #include <memory>
 
@@ -103,19 +104,19 @@ bool AppManager::loadConfigFile()
             auto env = apptrent["env"].as_dict();
             nos::fprintln("\t{}", name);
 
-            RestartMode restartMode;
+            App::RestartMode restartMode;
             if (apptrent["restart"].as_string() == "once")
             {
-                restartMode = RestartMode::ONCE;
+                restartMode = App::RestartMode::ONCE;
             }
             else if (apptrent["restart"].as_string() == "always")
             {
-                restartMode = RestartMode::ALWAYS;
+                restartMode = App::RestartMode::ALWAYS;
             }
             else
             {
                 nos::println("Unknown restart mode for app", name);
-                restartMode = RestartMode::ONCE;
+                restartMode = App::RestartMode::ONCE;
             }
 
             if (!files.empty())
@@ -330,4 +331,38 @@ std::shared_ptr<App> AppManager::get_app_by_pid(pid_t pid)
             return a;
     }
     return nullptr;
+}
+
+void AppManager::addApp(const std::string &name, const std::string &command,
+                        App::RestartMode mode)
+{
+    apps.emplace_back(std::make_shared<App>(
+        apps.size(), name, command, mode, std::vector<LinkedFile>{}, ""));
+}
+
+void AppManager::removeApp(size_t index)
+{
+    if (index < apps.size())
+    {
+        apps[index]->stop();
+        apps.erase(apps.begin() + index);
+    }
+}
+
+nos::trent AppManager::toJson() const
+{
+    nos::trent root;
+    for (size_t i = 0; i < apps.size(); i++)
+    {
+        root["apps"][(int)i] = apps[i]->toTrent();
+    }
+    return root;
+}
+
+void AppManager::saveConfig()
+{
+    std::ofstream file(appFilename);
+    file << nos::json::to_string(toJson());
+    file.close();
+    nos::println("Config saved to", appFilename);
 }

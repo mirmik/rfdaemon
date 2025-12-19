@@ -26,20 +26,15 @@ public:
     LinkedFile(const LinkedFile &) = default;
 };
 
+class App
+{
+public:
     enum RestartMode
     {
         ALWAYS = 0,
         ONCE = 1,
     };
 
-class IApp
-{
-};
-
-
-
-class App : public IApp
-{
 private:
     std::string _username = {};
     uid_t _uid = 0;
@@ -136,6 +131,12 @@ public:
     {
         return _linked_files;
     }
+
+    // Runtime editing methods
+    void setCommand(const std::string &cmd);
+    void setRestartMode(RestartMode mode);
+    void setName(const std::string &name);
+    nos::trent toTrent() const;
 
     ~App()
     {

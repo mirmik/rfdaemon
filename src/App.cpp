@@ -389,7 +389,7 @@ bool App::stopped() const
     return isStopped;
 }
 
-RestartMode App::restartMode() const
+App::RestartMode App::restartMode() const
 {
     return _restartMode;
 }
@@ -535,6 +535,45 @@ bool App::is_systemctl_process()
 void App::set_pid(int p)
 {
     systemd_pid = p;
+}
+
+void App::setCommand(const std::string &cmd)
+{
+    tokens = igris::split_cmdargs(cmd);
+}
+
+void App::setRestartMode(RestartMode mode)
+{
+    _restartMode = mode;
+}
+
+void App::setName(const std::string &newName)
+{
+    _name = newName;
+}
+
+nos::trent App::toTrent() const
+{
+    nos::trent tr;
+    tr["name"] = _name;
+    tr["command"] = command();
+    tr["restart"] = (_restartMode == ALWAYS) ? "always" : "once";
+    if (!_username.empty())
+    {
+        tr["user"] = _username;
+    }
+    if (!systemd_bind.empty())
+    {
+        tr["systemd_bind"] = systemd_bind;
+    }
+    if (!_env.empty())
+    {
+        for (const auto &kv : _env)
+        {
+            tr["env"][kv.first] = kv.second;
+        }
+    }
+    return tr;
 }
 
 void AppManager::update_systemctl_projects_status()

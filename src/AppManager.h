@@ -88,4 +88,11 @@ public:
     std::shared_ptr<App> get_app_by_pid(pid_t pid);
 
     void update_systemctl_projects_status();
+
+    // Runtime editing methods
+    void addApp(const std::string &name, const std::string &command,
+                App::RestartMode mode);
+    void removeApp(size_t index);
+    nos::trent toJson() const;
+    void saveConfig();
 };
