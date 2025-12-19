@@ -12,8 +12,6 @@
 #include <thread>
 #include <vector>
 
-constexpr auto APP_MAX_RESTART_ATTEMPTS = 3;
-
 class AppManager
 {
 public:
@@ -84,9 +82,7 @@ public:
     void send_spam(const std::string &message);
     void send_spam(const std::vector<uint8_t> &message);
     void reload_config();
-
-    void on_child_finished(pid_t pid);
-    std::shared_ptr<App> get_app_by_pid(pid_t pid);
+    void cleanup_orphaned_services();
 
     void update_systemctl_projects_status();
 

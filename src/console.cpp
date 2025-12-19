@@ -226,30 +226,12 @@ int show_application_stdout(const nos::argv &args, nos::ostream &out, Context)
 }
 
 int show_application_stdout_stream(const nos::argv &args, nos::ostream &out,
-                                   Context context)
+                                   Context)
 {
-    if (args.size() < 2)
-    {
-        nos::println_to(out, "Usage: show_application_stdout <app_name>");
-        return -1;
-    }
-
-    auto app = appManager->findApp(args[1].to_string());
-    if (app)
-    {
-        const std::string &stdout_string = app->show_stdout();
-        context->print(stdout_string);
-        context->subscriptions.push_back(
-            app->logstream_subject_observable().subscribe(
-                [context](std::string str) { context->print(str); }));
-    }
-    else
-    {
-        nos::println_to(out, "Application not found: " + args[1].to_string());
-        return -1;
-    }
-
-    return 0;
+    (void)args;
+    nos::println_to(out, "Error: logstream is not supported in systemd mode");
+    nos::println_to(out, "Use 'log <app_name>' or 'journalctl -u rfd-<app_name> -f' instead");
+    return -1;
 }
 
 int show_application_stdout_base64(const nos::argv &args, nos::ostream &out,
@@ -558,10 +540,8 @@ int is_systemd_process(const nos::argv &args, nos::ostream &out, Context)
     auto app = appManager->findApp(args[1].to_string());
     if (app)
     {
-        if (app->is_systemctl_process())
-            nos::println_to(out, "true");
-        else 
-            nos::println_to(out, "false");
+        // All processes are now managed via systemd
+        nos::println_to(out, "true");
     }
     else
     {

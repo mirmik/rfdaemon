@@ -34,43 +34,6 @@ std::string APPLICATION_LIST_FILE_NAME = "/etc/rfdaemon/applications.json";
 
 void interrupt_signal_handler(int signum);
 
-void interrupt_child(int signum)
-{
-    (void)signum;
-    int status;
-
-    for (;;)
-    {
-        pid_t p = waitpid(-1, &status, WUNTRACED | WNOHANG);
-        if (p < 0)
-        {
-            nos::println(status, p);
-            perror("waitpid");
-            exit(1);
-        }
-        if (p == 0)
-            break;
-
-        appManager->on_child_finished(p);
-    }
-}
-
-void proc_exit(int sig)
-{
-    (void)sig;
-    int retcode;
-
-    // Просто reap все завершившиеся процессы
-    // НЕ вызываем on_child_finished - это вызывает deadlock с apps_mutex!
-    // Завершение обрабатывается в appFork через poll/waitpid
-    while (true)
-    {
-        pid_t pid = wait3(&retcode, WNOHANG, (struct rusage *)NULL);
-        if (pid == 0 || pid == -1)
-            return;
-    }
-}
-
 int main(int argc, char *argv[])
 {
     pid_t daemonPid = 0;
@@ -78,7 +41,7 @@ int main(int argc, char *argv[])
     signal(SIGINT, interrupt_signal_handler);
     signal(SIGTERM, interrupt_signal_handler);
     signal(SIGSEGV, interrupt_signal_handler);
-    signal(SIGCHLD, proc_exit);
+    // SIGCHLD не нужен - systemd управляет процессами
 
     checkRunArgs(argc, argv);
 

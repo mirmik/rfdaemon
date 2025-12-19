@@ -1,11 +1,13 @@
 #include "AppManager.h"
 #include <byteswap.h>
 #include <cctype>
+#include <dirent.h>
 #include <fstream>
 #include <iostream>
 #include <mutex>
 #include <nos/trent/json.h>
 #include <nos/trent/json_print.h>
+#include <set>
 #include <unistd.h>
 #include <memory>
 
@@ -131,17 +133,10 @@ bool AppManager::loadConfigFile()
                 }
             }
 
-            std::string systemd_bind;
-            if (apptrent["systemd_bind"].is_string()) 
-            {
-                systemd_bind = apptrent["systemd_bind"].as_string();
-            }
-
             apps.emplace_back(
                 std::make_shared<App>(apps.size(), name, cmd, restartMode, linked_files,
                               user));
             auto &app = apps.back();
-            app->set_systemd_bind(systemd_bind);
 
             std::unordered_map<std::string, std::string> env_map;
             for (const auto &rec : env)
@@ -166,14 +161,40 @@ void AppManager::runApps()
 {
     nos::fprintln("[runApps] Called from thread {}, starting {} apps", std::this_thread::get_id(), apps.size());
     std::lock_guard<std::mutex> lock(apps_mutex);
+
+    // First, sync all service files
+    bool need_reload = false;
+    for (size_t i = 0; i < apps.size(); i++)
+    {
+        if (apps[i]->sync_service_file())
+            need_reload = true;
+    }
+
+    // Reload systemd if any service files changed
+    if (need_reload)
+    {
+        App::daemon_reload();
+    }
+
+    // Now start all apps
     for (size_t i = 0; i < apps.size(); i++)
     {
         auto &a = apps[i];
         if (a->stopped())
         {
             nos::fprintln("[runApps] Starting app {} '{}'...", i, a->name());
-            a->start();
-            nos::fprintln("[runApps] App {} '{}' started", i, a->name());
+            // start() won't call sync_service_file again if already synced
+            std::string cmd = "systemctl start " + a->service_name();
+            int ret = system(cmd.c_str());
+            if (ret == 0)
+            {
+                a->isStopped = false;
+                nos::fprintln("[runApps] App {} '{}' started", i, a->name());
+            }
+            else
+            {
+                nos::fprintln("[runApps] App {} '{}' failed to start", i, a->name());
+            }
         }
     }
     nos::println("[runApps] All apps started");
@@ -331,24 +352,83 @@ void AppManager::reload_config()
 {
     closeApps();
     loadConfigFile();
+    cleanup_orphaned_services();
     runApps();
 }
 
-void AppManager::on_child_finished(pid_t pid)
+void AppManager::cleanup_orphaned_services()
 {
-    auto app = get_app_by_pid(pid);
-    app->on_child_finished();
-}
+    nos::println("[cleanup_orphaned_services] Scanning for orphaned services...");
 
-std::shared_ptr<App> AppManager::get_app_by_pid(pid_t pid)
-{
-    std::lock_guard<std::mutex> lock(apps_mutex);
-    for (auto &a : apps)
+    // Build set of current service names
+    std::set<std::string> current_services;
     {
-        if (a->pid() == pid)
-            return a;
+        std::lock_guard<std::mutex> lock(apps_mutex);
+        for (const auto &app : apps)
+        {
+            current_services.insert(app->service_name());
+        }
     }
-    return nullptr;
+
+    // Scan /etc/systemd/system/ for rfd-*.service files
+    const char *systemd_dir = "/etc/systemd/system";
+    DIR *dir = opendir(systemd_dir);
+    if (!dir)
+    {
+        nos::fprintln("[cleanup_orphaned_services] Cannot open {}", systemd_dir);
+        return;
+    }
+
+    std::vector<std::string> orphaned;
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr)
+    {
+        std::string name = entry->d_name;
+        // Check if it's an rfd-*.service file
+        if (name.size() > 4 && name.substr(0, 4) == "rfd-" &&
+            name.size() > 8 && name.substr(name.size() - 8) == ".service")
+        {
+            // Extract service name (without .service)
+            std::string service_name = name.substr(0, name.size() - 8);
+            if (current_services.find(service_name) == current_services.end())
+            {
+                orphaned.push_back(service_name);
+            }
+        }
+    }
+    closedir(dir);
+
+    // Stop and remove orphaned services
+    bool need_reload = false;
+    for (const auto &service : orphaned)
+    {
+        nos::fprintln("[cleanup_orphaned_services] Removing orphaned service: {}",
+                      service);
+
+        // Stop the service
+        std::string stop_cmd = "systemctl stop " + service + " 2>/dev/null";
+        system(stop_cmd.c_str());
+
+        // Disable the service
+        std::string disable_cmd = "systemctl disable " + service + " 2>/dev/null";
+        system(disable_cmd.c_str());
+
+        // Remove the service file
+        std::string path = std::string(systemd_dir) + "/" + service + ".service";
+        if (unlink(path.c_str()) == 0)
+        {
+            nos::fprintln("[cleanup_orphaned_services] Removed {}", path);
+            need_reload = true;
+        }
+    }
+
+    if (need_reload)
+    {
+        App::daemon_reload();
+    }
+
+    nos::fprintln("[cleanup_orphaned_services] Done, removed {} orphaned services",
+                  orphaned.size());
 }
 
 void AppManager::addApp(const std::string &name, const std::string &command,
@@ -364,7 +444,26 @@ void AppManager::removeApp(size_t index)
     std::lock_guard<std::mutex> lock(apps_mutex);
     if (index < apps.size())
     {
-        apps[index]->stop();
+        auto &app = apps[index];
+
+        // Stop the systemd service
+        app->stop();
+
+        // Remove the .service file
+        std::string service_path = app->service_path();
+        std::string service_name = app->service_name();
+
+        // Disable the service
+        std::string disable_cmd = "systemctl disable " + service_name + " 2>/dev/null";
+        system(disable_cmd.c_str());
+
+        // Remove the service file
+        if (unlink(service_path.c_str()) == 0)
+        {
+            nos::fprintln("[removeApp] Removed service file: {}", service_path);
+            App::daemon_reload();
+        }
+
         apps.erase(apps.begin() + index);
     }
 }
