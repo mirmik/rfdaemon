@@ -5,5 +5,6 @@
 #include <cstdint>
 
 void start_httpserver(const std::string &host, uint16_t port);
+void stop_httpserver();
 
 #endif

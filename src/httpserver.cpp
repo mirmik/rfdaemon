@@ -40,10 +40,21 @@ void bind_static_html_resource(httplib::Server &srv, std::string path,
 }*/
 
 std::thread httpserver_thread;
+static std::unique_ptr<httplib::Server> http_server_ptr;
+
+void stop_httpserver()
+{
+    if (http_server_ptr)
+    {
+        http_server_ptr->stop();
+    }
+}
+
 void start_httpserver(const std::string &host, uint16_t port)
 {
     httpserver_thread = std::thread([host, port]() {
-        httplib::Server server;
+        http_server_ptr = std::make_unique<httplib::Server>();
+        auto &server = *http_server_ptr;
         bind_static_html_resource(server, "/", "/web/index.html", "text/html");
         bind_static_html_resource(server, "/index.html", "/web/index.html",
                                   "text/html");

@@ -357,6 +357,7 @@ void exitHandler(int sig)
 // TODO
 void stop_world()
 {
+    stop_httpserver();
     appManager->closeApps();
 }
 
