@@ -508,7 +508,7 @@ bool App::need_to_another_attempt() const
 
 void App::watchFunc()
 {
-    nos::fprintln("[watchFunc] '{}' started", name());
+    nos::fprintln("[watchFunc] '{}' started, thread ID: {}", name(), std::this_thread::get_id());
     while (1)
     {
         std::this_thread::sleep_for(10ms);
@@ -538,17 +538,23 @@ void App::watchFunc()
 
 void App::run()
 {
+    nos::fprintln("[App::run] '{}' called from thread {}", name(), std::this_thread::get_id());
     if (!_watcher_guard)
     {
         _watcher_guard = true;
         if (_watcher_thread.joinable())
+        {
+            nos::fprintln("[App::run] '{}' joining previous watcher thread...", name());
             _watcher_thread.join();
-        nos::println("Start app '{}'", name());
+            nos::fprintln("[App::run] '{}' previous watcher thread joined", name());
+        }
+        nos::fprintln("[App::run] '{}' spawning watcher thread...", name());
         _watcher_thread = std::thread(&App::watchFunc, this);
+        nos::fprintln("[App::run] '{}' watcher thread spawned", name());
     }
     else
         nos::fprintln(
-            "Can't start app '{}' because it's wather is already running",
+            "[App::run] Can't start app '{}' because its watcher is already running",
             name());
 }
 
@@ -661,6 +667,7 @@ nos::trent App::toTrent() const
 
 void AppManager::update_systemctl_projects_status()
 {
+    nos::fprintln("[systemd_updater] Thread started, ID: {}", std::this_thread::get_id());
     while (!is_shutdown_requested())
     {
         for (std::shared_ptr<App> p : applications())

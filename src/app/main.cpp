@@ -65,11 +65,11 @@ void proc_exit(int sig)
         pid_t pid = wait3(&retcode, WNOHANG, (struct rusage *)NULL);
         if (pid == 0 || pid == -1)
         {
-            // it is not a error
             return;
         }
-        nos::fprintln("Proccess {} was stopped. (SIGCHLD)", pid);
-        appManager->on_child_finished(pid);
+        nos::fprintln("[SIGCHLD] Process {} finished (retcode={})", pid, retcode);
+        if (appManager)
+            appManager->on_child_finished(pid);
     }
 }
 
@@ -118,45 +118,57 @@ int main(int argc, char *argv[])
                 ex.what());
         }
 
+        nos::fprintln("[main] Main thread ID: {}", std::this_thread::get_id());
+
+        nos::println("[main] Creating AppManager...");
         appManager = std::make_unique<AppManager>(APPLICATION_LIST_FILE_NAME);
 
+        nos::println("[main] Loading config file...");
         int appfile_error = appManager->loadConfigFile();
         if (appfile_error)
         {
-            nos::println(
-                "Application script has errors. Server-only mode runned.");
+            nos::println("[main] Application script has errors. Server-only mode runned.");
         }
+
+        nos::println("[main] Running apps...");
         appManager->runApps();
 
         if (ENABLE_HTTP_SERVER)
         {
-            nos::fprintln("Starting HTTP server on {}:{}", HTTP_SERVER_HOST, HTTP_SERVER_PORT);
+            nos::fprintln("[main] Starting HTTP server on {}:{}", HTTP_SERVER_HOST, HTTP_SERVER_PORT);
             start_httpserver(HTTP_SERVER_HOST, HTTP_SERVER_PORT);
         }
 
+        nos::fprintln("[main] Starting TCP console on port {}...", API_CONSOLE_PORT);
         start_tcp_console(API_CONSOLE_PORT);
         if (USE_LEGACY_API_PORT)
         {
-            nos::fprintln("Legacy API port {} is used", 5000);
+            nos::fprintln("[main] Starting legacy API TCP console on port {}...", 5000);
             start_tcp_console(5000);
         }
 
-        nos::println("RFDaemon started");
+        nos::println("[main] Starting srvRxThread (RFDaemon protocol)...");
         srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(),
                                   appManager.get());
+        nos::println("[main] srvRxThread started");
 
-        nos::println("Starting systemd updater thread");
+        nos::println("[main] Starting systemd_updater_thread...");
         systemd_updater_thread = std::thread(
             &AppManager::update_systemctl_projects_status,
             appManager.get());
+        nos::println("[main] systemd_updater_thread started");
 
         if (TERMINAL_MODE && !NOCONSOLE_MODE)
         {
+            nos::println("[main] Starting stdstream console...");
             start_stdstream_console();
         }
+        else
+        {
+            nos::println("[main] Stdstream console disabled");
+        }
 
-        // Wait for shutdown signal
-        nos::println("Waiting for shutdown signal...");
+        nos::println("[main] All threads started, waiting for shutdown signal...");
         while (!is_shutdown_requested())
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
