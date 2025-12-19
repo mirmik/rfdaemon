@@ -182,14 +182,13 @@ int main(int argc, char *argv[])
             systemd_updater_thread.join();
         }
 
+        if (srv)
+        {
+            srv->stop();
+        }
+
         if (srvRxThread.joinable())
         {
-            // Give it a moment, then detach if still running
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            if (srv)
-            {
-                srv->stop();
-            }
             srvRxThread.join();
         }
 

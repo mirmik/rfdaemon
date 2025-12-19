@@ -118,18 +118,55 @@ std::string execute_and_read_output(const std::string &cmd)
     int fd = proc.output_fd();
     std::string fullout;
 
-    for (;;)
+    if (fd < 0)
     {
-        char buf[1024];
-        ssize_t n = ::read(fd, buf, sizeof(buf));
-        if (n > 0)
+        proc.wait();
+        return fullout;
+    }
+
+    struct pollfd pfd;
+    pfd.fd = fd;
+    pfd.events = POLLIN;
+
+    while (!is_shutdown_requested())
+    {
+        int poll_result = poll(&pfd, 1, 100); // 100ms timeout
+
+        if (poll_result < 0)
         {
-            fullout.append(buf, static_cast<size_t>(n));
-        }
-        else
-        {
+            if (errno == EINTR)
+                continue;
             break;
         }
+
+        if (poll_result == 0)
+        {
+            // Timeout - check if process finished
+            int status;
+            pid_t result = waitpid(proc.pid(), &status, WNOHANG);
+            if (result > 0)
+                break;
+            continue;
+        }
+
+        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
+            break;
+
+        if (pfd.revents & POLLIN)
+        {
+            char buf[1024];
+            ssize_t n = ::read(fd, buf, sizeof(buf));
+            if (n > 0)
+                fullout.append(buf, static_cast<size_t>(n));
+            else
+                break;
+        }
+    }
+
+    // If shutdown requested, kill the subprocess
+    if (is_shutdown_requested())
+    {
+        proc.kill();
     }
 
     proc.wait();
