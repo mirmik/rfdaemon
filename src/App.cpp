@@ -219,12 +219,32 @@ void App::stop()
             ::write(_wakeup_pipe[1], &c, 1);
         }
 
-        nos::fprintln("[App::stop] '{}' process killed, joining watcher...", name());
+        nos::fprintln("[App::stop] '{}' process killed, waiting for watcher...", name());
 
-        // Ждем завершения watcher thread
+        // Ждём немного, потом отсоединяем если поток не завершился
         if (_watcher_thread.joinable())
-            _watcher_thread.join();
-        nos::fprintln("[App::stop] '{}' watcher joined", name());
+        {
+            // Ждём максимум 500ms
+            for (int i = 0; i < 10; i++)
+            {
+                // Проверяем завершился ли watcher (он устанавливает _watcher_guard = false)
+                if (!_watcher_guard)
+                {
+                    nos::fprintln("[App::stop] '{}' watcher finished, joining...", name());
+                    _watcher_thread.join();
+                    nos::fprintln("[App::stop] '{}' watcher joined", name());
+                    break;
+                }
+                std::this_thread::sleep_for(50ms);
+            }
+
+            // Если всё ещё работает - detach и не ждём
+            if (_watcher_guard && _watcher_thread.joinable())
+            {
+                nos::fprintln("[App::stop] '{}' watcher didn't respond, detaching...", name());
+                _watcher_thread.detach();
+            }
+        }
     }
 }
 
