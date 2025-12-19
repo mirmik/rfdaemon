@@ -176,32 +176,38 @@ std::string execute_and_read_output(const std::string &cmd)
 
 void App::stop()
 {
+    nos::fprintln("[App::stop] Stopping '{}'...", name());
+
     if (systemd_bind != "")
     {
         std::string cmd = "/usr/bin/systemctl stop " + systemd_bind;
-        nos::fprintln("Stop in systemctl mode: {}", cmd);
+        nos::fprintln("[App::stop] Stop in systemctl mode: {}", cmd);
         std::string out = execute_and_read_output(cmd);
         nos::println(out);
         isStopped = true;
         systemd_pid = 0;
+        nos::fprintln("[App::stop] '{}' systemd stop done", name());
         return;
     }
 
     if (isStopped && !_watcher_guard)
     {
-        nos::fprintln("App '{}' is already stopped", name());
+        nos::fprintln("[App::stop] '{}' is already stopped", name());
         return;
     }
 
     if (_watcher_guard)
     {
+        nos::fprintln("[App::stop] '{}' killing process pid={}...", name(), proc.pid());
         _attempts = 0;
         cancel_reading = true;
         proc.kill();
+        nos::fprintln("[App::stop] '{}' process killed, joining watcher...", name());
 
         // Ждем завершения watcher thread
         if (_watcher_thread.joinable())
             _watcher_thread.join();
+        nos::fprintln("[App::stop] '{}' watcher joined", name());
     }
 }
 
@@ -418,7 +424,9 @@ void App::appFork()
     }
 
     // Убедимся, что процесс полностью завершился
+    nos::fprintln("[appFork] '{}' calling proc.wait()...", name());
     proc.wait();
+    nos::fprintln("[appFork] '{}' proc.wait() returned", name());
 
     cancel_reading = false;
     nos::println("Finish subprocess:", name());
@@ -480,24 +488,32 @@ bool App::need_to_another_attempt() const
 
 void App::watchFunc()
 {
+    nos::fprintln("[watchFunc] '{}' started", name());
     while (1)
     {
         std::this_thread::sleep_for(10ms);
         if (cancel_reading)
+        {
+            nos::fprintln("[watchFunc] '{}' cancel_reading detected, breaking", name());
             break;
+        }
 
         nos::println("appFork", name());
         appFork();
 
         if (!need_to_another_attempt())
+        {
+            nos::fprintln("[watchFunc] '{}' no more attempts, breaking", name());
             break;
+        }
     }
 
+    nos::fprintln("[watchFunc] '{}' exiting, setting state...", name());
     isStopped = true;
     cancel_reading = false;
     _watcher_guard = false;
-    //_pid = 0;
     proc.invalidate();
+    nos::fprintln("[watchFunc] '{}' done", name());
 }
 
 void App::run()

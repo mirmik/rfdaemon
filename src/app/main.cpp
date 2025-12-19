@@ -165,34 +165,47 @@ int main(int argc, char *argv[])
         nos::println("Shutdown requested, cleaning up...");
 
         // Stop all servers first
+        nos::println("[shutdown] Stopping HTTP server...");
         stop_httpserver();
+        nos::println("[shutdown] HTTP server stopped");
+
+        nos::println("[shutdown] Stopping TCP consoles...");
         stop_tcp_consoles();
+        nos::println("[shutdown] TCP consoles stopped");
 
         // Stop managed applications
+        nos::println("[shutdown] Closing apps...");
         if (appManager)
         {
             appManager->closeApps();
         }
+        nos::println("[shutdown] Apps closed");
 
-        // Join threads with timeout
-        nos::println("Waiting for threads to finish...");
-
+        // Join threads
+        nos::println("[shutdown] Joining systemd_updater_thread...");
         if (systemd_updater_thread.joinable())
         {
             systemd_updater_thread.join();
         }
+        nos::println("[shutdown] systemd_updater_thread joined");
 
+        nos::println("[shutdown] Stopping RFDaemon server...");
         if (srv)
         {
             srv->stop();
         }
+        nos::println("[shutdown] RFDaemon server stopped");
 
+        nos::println("[shutdown] Joining srvRxThread...");
         if (srvRxThread.joinable())
         {
             srvRxThread.join();
         }
+        nos::println("[shutdown] srvRxThread joined");
 
+        nos::println("[shutdown] Joining TCP console threads...");
         join_tcp_console_threads();
+        nos::println("[shutdown] TCP console threads joined");
 
         nos::println("Shutdown complete.");
     }

@@ -174,11 +174,15 @@ void AppManager::runApps()
 
 void AppManager::closeApps()
 {
+    nos::println("[closeApps] Acquiring mutex...");
     std::lock_guard<std::mutex> lock(apps_mutex);
-    for (auto &a : apps)
+    nos::println("[closeApps] Mutex acquired, stopping", apps.size(), "apps");
+    for (size_t i = 0; i < apps.size(); i++)
     {
-        if (!a->stopped())
-            a->stop();
+        nos::fprintln("[closeApps] Stopping app {} '{}'...", i, apps[i]->name());
+        if (!apps[i]->stopped())
+            apps[i]->stop();
+        nos::fprintln("[closeApps] App {} '{}' stopped", i, apps[i]->name());
     }
 
     nos::println("All created processes have just been killed.");
