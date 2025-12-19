@@ -316,6 +316,13 @@ void App::appFork()
     int fd = proc.output_fd();
     nos::fprintln("[appFork] '{}' output_fd={}", name(), fd);
 
+    // Делаем fd non-blocking чтобы read не застревал
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags != -1)
+    {
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    }
+
     std::vector<uint8_t> buffer;
     char buf[1024];
     buffer.reserve(2048);
