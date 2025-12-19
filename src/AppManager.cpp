@@ -164,19 +164,26 @@ bool AppManager::loadConfigFile()
 
 void AppManager::runApps()
 {
+    nos::fprintln("[runApps] Called from thread {}, starting {} apps", std::this_thread::get_id(), apps.size());
     std::lock_guard<std::mutex> lock(apps_mutex);
-    for (auto &a : apps)
+    for (size_t i = 0; i < apps.size(); i++)
     {
+        auto &a = apps[i];
         if (a->stopped())
+        {
+            nos::fprintln("[runApps] Starting app {} '{}'...", i, a->name());
             a->start();
+            nos::fprintln("[runApps] App {} '{}' started", i, a->name());
+        }
     }
+    nos::println("[runApps] All apps started");
 }
 
 void AppManager::closeApps()
 {
-    nos::println("[closeApps] Acquiring mutex...");
+    nos::fprintln("[closeApps] Called from thread {}, acquiring mutex...", std::this_thread::get_id());
     std::lock_guard<std::mutex> lock(apps_mutex);
-    nos::println("[closeApps] Mutex acquired, stopping", apps.size(), "apps");
+    nos::fprintln("[closeApps] Mutex acquired, stopping {} apps", apps.size());
     for (size_t i = 0; i < apps.size(); i++)
     {
         nos::fprintln("[closeApps] Stopping app {} '{}'...", i, apps[i]->name());

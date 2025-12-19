@@ -30,28 +30,44 @@ TcpServer::~TcpServer()
 
 void TcpServer::stop()
 {
+    nos::fprintln("[TcpServer] stop() called, thread ID: {}", std::this_thread::get_id());
     stopped.store(true);
+    nos::println("[TcpServer] Closing socket...");
     socket.close();
+    nos::println("[TcpServer] Socket closed");
 
     // Clean up all clients
+    nos::println("[TcpServer] Acquiring mutex for client cleanup...");
     std::lock_guard<std::mutex> lock(mQueue);
+    nos::fprintln("[TcpServer] Cleaning up {} clients...", clients.size());
     while (!clients.empty())
     {
         ClientStruct* c = &clients.front();
+        nos::println("[TcpServer] Cleaning up client...");
         c->lnk.unlink();
         c->client.close();
         if (c->receive_thread.joinable())
+        {
+            nos::println("[TcpServer] Joining client receive thread...");
             c->receive_thread.join();
+            nos::println("[TcpServer] Client receive thread joined");
+        }
         delete c;
     }
 
+    nos::fprintln("[TcpServer] Cleaning up {} marked_for_delete clients...", marked_for_delete.size());
     for (auto* c : marked_for_delete)
     {
         if (c->receive_thread.joinable())
+        {
+            nos::println("[TcpServer] Joining marked client receive thread...");
             c->receive_thread.join();
+            nos::println("[TcpServer] Marked client receive thread joined");
+        }
         delete c;
     }
     marked_for_delete.clear();
+    nos::println("[TcpServer] stop() done");
 }
 
     ClientStruct::ClientStruct(nos::inet::tcp_client client, TcpServer* tcp_server) : client(client) 
@@ -71,10 +87,11 @@ void TcpServer::stop()
         return header;
     }
 
-    void ClientStruct::run() 
+    void ClientStruct::run()
     {
+        nos::fprintln("[ClientStruct] run() started, thread ID: {}", std::this_thread::get_id());
         std::vector<uint8_t> data;
-        while(1) 
+        while(1)
         {
             nos::expected<PacketHeader, nos::output_error> errheader = read_header();
             if (errheader.is_error()) 
@@ -114,13 +131,15 @@ void TcpServer::stop()
         }
 
         finish:
+            nos::println("[ClientStruct] run() finishing, closing client...");
             client.close();
             tcp_server->mark_as_deleted(this);
+            nos::println("[ClientStruct] run() done");
     }
 
-    void ClientStruct::start_receive_thread() 
+    void ClientStruct::start_receive_thread()
     {
-        nos::println("Starting receive thread");
+        nos::fprintln("[ClientStruct] Starting receive thread from thread {}", std::this_thread::get_id());
         receive_thread = std::thread([this](){ run(); });
     }
 
@@ -141,6 +160,7 @@ void ClientStruct::send(std::vector<uint8_t> data)
 
 int TcpServer::receiveThread()
 {
+    nos::fprintln("[TcpServer] receiveThread started, thread ID: {}", std::this_thread::get_id());
     socket.init();
     socket.reusing(true);
 

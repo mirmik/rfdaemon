@@ -44,20 +44,28 @@ static std::unique_ptr<httplib::Server> http_server_ptr;
 
 void stop_httpserver()
 {
+    nos::println("[httpserver] stop_httpserver() called");
     if (http_server_ptr)
     {
+        nos::println("[httpserver] Calling server.stop()...");
         http_server_ptr->stop();
+        nos::println("[httpserver] server.stop() returned");
     }
     if (httpserver_thread.joinable())
     {
+        nos::println("[httpserver] Joining httpserver_thread...");
         httpserver_thread.join();
+        nos::println("[httpserver] httpserver_thread joined");
     }
     http_server_ptr.reset();
+    nos::println("[httpserver] stop_httpserver() done");
 }
 
 void start_httpserver(const std::string &host, uint16_t port)
 {
+    nos::fprintln("[httpserver] start_httpserver() called for {}:{}", host, port);
     httpserver_thread = std::thread([host, port]() {
+        nos::fprintln("[httpserver] Thread started, ID: {}", std::this_thread::get_id());
         http_server_ptr = std::make_unique<httplib::Server>();
         auto &server = *http_server_ptr;
         bind_static_html_resource(server, "/", "/web/index.html", "text/html");

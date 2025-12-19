@@ -667,6 +667,7 @@ void client_spin(nos::inet::tcp_client client)
 
 void server_spin(int port)
 {
+    nos::fprintln("[console] server_spin({}) thread started, ID: {}", port, std::this_thread::get_id());
     nos::inet::tcp_server server;
     server.init();
     server.reusing(true);
@@ -679,7 +680,7 @@ void server_spin(int port)
         tcp_servers.push_back(&server);
     }
 
-    nos::println("Starting tcp console on port", port);
+    nos::fprintln("[console] TCP console on port {} ready, entering loop", port);
     while (!is_shutdown_requested())
     {
         // Use select with timeout to check for shutdown periodically
@@ -728,44 +729,63 @@ void server_spin(int port)
 
 void start_tcp_console(int tcp_console_port)
 {
-    nos::println("Starting tcp console on port", tcp_console_port);
+    nos::fprintln("[console] start_tcp_console({}) called from thread {}", tcp_console_port, std::this_thread::get_id());
     server_threads.emplace_back(std::thread(server_spin, tcp_console_port));
+    nos::fprintln("[console] TCP console thread for port {} spawned", tcp_console_port);
 }
 
 void stop_tcp_consoles()
 {
+    nos::fprintln("[console] stop_tcp_consoles() called, thread {}", std::this_thread::get_id());
     // Close all server sockets to unblock accept()
     std::lock_guard<std::mutex> lock(tcp_servers_mutex);
+    nos::fprintln("[console] stop_tcp_consoles() closing {} servers", tcp_servers.size());
     for (auto* server : tcp_servers)
     {
         if (server)
+        {
+            nos::fprintln("[console] Closing server fd {}", server->fd());
             server->close();
+        }
     }
+    nos::println("[console] stop_tcp_consoles() done");
 }
 
 void join_tcp_console_threads()
 {
-    for (auto& t : server_threads)
+    nos::fprintln("[console] join_tcp_console_threads() called, {} server threads to join", server_threads.size());
+    for (size_t i = 0; i < server_threads.size(); i++)
     {
+        auto& t = server_threads[i];
         if (t.joinable())
+        {
+            nos::fprintln("[console] Joining server thread {}...", i);
             t.join();
+            nos::fprintln("[console] Server thread {} joined", i);
+        }
     }
     server_threads.clear();
+    nos::println("[console] All server threads joined");
 
     if (userIOThread.joinable())
     {
+        nos::println("[console] Joining userIOThread...");
         userIOThread.join();
+        nos::println("[console] userIOThread joined");
     }
+    nos::println("[console] join_tcp_console_threads() done");
 }
 
 int userIOThreadHandler()
 {
+    nos::fprintln("[console] userIOThreadHandler started, thread ID: {}", std::this_thread::get_id());
     std::string str;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     client_context context([](std::string str) { nos::print(str); });
 
     bool need_prompt = true;
 
+    nos::println("[console] userIOThreadHandler entering main loop");
     while (!is_shutdown_requested())
     {
         if (need_prompt)
@@ -804,6 +824,7 @@ int userIOThreadHandler()
 
 void start_stdstream_console()
 {
-    nos::println("Starting stdstream console");
+    nos::fprintln("[console] start_stdstream_console() called from thread {}", std::this_thread::get_id());
     userIOThread = std::thread(userIOThreadHandler);
+    nos::println("[console] userIOThread spawned");
 }
