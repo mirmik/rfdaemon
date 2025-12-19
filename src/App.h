@@ -56,6 +56,7 @@ private:
     bool cancel_reading = false;
     std::string _stdout_record = {};
     std::unordered_map<std::string, std::string> _env;
+    int _wakeup_pipe[2] = {-1, -1};  // pipe для пробуждения poll()
 
     rxcpp::subjects::subject<std::string> logstream_subject;
     int systemd_pid = 0;
