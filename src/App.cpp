@@ -1,10 +1,12 @@
 #include "App.h"
 #include "AppManager.h"
+#include <fcntl.h>
 #include <igris/util/base64.h>
 #include <igris/util/string.h>
 #include <iostream>
 #include <modes.h>
 #include <nos/fprint.h>
+#include <poll.h>
 #include <pwd.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -12,7 +14,7 @@
 #include <thread>
 #include <unistd.h>
 
-extern AppManager *appManager;
+extern std::unique_ptr<AppManager> appManager;
 
 // std::mutex App::ioMutex;
 using namespace std::chrono_literals;
@@ -105,17 +107,67 @@ App::App(int task_index, const std::string &name, const std::string &cmd,
     set_user(user);
 }
 
+std::string execute_and_read_output(const std::string &cmd)
+{
+    igris::subprocess proc;
+    std::vector<std::string> args = igris::split(cmd);
+    proc.exec(args[0], args, {});
+    int fd = proc.output_fd();
+    std::string fullout;
+
+    for (;;)
+    {
+        char buf[1024];
+        ssize_t n = ::read(fd, buf, sizeof(buf));
+        if (n > 0)
+        {
+            fullout.append(buf, static_cast<size_t>(n));
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    proc.wait();
+    proc.close();
+    return fullout;
+}
+
 void App::stop()
 {
-    if (!isStopped)
+    if (systemd_bind != "")
+    {
+        std::string cmd = "/usr/bin/systemctl stop " + systemd_bind;
+        nos::fprintln("Stop in systemctl mode: {}", cmd);
+        std::string out = execute_and_read_output(cmd);
+        nos::println(out);
+        isStopped = true;
+        systemd_pid = 0;
+        return;
+    }
+
+    if (isStopped && !_watcher_guard)
+    {
+        nos::fprintln("App '{}' is already stopped", name());
+        return;
+    }
+
+    if (_watcher_guard)
     {
         _attempts = 0;
+        cancel_reading = true;
         proc.kill();
+
+        // Ждем завершения watcher thread
+        if (_watcher_thread.joinable())
+            _watcher_thread.join();
     }
 }
 
 void App::restart()
 {
+    nos::println("Restarting app: {}", name());
     stop();
     std::this_thread::sleep_for(0.5s);
     start();
@@ -123,11 +175,42 @@ void App::restart()
 
 void App::start()
 {
+    if (systemd_bind != "")
+    {
+        start_systemd();
+        return;
+    }
+
     if (isStopped)
     {
         restart_attempt_counter();
+        isStopped = false;
         run();
     }
+}
+
+void App::start_systemd()
+{
+    std::string cmd = "/usr/bin/systemctl start " + systemd_bind;
+    nos::fprintln("Start in systemctl mode: {}", cmd);
+    restart_attempt_counter();
+    std::string out = execute_and_read_output(cmd);
+    nos::println(out);
+    isStopped = false;
+    _startTime = std::chrono::system_clock::now();
+    systemd_pid = 0;
+}
+
+std::string App::get_journal_data(int lines_count)
+{
+    std::string path = "/tmp/journal_cadscasdcv.log";
+    std::string out1 = execute_and_read_output(
+        nos::format("/usr/bin/journalctl -u {} -n {}", name(), lines_count));
+    nos::println(out1);
+    // std::string out2 = execute_and_read_output(
+    //     nos::format("/usr/bin/cat {}", path));
+    // nos::println(out2);
+    return out1;
 }
 
 std::vector<char *> App::tokens_for_execve(const std::vector<std::string> &args)
@@ -163,21 +246,23 @@ std::vector<char *> App::envp_for_execve(const std::vector<std::string> &args)
     return res;
 }
 
+void App::set_systemd_bind(const std::string &service)
+{
+    this->systemd_bind = service;
+}
+
 // Call only in a separate thread
 void App::appFork()
 {
     _exitStatus = 0;
     increment_attempt_counter();
 
-    // int wr[2];
-    // pipe(wr);
     _startTime = std::chrono::system_clock::now();
 
     auto envp_base = envp_base_for_execve();
     auto envp = envp_for_execve(envp_base);
     auto args = tokens_for_execve(tokens);
 
-    nos::println("Start subprocess:", name());
     proc.exec(tokens[0].data(), args, envp);
     int fd = proc.output_fd();
 
@@ -185,29 +270,116 @@ void App::appFork()
     char buf[1024];
     buffer.reserve(2048);
 
-    isStopped = false;
+    // Если fd невалидный, просто ждем завершения процесса
+    if (fd < 0)
+    {
+        nos::println("No valid output fd, waiting for process to finish");
+        proc.wait();
+        cancel_reading = false;
+        nos::println("Finish subprocess:", name());
+        return;
+    }
+
+    // Используем poll для неблокирующего ожидания данных
+    struct pollfd pfd;
+    pfd.fd = fd;
+    pfd.events = POLLIN;
+
     while (true)
     {
-        int n = read(fd, buf, sizeof(buf));
-        if (n > 0)
+        if (cancel_reading)
         {
-            logdata_append(buf, n);
-            buffer.clear();
-            buffer.push_back((uint8_t)task_index);
-            buffer.push_back((uint8_t)name().size());
-            buffer.insert(buffer.end(), _name.begin(), _name.end());
-            uint16_t len = n;
-            buffer.push_back((uint8_t)(len >> 8));
-            buffer.push_back((uint8_t)(len & 0xFF));
-            buffer.insert(buffer.end(), buf, buf + n);
-            appManager->send_spam(buffer);
+            nos::println("stopped because reading was canceled");
+            break;
         }
 
-        if (cancel_reading)
+        // poll с таймаутом 100ms
+        int poll_result = poll(&pfd, 1, 100);
+
+        if (poll_result < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            perror("poll");
             break;
-        std::this_thread::sleep_for(100ms);
+        }
+
+        if (poll_result == 0)
+        {
+            // Таймаут - проверяем жив ли процесс
+            int status;
+            pid_t result = waitpid(proc.pid(), &status, WNOHANG);
+            if (result > 0)
+            {
+                nos::println("Process finished with status:",
+                             WEXITSTATUS(status));
+                break;
+            }
+            continue;
+        }
+
+        // Есть данные для чтения или ошибка
+        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
+        {
+            // PTY закрыт или ошибка - процесс вероятно завершился
+            int status;
+            pid_t result = waitpid(proc.pid(), &status, WNOHANG);
+            if (result > 0)
+            {
+                nos::println("Process finished with status:",
+                             WEXITSTATUS(status));
+            }
+            break;
+        }
+
+        if (pfd.revents & POLLIN)
+        {
+            int n = read(fd, buf, sizeof(buf));
+            if (n > 0)
+            {
+                logdata_append(buf, n);
+                buffer.clear();
+                buffer.push_back((uint8_t)task_index);
+                buffer.push_back((uint8_t)name().size());
+                buffer.insert(buffer.end(), _name.begin(), _name.end());
+                uint16_t len = n;
+                buffer.push_back((uint8_t)(len >> 8));
+                buffer.push_back((uint8_t)(len & 0xFF));
+                buffer.insert(buffer.end(), buf, buf + n);
+                if (appManager)
+                    appManager->send_spam(buffer);
+            }
+            else if (n == 0)
+            {
+                nos::println("EOF from subprocess:", name());
+                break;
+            }
+            else
+            {
+                if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+                    continue;
+
+                // EIO означает что slave PTY закрыт
+                if (errno == EIO)
+                {
+                    int status;
+                    pid_t result = waitpid(proc.pid(), &status, WNOHANG);
+                    if (result > 0)
+                    {
+                        nos::println("Process finished with status:",
+                                     WEXITSTATUS(status));
+                    }
+                    break;
+                }
+                perror("read");
+                break;
+            }
+        }
     }
-    isStopped = true;
+
+    // Убедимся, что процесс полностью завершился
+    proc.wait();
+
     cancel_reading = false;
     nos::println("Finish subprocess:", name());
 }
@@ -217,13 +389,18 @@ bool App::stopped() const
     return isStopped;
 }
 
-App::RestartMode App::restartMode() const
+RestartMode App::restartMode() const
 {
     return _restartMode;
 }
 
 int App::pid() const
 {
+    if (!systemd_bind.empty())
+    {
+        return systemd_pid;
+    }
+
     return proc.pid();
 }
 
@@ -266,11 +443,18 @@ void App::watchFunc()
     while (1)
     {
         std::this_thread::sleep_for(10ms);
+        if (cancel_reading)
+            break;
+
+        nos::println("appFork", name());
         appFork();
 
         if (!need_to_another_attempt())
             break;
     }
+
+    isStopped = true;
+    cancel_reading = false;
     _watcher_guard = false;
     //_pid = 0;
     proc.invalidate();
@@ -283,6 +467,7 @@ void App::run()
         _watcher_guard = true;
         if (_watcher_thread.joinable())
             _watcher_thread.join();
+        nos::println("Start app '{}'", name());
         _watcher_thread = std::thread(&App::watchFunc, this);
     }
     else
@@ -342,37 +527,46 @@ void App::set_environment_variables(
     _env = env;
 }
 
-void App::setCommand(const std::string &cmd)
+bool App::is_systemctl_process()
 {
-    tokens = igris::split_cmdargs(cmd);
+    return systemd_bind != "";
 }
 
-void App::setRestartMode(RestartMode mode)
+void App::set_pid(int p)
 {
-    _restartMode = mode;
+    systemd_pid = p;
 }
 
-void App::setName(const std::string &name)
+void AppManager::update_systemctl_projects_status()
 {
-    _name = name;
-}
-
-nos::trent App::toTrent() const
-{
-    nos::trent tr;
-    tr["name"] = _name;
-    tr["command"] = command();
-    tr["restart"] = (_restartMode == ALWAYS) ? "always" : "once";
-    if (!_username.empty())
+    while (true)
     {
-        tr["user"] = _username;
-    }
-    if (!_env.empty())
-    {
-        for (const auto &kv : _env)
+        for (std::shared_ptr<App> p : applications())
         {
-            tr["env"][kv.first] = kv.second;
+            if (p->is_systemctl_process())
+            {
+                auto name = p->systemd_bind;
+
+                if (p->pid() == 0)
+                {
+                    auto out = execute_and_read_output(nos::format(
+                        "/usr/bin/systemctl show --property MainPID --value {}",
+                        name));
+                    auto trimmed = nos::trim(out);
+                    int pid = std::stoi(trimmed);
+                    p->set_pid(pid);
+                }
+
+                {
+                    auto out = execute_and_read_output(
+                        nos::format("/usr/bin/systemctl is-active {}", name));
+                    auto trimmed = nos::trim(out);
+                    bool is_active = trimmed == "active";
+                    p->isStopped = !is_active;
+                }
+            }
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
-    return tr;
 }

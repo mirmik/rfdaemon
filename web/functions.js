@@ -1,283 +1,232 @@
-let apps = [];
-let selectedIndex = null;
+// Application state storage
+const appTexts = [];
 
-// Initialize the application
-async function init() {
-    await loadApps();
-    renderApps();
-    if (apps.length > 0) {
-        selectApp(0);
-    }
-    startStatusLoop();
-}
+// Available themes
+const THEMES = [
+    { id: 'retrowave', name: 'Retrowave', icon: '◐' },
+    { id: 'neon-orange', name: 'Neon Orange', icon: '◑' }
+];
+let currentThemeIndex = 0;
 
-// Load apps from server
-async function loadApps() {
-    try {
-        const resp = await fetch('/apps_full_state.json');
-        const data = await resp.json();
-        apps = data.apps || [];
-    } catch (e) {
-        console.error('Failed to load apps:', e);
-        apps = [];
-    }
-}
-
-// Render the apps list
-function renderApps() {
-    const container = document.getElementById('apps-list');
-    if (!container) return;
-
-    if (apps.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>No applications configured</p></div>';
-        return;
-    }
-
-    container.innerHTML = apps.map((app, i) => `
-        <div class="app-card ${app.state === 'running' ? 'running' : 'stopped'} ${i === selectedIndex ? 'selected' : ''}"
-             onclick="selectApp(${i})">
-            <div class="app-header">
-                <span class="status-indicator">${app.state === 'running' ? '●' : '○'}</span>
-                <span class="app-name">${escapeHtml(app.name)}</span>
-            </div>
-            <div class="app-info">
-                ${app.state}${app.pid > 0 ? ' | pid: ' + app.pid : ''}
-            </div>
-            <div class="app-command" title="${escapeHtml(app.command)}">
-                ${escapeHtml(app.command)}
-            </div>
-            <div class="app-buttons" onclick="event.stopPropagation()">
-                ${app.state === 'running'
-                    ? `<button class="secondary" onclick="stopApp(${i})">Stop</button>`
-                    : `<button class="success" onclick="startApp(${i})">Start</button>`}
-                <button class="secondary" onclick="restartApp(${i})">Restart</button>
-                <button class="danger" onclick="deleteApp(${i})">Delete</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Select an app and show details
-function selectApp(index) {
-    selectedIndex = index;
-    renderApps();
-    renderDetails();
-}
-
-// Render details panel
-function renderDetails() {
-    const emptyState = document.getElementById('empty-state');
-    const appDetails = document.getElementById('app-details');
-
-    if (selectedIndex === null || selectedIndex >= apps.length) {
-        emptyState.style.display = 'flex';
-        appDetails.style.display = 'none';
-        return;
-    }
-
-    emptyState.style.display = 'none';
-    appDetails.style.display = 'block';
-
-    const app = apps[selectedIndex];
-    document.getElementById('detail-name').value = app.name || '';
-    document.getElementById('detail-command').value = app.command || '';
-    document.getElementById('detail-restart').value = 'always'; // Default, as we don't get this from API yet
-
-    const statusEl = document.getElementById('detail-status');
-    statusEl.textContent = app.state;
-    statusEl.className = 'value ' + app.state;
-
-    document.getElementById('detail-pid').textContent = app.pid > 0 ? app.pid : '-';
-}
-
-// Apply changes to the selected app
-async function applyChanges() {
-    if (selectedIndex === null) return;
-
-    const body = JSON.stringify({
-        index: selectedIndex,
-        name: document.getElementById('detail-name').value,
-        command: document.getElementById('detail-command').value,
-        restart: document.getElementById('detail-restart').value
-    });
-
-    try {
-        await fetch('/app_update.action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: body
-        });
-        await loadApps();
-        renderApps();
-        renderDetails();
-    } catch (e) {
-        console.error('Failed to update app:', e);
-        alert('Failed to update application');
-    }
-}
-
-// Add a new app
-async function addApp() {
-    const name = prompt('Application name:');
-    if (!name) return;
-
-    const command = prompt('Command to execute:');
-    if (!command) return;
-
-    try {
-        await fetch('/app_add.action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: name,
-                command: command,
-                restart: 'always'
-            })
-        });
-        await loadApps();
-        renderApps();
-        selectApp(apps.length - 1);
-    } catch (e) {
-        console.error('Failed to add app:', e);
-        alert('Failed to add application');
-    }
-}
-
-// Delete an app
-async function deleteApp(index) {
-    const app = apps[index];
-    if (!confirm(`Delete "${app.name}"?`)) return;
-
-    try {
-        await fetch('/app_delete.action?index=' + index);
-        await loadApps();
-
-        if (selectedIndex >= apps.length) {
-            selectedIndex = apps.length > 0 ? apps.length - 1 : null;
+/**
+ * Initializes theme from localStorage or default
+ */
+function initTheme() {
+    const savedTheme = localStorage.getItem('rfdaemon-theme');
+    if (savedTheme) {
+        const index = THEMES.findIndex(t => t.id === savedTheme);
+        if (index !== -1) {
+            currentThemeIndex = index;
         }
+    }
+    applyTheme();
+}
 
-        renderApps();
-        renderDetails();
-    } catch (e) {
-        console.error('Failed to delete app:', e);
-        alert('Failed to delete application');
+/**
+ * Applies the current theme to the document
+ */
+function applyTheme() {
+    const theme = THEMES[currentThemeIndex];
+    document.documentElement.setAttribute('data-theme', theme.id);
+    
+    const label = document.getElementById('theme-label');
+    const icon = document.querySelector('.theme-switcher-icon');
+    if (label) label.textContent = theme.name;
+    if (icon) icon.textContent = theme.icon;
+    
+    localStorage.setItem('rfdaemon-theme', theme.id);
+}
+
+/**
+ * Toggles to the next theme
+ */
+function toggleTheme() {
+    currentThemeIndex = (currentThemeIndex + 1) % THEMES.length;
+    applyTheme();
+}
+
+/**
+ * Creates a styled button element
+ */
+function makeButton(text, onClick, className = '') {
+    const button = document.createElement("button");
+    button.textContent = text;
+    button.className = `btn btn-sm ${className}`;
+    button.onclick = onClick;
+    return button;
+}
+
+/**
+ * Performs an async HTTP GET request
+ */
+function httpGet(url, async = true) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", url, async);
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(xhr.responseText);
+            } else {
+                reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+        };
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.send(null);
+    });
+}
+
+/**
+ * Updates the status text with appropriate styling
+ */
+function updateStatusDisplay(textElement, name, state) {
+    textElement.textContent = `${name}: ${state}`;
+    textElement.className = 'app-status';
+    
+    const stateLower = state.toLowerCase();
+    if (stateLower === 'running' || stateLower === 'started') {
+        textElement.classList.add('status-running');
+    } else if (stateLower === 'stopped' || stateLower === 'exited') {
+        textElement.classList.add('status-stopped');
+    } else {
+        textElement.classList.add('status-starting');
     }
 }
 
-// Start an app
-async function startApp(index) {
+/**
+ * Initializes the application list from server
+ */
+async function init_function() {
     try {
-        await fetch('/start.action?index=' + index);
-    } catch (e) {
-        console.error('Failed to start app:', e);
+        const response = await httpGet("apps_full_state.json");
+        const json = JSON.parse(response);
+        const container = document.getElementById("divtext");
+        container.innerHTML = "";
+        appTexts.length = 0;
+
+        json.apps.forEach((app, index) => {
+            const row = document.createElement("div");
+
+            // Status label
+            const statusLabel = document.createElement("span");
+            statusLabel.className = 'app-status';
+            updateStatusDisplay(statusLabel, app.name || `App ${index}`, app.state || 'unknown');
+            appTexts.push(statusLabel);
+            row.appendChild(statusLabel);
+
+            // Control buttons
+            const controls = document.createElement("div");
+            controls.className = 'app-controls';
+            controls.appendChild(makeButton("Stop", () => stopApp(index), 'btn-danger'));
+            controls.appendChild(makeButton("Start", () => startApp(index), 'btn-success'));
+            controls.appendChild(makeButton("Restart", () => restartApp(index), 'btn-warning'));
+            controls.appendChild(makeButton("Logs", () => getStdout(index), 'btn-info'));
+            row.appendChild(controls);
+
+            // Command label
+            const commandLabel = document.createElement("span");
+            commandLabel.className = 'app-command';
+            commandLabel.textContent = app.command || '';
+            commandLabel.title = app.command || '';
+            row.appendChild(commandLabel);
+
+            container.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Failed to initialize apps:", error);
+        const container = document.getElementById("divtext");
+        container.innerHTML = '<div style="color: #e74c3c; padding: 20px;">Failed to load applications. Check server connection.</div>';
     }
 }
 
-// Stop an app
-async function stopApp(index) {
-    try {
-        await fetch('/stop.action?index=' + index);
-    } catch (e) {
-        console.error('Failed to stop app:', e);
-    }
-}
-
-// Restart an app
-async function restartApp(index) {
-    try {
-        await fetch('/restart.action?index=' + index);
-    } catch (e) {
-        console.error('Failed to restart app:', e);
-    }
-}
-
-// Stop all apps
-async function stopAll() {
-    try {
-        await fetch('/stop_all.action');
-    } catch (e) {
-        console.error('Failed to stop all:', e);
-    }
-}
-
-// Start all apps
-async function startAll() {
-    try {
-        await fetch('/start_all.action');
-    } catch (e) {
-        console.error('Failed to start all:', e);
-    }
-}
-
-// Save config to disk
-async function saveConfig() {
-    try {
-        await fetch('/save_config.action');
-        alert('Configuration saved!');
-    } catch (e) {
-        console.error('Failed to save config:', e);
-        alert('Failed to save configuration');
-    }
-}
-
-// Refresh logs for selected app
-async function refreshLogs() {
-    if (selectedIndex === null) return;
-
-    try {
-        const resp = await fetch('/get_logs.action?index=' + selectedIndex);
-        const data = await resp.json();
-        const logs = atob(data.stdout || '');
-        document.getElementById('logs-area').value = logs;
-
-        // Scroll to bottom
-        const textarea = document.getElementById('logs-area');
-        textarea.scrollTop = textarea.scrollHeight;
-    } catch (e) {
-        console.error('Failed to load logs:', e);
-        document.getElementById('logs-area').value = 'Failed to load logs';
-    }
-}
-
-// Status update loop
-function startStatusLoop() {
+/**
+ * Periodically updates application states
+ */
+function state_update_loop() {
     setInterval(async () => {
         try {
-            const resp = await fetch('/apps_state.json');
-            const data = await resp.json();
+            const response = await httpGet("apps_state.json");
+            const json = JSON.parse(response);
 
-            // Update apps state
-            for (let i = 0; i < data.apps.length && i < apps.length; i++) {
-                apps[i].state = data.apps[i].state;
-                apps[i].pid = data.apps[i].pid;
-            }
-
-            // Re-render to reflect state changes
-            renderApps();
-
-            // Update details panel if an app is selected
-            if (selectedIndex !== null && selectedIndex < apps.length) {
-                const app = apps[selectedIndex];
-                const statusEl = document.getElementById('detail-status');
-                if (statusEl) {
-                    statusEl.textContent = app.state;
-                    statusEl.className = 'value ' + app.state;
+            json.apps.forEach((app, index) => {
+                if (appTexts[index]) {
+                    updateStatusDisplay(appTexts[index], app.name, app.state);
                 }
-                const pidEl = document.getElementById('detail-pid');
-                if (pidEl) {
-                    pidEl.textContent = app.pid > 0 ? app.pid : '-';
-                }
-            }
-        } catch (e) {
-            console.error('Status update failed:', e);
+            });
+        } catch (error) {
+            console.error("Failed to update state:", error);
         }
     }, 500);
 }
 
-// Utility: escape HTML
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+/**
+ * Stops all applications
+ */
+async function stop_all() {
+    try {
+        await httpGet("stop_all.action");
+    } catch (error) {
+        console.error("Failed to stop all:", error);
+    }
+}
+
+/**
+ * Starts all applications
+ */
+async function start_all() {
+    try {
+        await httpGet("start_all.action");
+    } catch (error) {
+        console.error("Failed to start all:", error);
+    }
+}
+
+/**
+ * Stops a specific application by index
+ */
+async function stopApp(index) {
+    try {
+        await httpGet(`stop.action?index=${index}`);
+    } catch (error) {
+        console.error(`Failed to stop app ${index}:`, error);
+    }
+}
+
+/**
+ * Starts a specific application by index
+ */
+async function startApp(index) {
+    try {
+        await httpGet(`start.action?index=${index}`);
+    } catch (error) {
+        console.error(`Failed to start app ${index}:`, error);
+    }
+}
+
+/**
+ * Restarts a specific application by index
+ */
+async function restartApp(index) {
+    try {
+        await httpGet(`restart.action?index=${index}`);
+    } catch (error) {
+        console.error(`Failed to restart app ${index}:`, error);
+    }
+}
+
+/**
+ * Retrieves and displays stdout logs for an application
+ */
+async function getStdout(index) {
+    try {
+        const response = await httpGet(`get_logs.action?index=${index}`);
+        const json = JSON.parse(response);
+        const log = atob(json.stdout);
+        const logArea = document.getElementById("log_area");
+        logArea.value = log;
+        logArea.scrollTop = logArea.scrollHeight;
+    } catch (error) {
+        console.error(`Failed to get logs for app ${index}:`, error);
+        const logArea = document.getElementById("log_area");
+        logArea.value = `Error: Failed to retrieve logs for application ${index}`;
+    }
 }

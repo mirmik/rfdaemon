@@ -58,29 +58,26 @@ bool RFDaemonServer::writeFile(const std::string &filename, const uint8_t *data,
 
 std::vector<uint8_t> RFDaemonServer::startAllApps(const uint8_t *, uint32_t)
 {
-    appMgr->runApps();
+    AppManager::instance()->runApps();
     return std::vector<uint8_t>();
 }
 
 std::vector<uint8_t> RFDaemonServer::stopAllApps(const uint8_t *, uint32_t)
 {
-    appMgr->closeApps();
+    AppManager::instance()->closeApps();
     return std::vector<uint8_t>();
 }
 
 std::vector<uint8_t> RFDaemonServer::restartAllApps(const uint8_t *, uint32_t)
 {
-    appMgr->restartApps();
+    AppManager::instance()->restartApps();
     return std::vector<uint8_t>();
 }
 
 std::vector<uint8_t> RFDaemonServer::getConfig(const uint8_t *, uint32_t)
 {
-    //    if (WITHOUT_RFMEASK)
-    //        return {};
-
-    auto settings_path = appMgr->getDeviceDescFilename();
-    auto runtime_path = appMgr->getDeviceRuntimeFilename();
+    auto settings_path = AppManager::instance()->getDeviceDescFilename();
+    auto runtime_path = AppManager::instance()->getDeviceRuntimeFilename();
 
     std::vector<uint8_t> answer(9);
     std::fstream cfg, runtime;
@@ -118,7 +115,7 @@ std::vector<uint8_t> RFDaemonServer::setConfig(const uint8_t *data, uint32_t)
     if (fileCount--)
     {
         uint32_t cfgSize = *(uint32_t *)(data + 1);
-        error = writeFile(appMgr->getDeviceDescFilename(), data + 5, cfgSize);
+        error = writeFile(AppManager::instance()->getDeviceDescFilename(), data + 5, cfgSize);
     }
     answer[0] = error;
     return answer;
@@ -135,30 +132,30 @@ std::vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t *, uint32_t)
         int64_t uptime;
     };
 
-    uint8_t appCount = (uint8_t)appMgr->getAppCount();
+    uint8_t appCount = (uint8_t)AppManager::instance()->getAppCount();
     std::vector<uint8_t> answer(2 + appCount * sizeof(AppData));
     answer[0] = appCount;
 
-    if (appMgr->errors().size())
+    if (AppManager::instance()->errors().size())
     {
-        answer[1] = appMgr->errors().front();
-        appMgr->errors().pop_front();
+        answer[1] = AppManager::instance()->errors().front();
+        AppManager::instance()->errors().pop_front();
     }
     else
         answer[1] = 0;
 
     AppData *pAppData = (AppData *)(answer.data() + 2);
-    auto &apps = appMgr->getAppsList();
+    auto &apps = AppManager::instance()->getAppsList();
     for (int i = 0; i < appCount; i++)
     {
-        pAppData[i].state = !apps[i].stopped();
+        pAppData[i].state = !apps[i]->stopped();
         pAppData[i].startSuccess = true; // Не используется
-        pAppData[i].uptime = apps[i].uptime();
-        pAppData[i].pid = apps[i].pid();
-        if (apps[i].errors().size())
+        pAppData[i].uptime = apps[i]->uptime();
+        pAppData[i].pid = apps[i]->pid();
+        if (apps[i]->errors().size())
         {
-            pAppData[i].error = (int8_t)apps[i].errors().front();
-            apps[i].errors().pop();
+            pAppData[i].error = (int8_t)apps[i]->errors().front();
+            apps[i]->errors().pop();
         }
     }
     return answer;
@@ -184,11 +181,11 @@ std::vector<uint8_t> RFDaemonServer::setAppsList(const uint8_t *data,
                                                  uint32_t size)
 {
     std::vector<uint8_t> answer(1);
-    answer[0] = writeFile(appMgr->getAppConfigFilename(), data, size);
+    answer[0] = writeFile(AppManager::instance()->getAppConfigFilename(), data, size);
     if (!answer[0])
     {
-        appMgr->loadConfigFile();
-        appMgr->restartApps();
+        AppManager::instance()->loadConfigFile();
+        AppManager::instance()->restartApps();
     }
     return answer;
 }
@@ -196,7 +193,7 @@ std::vector<uint8_t> RFDaemonServer::setAppsList(const uint8_t *data,
 std::vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t *, uint32_t)
 {
     std::ifstream f =
-        std::ifstream(appMgr->getAppConfigFilename(), std::ifstream::in);
+        std::ifstream(AppManager::instance()->getAppConfigFilename(), std::ifstream::in);
     std::string s(std::istreambuf_iterator<char>{f}, {});
     size_t strSize = s.length() + 1;
     std::vector<uint8_t> answer(strSize);
@@ -207,7 +204,7 @@ std::vector<uint8_t> RFDaemonServer::getAppsList(const uint8_t *, uint32_t)
 std::vector<uint8_t> RFDaemonServer::getLogs(const uint8_t *, uint32_t)
 {
     size_t namesLen = 0, offset = 0;
-    auto logs = appMgr->packLogs();
+    auto logs = AppManager::instance()->packLogs();
     for (const auto &l : logs)
         namesLen += l.path.length() + 1;
     size_t logsNum = logs.size();
@@ -228,18 +225,19 @@ std::vector<uint8_t> RFDaemonServer::getLogs(const uint8_t *, uint32_t)
     return answer;
 }
 
-void RFDaemonServer::setAppManager(AppManager *manager)
-{
-    appMgr = manager;
-}
-
 std::vector<uint8_t>
 RFDaemonServer::parseReceivedData(const std::vector<uint8_t> &data)
 {
     std::vector<uint8_t> answer;
+
+    if (data.size() < 2)
+    {
+        return answer;
+    }
+
     bool fromClientToSrv = data[0] != 0;
     uint8_t cmdNum = data[1];
-    uint32_t argOffset =
+    uint32_t headerSize =
         2 + cmdNum * (uint32_t)(sizeof(uint16_t) + sizeof(uint32_t));
 
     if (VERBOSE)
@@ -248,29 +246,57 @@ RFDaemonServer::parseReceivedData(const std::vector<uint8_t> &data)
         nos::print_dump(data.data(), data.size());
     }
 
-    if (fromClientToSrv && (data.size() >= argOffset))
+    if (!fromClientToSrv || data.size() < headerSize)
     {
-        uint16_t *pCmdList = (uint16_t *)(data.data() + 2);
-        uint32_t *pArgSizeList =
-            (uint32_t *)(data.data() + 2 + cmdNum * sizeof(uint16_t));
-        answer.resize(2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t)));
-        answer[0] =
-            0; // '0' is indicating that this is answer from server to client
-        answer[1] = cmdNum; // Number of commands
+        return answer;
+    }
 
-        for (size_t i = 0; i < cmdNum; i++)
+    uint32_t argOffset = headerSize;
+
+    const uint16_t *pCmdList =
+        reinterpret_cast<const uint16_t *>(data.data() + 2);
+    const uint32_t *pArgSizeList =
+        reinterpret_cast<const uint32_t *>(data.data() + 2 +
+                                           cmdNum * sizeof(uint16_t));
+
+    answer.resize(2 + cmdNum * (sizeof(uint16_t) + sizeof(uint32_t)));
+    answer[0] =
+        0; // '0' is indicating that this is answer from server to client
+    answer[1] = cmdNum; // Number of commands
+
+    for (size_t i = 0; i < cmdNum; i++)
+    {
+        uint16_t cmdIndex = pCmdList[i];
+
+        if (cmdIndex >= commands.size())
         {
-            answer[i * 2 + 2] = (uint8_t)pCmdList[i];
-            auto cmd = commands[pCmdList[i]];
-            if (VERBOSE)
-                nos::println("Command: ", cmd.name);
-            auto cmdRet = cmd.cmd(data.data() + argOffset, pArgSizeList[i]);
-            argOffset += pArgSizeList[i];
-            *(uint32_t *)(answer.data() + i * sizeof(uint32_t) + 2 +
-                          cmdNum * sizeof(uint16_t)) = (uint32_t)cmdRet.size();
-            if (cmdRet.size() != 0)
-                answer.insert(answer.end(), cmdRet.begin(), cmdRet.end());
+            // Неверный индекс команды — игнорируем пакет
+            answer.clear();
+            return answer;
         }
+
+        uint32_t argSize = pArgSizeList[i];
+
+        if (argOffset + argSize > data.size())
+        {
+            // Неверный размер аргумента — игнорируем пакет
+            answer.clear();
+            return answer;
+        }
+
+        answer[i * 2 + 2] = static_cast<uint8_t>(cmdIndex);
+        auto &cmd = commands[cmdIndex];
+
+        if (VERBOSE)
+            nos::println("Command: ", cmd.name);
+
+        auto cmdRet = cmd.cmd(data.data() + argOffset, argSize);
+        argOffset += argSize;
+        *(uint32_t *)(answer.data() + i * sizeof(uint32_t) + 2 +
+                      cmdNum * sizeof(uint16_t)) =
+            (uint32_t)cmdRet.size();
+        if (!cmdRet.empty())
+            answer.insert(answer.end(), cmdRet.begin(), cmdRet.end());
     }
     return answer;
 }
