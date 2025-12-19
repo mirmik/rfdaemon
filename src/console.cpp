@@ -763,9 +763,16 @@ int userIOThreadHandler()
     std::string str;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     client_context context([](std::string str) { nos::print(str); });
+
+    bool need_prompt = true;
+
     while (!is_shutdown_requested())
     {
-        std::cout << "$ " << std::flush;
+        if (need_prompt)
+        {
+            std::cout << "$ " << std::flush;
+            need_prompt = false;
+        }
 
         // Use select to make stdin interruptible
         fd_set readfds;
@@ -782,6 +789,8 @@ int userIOThreadHandler()
 
         if (!std::getline(std::cin, str))
             break; // EOF or error
+
+        need_prompt = true; // Print prompt after processing
 
         nos::tokens tokens(str);
         auto sb = execute_tokens(tokens, &context);
