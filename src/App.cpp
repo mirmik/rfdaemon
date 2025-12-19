@@ -685,8 +685,15 @@ void AppManager::update_systemctl_projects_status()
                         "/usr/bin/systemctl show --property MainPID --value {}",
                         name));
                     auto trimmed = nos::trim(out);
-                    int pid = std::stoi(trimmed);
-                    p->set_pid(pid);
+                    if (!trimmed.empty() && std::isdigit(static_cast<unsigned char>(trimmed[0])))
+                    {
+                        try {
+                            int pid = std::stoi(trimmed);
+                            p->set_pid(pid);
+                        } catch (const std::exception& e) {
+                            nos::fprintln("[systemd_updater] Failed to parse PID for '{}': '{}'", name, trimmed);
+                        }
+                    }
                 }
 
                 {
