@@ -74,7 +74,10 @@ Release
 
 rfdaemon
 rfdaemonctl
+!src/rfdaemonctl
 errlog.txt
 *.gen.cpp
 
 .vscode/*
+
+rfdaemon_tests
