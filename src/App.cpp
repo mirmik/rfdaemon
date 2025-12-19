@@ -198,7 +198,7 @@ void App::stop()
 
     if (_watcher_guard)
     {
-        nos::fprintln("[App::stop] '{}' killing process pid={}...", name(), proc.pid());
+        fprintf(stderr, "[App::stop] '%s' killing pid=%d\n", name().c_str(), proc.pid());
         _attempts = 0;
         cancel_reading = true;
         proc.kill();
@@ -206,20 +206,14 @@ void App::stop()
         // Закрываем fd чтобы poll() в watcher thread вернулся с ошибкой
         int fd = proc.output_fd();
         if (fd >= 0)
-        {
-            nos::fprintln("[App::stop] '{}' closing output fd {}...", name(), fd);
             ::close(fd);
-        }
 
         // Пишем в wakeup pipe чтобы разбудить poll()
         if (_wakeup_pipe[1] >= 0)
         {
-            nos::fprintln("[App::stop] '{}' writing to wakeup pipe...", name());
             char c = 'x';
             ::write(_wakeup_pipe[1], &c, 1);
         }
-
-        nos::fprintln("[App::stop] '{}' process killed, waiting for watcher...", name());
 
         // Ждём немного, потом отсоединяем если поток не завершился
         if (_watcher_thread.joinable())
@@ -227,12 +221,10 @@ void App::stop()
             // Ждём максимум 500ms
             for (int i = 0; i < 10; i++)
             {
-                // Проверяем завершился ли watcher (он устанавливает _watcher_guard = false)
                 if (!_watcher_guard)
                 {
-                    nos::fprintln("[App::stop] '{}' watcher finished, joining...", name());
                     _watcher_thread.join();
-                    nos::fprintln("[App::stop] '{}' watcher joined", name());
+                    fprintf(stderr, "[App::stop] '%s' watcher joined\n", name().c_str());
                     break;
                 }
                 std::this_thread::sleep_for(50ms);
@@ -241,7 +233,7 @@ void App::stop()
             // Если всё ещё работает - detach и не ждём
             if (_watcher_guard && _watcher_thread.joinable())
             {
-                nos::fprintln("[App::stop] '{}' watcher didn't respond, detaching...", name());
+                fprintf(stderr, "[App::stop] '%s' watcher detached\n", name().c_str());
                 _watcher_thread.detach();
             }
         }
@@ -337,7 +329,6 @@ void App::set_systemd_bind(const std::string &service)
 // Call only in a separate thread
 void App::appFork()
 {
-    nos::fprintln("[appFork] '{}' ENTER", name());
     _exitStatus = 0;
     increment_attempt_counter();
 
@@ -347,25 +338,18 @@ void App::appFork()
     auto envp = envp_for_execve(envp_base);
     auto args = tokens_for_execve(tokens);
 
-    nos::fprintln("[appFork] '{}' calling proc.exec()...", name());
     proc.exec(tokens[0].data(), args, envp);
-    nos::fprintln("[appFork] '{}' proc.exec() returned, pid={}", name(), proc.pid());
+    fprintf(stderr, "[appFork] '%s' started pid=%d\n", name().c_str(), proc.pid());
     int fd = proc.output_fd();
-    nos::fprintln("[appFork] '{}' output_fd={}", name(), fd);
 
     // Делаем fd non-blocking чтобы read не застревал
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags != -1)
-    {
         fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    }
 
     // Создаём wakeup pipe для прерывания poll() из другого потока
     if (pipe(_wakeup_pipe) < 0)
-    {
-        nos::fprintln("[appFork] '{}' failed to create wakeup pipe", name());
         _wakeup_pipe[0] = _wakeup_pipe[1] = -1;
-    }
 
     std::vector<uint8_t> buffer;
     char buf[1024];
@@ -374,54 +358,34 @@ void App::appFork()
     // Если fd невалидный, просто ждем завершения процесса
     if (fd < 0)
     {
-        nos::println("No valid output fd, waiting for process to finish");
         proc.wait();
         cancel_reading = false;
-        nos::println("Finish subprocess:", name());
         return;
     }
 
     // Используем poll для неблокирующего ожидания данных
-    // Используем 2 fd: subprocess output и wakeup pipe
     struct pollfd pfds[2];
     pfds[0].fd = fd;
     pfds[0].events = POLLIN;
-    pfds[1].fd = _wakeup_pipe[0];  // read end of wakeup pipe
+    pfds[1].fd = _wakeup_pipe[0];
     pfds[1].events = POLLIN;
     int nfds = (_wakeup_pipe[0] >= 0) ? 2 : 1;
 
-    nos::fprintln("[appFork] '{}' entering poll loop (nfds={})", name(), nfds);
-    int loop_count = 0;
     while (true)
     {
-        loop_count++;
-        if (loop_count % 100 == 1)
-            nos::fprintln("[appFork] '{}' poll loop iteration {}", name(), loop_count);
-
         if (cancel_reading)
         {
-            nos::fprintln("[appFork] '{}' cancel_reading=true, breaking (loop {})", name(), loop_count);
+            fprintf(stderr, "[appFork] '%s' cancel_reading, breaking\n", name().c_str());
             break;
         }
 
         // poll с таймаутом 100ms
-        if (loop_count <= 3)
-        {
-            nos::fprintln("[appFork] '{}' calling poll(), loop {}", name(), loop_count);
-            std::cout.flush();
-        }
         int poll_result = poll(pfds, nfds, 100);
-        if (loop_count <= 3)
-        {
-            nos::fprintln("[appFork] '{}' poll returned {}, revents[0]=0x{:x}, loop {}",
-                         name(), poll_result, pfds[0].revents, loop_count);
-            std::cout.flush();
-        }
 
         // Проверяем wakeup pipe - если там есть данные, значит нас просят выйти
         if (nfds > 1 && (pfds[1].revents & POLLIN))
         {
-            nos::fprintln("[appFork] '{}' wakeup pipe signaled, breaking (loop {})", name(), loop_count);
+            fprintf(stderr, "[appFork] '%s' wakeup, breaking\n", name().c_str());
             char dummy;
             ::read(_wakeup_pipe[0], &dummy, 1);
             break;
@@ -430,12 +394,7 @@ void App::appFork()
         if (poll_result < 0)
         {
             if (errno == EINTR)
-            {
-                nos::fprintln("[appFork] '{}' poll EINTR (loop {})", name(), loop_count);
                 continue;
-            }
-            nos::fprintln("[appFork] '{}' poll error (loop {})", name(), loop_count);
-            perror("poll");
             break;
         }
 
@@ -444,67 +403,21 @@ void App::appFork()
             // Таймаут - проверяем жив ли процесс
             int status;
             pid_t result = waitpid(proc.pid(), &status, WNOHANG);
-            if (result > 0)
-            {
-                nos::fprintln("[appFork] '{}' waitpid returned {} (loop {})", name(), result, loop_count);
-                nos::println("Process finished with status:",
-                             WEXITSTATUS(status));
+            if (result != 0)  // exited or error (ECHILD)
                 break;
-            }
-            else if (result < 0)
-            {
-                // ECHILD - process already reaped by SIGCHLD handler
-                nos::fprintln("[appFork] '{}' waitpid returned -1 (ECHILD), process already reaped (loop {})", name(), loop_count);
-                break;
-            }
-            // result == 0 means process still running, continue polling
             continue;
         }
 
         // Есть данные для чтения или ошибка
         if (pfds[0].revents & (POLLERR | POLLHUP | POLLNVAL))
         {
-            nos::fprintln("[appFork] '{}' POLLERR/HUP/NVAL revents=0x{:x} (loop {})",
-                         name(), pfds[0].revents, loop_count);
-            std::cout.flush();
-            // PTY закрыт или ошибка - процесс вероятно завершился
-            int status;
-            nos::fprintln("[appFork] '{}' calling waitpid({}, WNOHANG)...", name(), proc.pid());
-            std::cout.flush();
-            pid_t result = waitpid(proc.pid(), &status, WNOHANG);
-            nos::fprintln("[appFork] '{}' waitpid returned {}, errno={}", name(), result, errno);
-            std::cout.flush();
-            if (result > 0)
-            {
-                nos::fprintln("[appFork] '{}' process finished with status: {}", name(), WEXITSTATUS(status));
-            }
-            else if (result < 0)
-            {
-                nos::fprintln("[appFork] '{}' process already reaped (ECHILD)", name());
-            }
-            else
-            {
-                nos::fprintln("[appFork] '{}' waitpid returned 0 (process still running?)", name());
-            }
-            std::cout.flush();
-            nos::fprintln("[appFork] '{}' breaking from poll loop", name());
-            std::cout.flush();
+            fprintf(stderr, "[appFork] '%s' POLLERR/HUP/NVAL, breaking\n", name().c_str());
             break;
         }
 
         if (pfds[0].revents & POLLIN)
         {
-            if (loop_count <= 3)
-            {
-                nos::fprintln("[appFork] '{}' POLLIN, calling read(), loop {}", name(), loop_count);
-                std::cout.flush();
-            }
             int n = read(fd, buf, sizeof(buf));
-            if (loop_count <= 3)
-            {
-                nos::fprintln("[appFork] '{}' read returned {}, loop {}", name(), n, loop_count);
-                std::cout.flush();
-            }
             if (n > 0)
             {
                 logdata_append(buf, n);
@@ -521,36 +434,18 @@ void App::appFork()
             }
             else if (n == 0)
             {
-                nos::println("EOF from subprocess:", name());
-                break;
+                break;  // EOF
             }
             else
             {
                 if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
                     continue;
-
-                // EIO означает что slave PTY закрыт
-                if (errno == EIO)
-                {
-                    int status;
-                    pid_t result = waitpid(proc.pid(), &status, WNOHANG);
-                    if (result > 0)
-                    {
-                        nos::println("Process finished with status:",
-                                     WEXITSTATUS(status));
-                    }
-                    break;
-                }
-                perror("read");
-                break;
+                break;  // EIO or other error
             }
         }
     }
 
     // Убедимся, что процесс полностью завершился (non-blocking чтобы избежать гонки с SIGCHLD)
-    nos::fprintln("[appFork] '{}' exited poll loop, waiting for pid={} (non-blocking)...", name(), proc.pid());
-    std::cout.flush();
-
     // Используем non-blocking waitpid вместо blocking proc.wait()
     // потому что SIGCHLD handler может забрать процесс раньше
     int wait_loops = 0;
@@ -558,28 +453,15 @@ void App::appFork()
     {
         int status;
         pid_t result = waitpid(proc.pid(), &status, WNOHANG);
-        if (result > 0)
-        {
-            nos::fprintln("[appFork] '{}' waitpid returned {} (exited)", name(), result);
+        if (result > 0 || result < 0)
             break;
-        }
-        else if (result < 0)
-        {
-            // ECHILD - процесс уже забран SIGCHLD хендлером
-            nos::fprintln("[appFork] '{}' waitpid returned -1 (already reaped by SIGCHLD)", name());
-            break;
-        }
         // result == 0 - процесс ещё работает
-        if (++wait_loops > 50) // 5 секунд максимум
-        {
-            nos::fprintln("[appFork] '{}' wait timeout, giving up", name());
+        if (++wait_loops > 20) // 2 секунды максимум
             break;
-        }
         std::this_thread::sleep_for(100ms);
     }
 
-    nos::fprintln("[appFork] '{}' wait done", name());
-    std::cout.flush();
+    fprintf(stderr, "[appFork] '%s' cleanup done\n", name().c_str());
 
     // Закрываем wakeup pipe
     if (_wakeup_pipe[0] >= 0)
@@ -653,32 +535,27 @@ bool App::need_to_another_attempt() const
 
 void App::watchFunc()
 {
-    nos::fprintln("[watchFunc] '{}' started, thread ID: {}", name(), std::this_thread::get_id());
+    fprintf(stderr, "[watchFunc] '%s' started\n", name().c_str());
     while (1)
     {
         std::this_thread::sleep_for(10ms);
         if (cancel_reading)
         {
-            nos::fprintln("[watchFunc] '{}' cancel_reading detected, breaking", name());
+            fprintf(stderr, "[watchFunc] '%s' cancel_reading, breaking\n", name().c_str());
             break;
         }
 
-        nos::println("appFork", name());
         appFork();
 
         if (!need_to_another_attempt())
-        {
-            nos::fprintln("[watchFunc] '{}' no more attempts, breaking", name());
             break;
-        }
     }
 
-    nos::fprintln("[watchFunc] '{}' exiting, setting state...", name());
     isStopped = true;
     cancel_reading = false;
     _watcher_guard = false;
     proc.invalidate();
-    nos::fprintln("[watchFunc] '{}' done", name());
+    fprintf(stderr, "[watchFunc] '%s' done\n", name().c_str());
 }
 
 void App::run()
