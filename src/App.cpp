@@ -211,6 +211,14 @@ void App::stop()
             ::close(fd);
         }
 
+        // Пишем в wakeup pipe чтобы разбудить poll()
+        if (_wakeup_pipe[1] >= 0)
+        {
+            nos::fprintln("[App::stop] '{}' writing to wakeup pipe...", name());
+            char c = 'x';
+            ::write(_wakeup_pipe[1], &c, 1);
+        }
+
         nos::fprintln("[App::stop] '{}' process killed, joining watcher...", name());
 
         // Ждем завершения watcher thread
@@ -332,6 +340,13 @@ void App::appFork()
         fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     }
 
+    // Создаём wakeup pipe для прерывания poll() из другого потока
+    if (pipe(_wakeup_pipe) < 0)
+    {
+        nos::fprintln("[appFork] '{}' failed to create wakeup pipe", name());
+        _wakeup_pipe[0] = _wakeup_pipe[1] = -1;
+    }
+
     std::vector<uint8_t> buffer;
     char buf[1024];
     buffer.reserve(2048);
@@ -347,11 +362,15 @@ void App::appFork()
     }
 
     // Используем poll для неблокирующего ожидания данных
-    struct pollfd pfd;
-    pfd.fd = fd;
-    pfd.events = POLLIN;
+    // Используем 2 fd: subprocess output и wakeup pipe
+    struct pollfd pfds[2];
+    pfds[0].fd = fd;
+    pfds[0].events = POLLIN;
+    pfds[1].fd = _wakeup_pipe[0];  // read end of wakeup pipe
+    pfds[1].events = POLLIN;
+    int nfds = (_wakeup_pipe[0] >= 0) ? 2 : 1;
 
-    nos::fprintln("[appFork] '{}' entering poll loop", name());
+    nos::fprintln("[appFork] '{}' entering poll loop (nfds={})", name(), nfds);
     int loop_count = 0;
     while (true)
     {
@@ -371,12 +390,21 @@ void App::appFork()
             nos::fprintln("[appFork] '{}' calling poll(), loop {}", name(), loop_count);
             std::cout.flush();
         }
-        int poll_result = poll(&pfd, 1, 100);
+        int poll_result = poll(pfds, nfds, 100);
         if (loop_count <= 3)
         {
-            nos::fprintln("[appFork] '{}' poll returned {}, revents=0x{:x}, loop {}",
-                         name(), poll_result, pfd.revents, loop_count);
+            nos::fprintln("[appFork] '{}' poll returned {}, revents[0]=0x{:x}, loop {}",
+                         name(), poll_result, pfds[0].revents, loop_count);
             std::cout.flush();
+        }
+
+        // Проверяем wakeup pipe - если там есть данные, значит нас просят выйти
+        if (nfds > 1 && (pfds[1].revents & POLLIN))
+        {
+            nos::fprintln("[appFork] '{}' wakeup pipe signaled, breaking (loop {})", name(), loop_count);
+            char dummy;
+            ::read(_wakeup_pipe[0], &dummy, 1);
+            break;
         }
 
         if (poll_result < 0)
@@ -414,10 +442,10 @@ void App::appFork()
         }
 
         // Есть данные для чтения или ошибка
-        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
+        if (pfds[0].revents & (POLLERR | POLLHUP | POLLNVAL))
         {
             nos::fprintln("[appFork] '{}' POLLERR/HUP/NVAL revents=0x{:x} (loop {})",
-                         name(), pfd.revents, loop_count);
+                         name(), pfds[0].revents, loop_count);
             std::cout.flush();
             // PTY закрыт или ошибка - процесс вероятно завершился
             int status;
@@ -444,7 +472,7 @@ void App::appFork()
             break;
         }
 
-        if (pfd.revents & POLLIN)
+        if (pfds[0].revents & POLLIN)
         {
             if (loop_count <= 3)
             {
@@ -532,6 +560,18 @@ void App::appFork()
 
     nos::fprintln("[appFork] '{}' wait done", name());
     std::cout.flush();
+
+    // Закрываем wakeup pipe
+    if (_wakeup_pipe[0] >= 0)
+    {
+        ::close(_wakeup_pipe[0]);
+        _wakeup_pipe[0] = -1;
+    }
+    if (_wakeup_pipe[1] >= 0)
+    {
+        ::close(_wakeup_pipe[1]);
+        _wakeup_pipe[1] = -1;
+    }
 
     cancel_reading = false;
     nos::println("Finish subprocess:", name());
