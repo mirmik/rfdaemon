@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <nos/inet/tcp_client.h>
 #include <nos/inet/tcp_server.h>
@@ -56,6 +57,7 @@ public:
     ~TcpServer();
     int receiveThread();
     bool clientConnected();
+    void stop();
     virtual std::vector<uint8_t>
     parseReceivedData(const std::vector<uint8_t> &data) = 0;
 
@@ -107,8 +109,7 @@ public:
     //QueryResult lastQueryResult = QueryResult::AllOk;
     uint16_t usedPort = 0;
     nos::inet::tcp_server socket;
-    //nos::inet::tcp_client connection;
-    
+    std::atomic<bool> stopped{false};
 
     igris::dlist<ClientStruct, &ClientStruct::lnk> clients;
 

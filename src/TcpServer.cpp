@@ -2,8 +2,11 @@
 #include "arpa/inet.h"
 #include "crc32_ccitt.h"
 #include <cstring>
+#include <errno.h>
 #include <modes.h>
+#include <shutdown.h>
 #include <signal.h>
+#include <sys/select.h>
 #include <thread>
 #include <unistd.h>
 #include <igris/util/dstring.h>
@@ -22,14 +25,33 @@ TcpServer::TcpServer(uint16_t port)
 
 TcpServer::~TcpServer()
 {
-    // terminateRxThread = true;
-    // terminateTxThread = true;
+    stop();
+}
 
-    //connection.close();
+void TcpServer::stop()
+{
+    stopped.store(true);
     socket.close();
 
-    // while (terminateRxThread || terminateTxThread)
-    //     ;
+    // Clean up all clients
+    std::lock_guard<std::mutex> lock(mQueue);
+    while (!clients.empty())
+    {
+        ClientStruct* c = &clients.front();
+        c->lnk.unlink();
+        c->client.close();
+        if (c->receive_thread.joinable())
+            c->receive_thread.join();
+        delete c;
+    }
+
+    for (auto* c : marked_for_delete)
+    {
+        if (c->receive_thread.joinable())
+            c->receive_thread.join();
+        delete c;
+    }
+    marked_for_delete.clear();
 }
 
     ClientStruct::ClientStruct(nos::inet::tcp_client client, TcpServer* tcp_server) : client(client) 
@@ -117,7 +139,7 @@ void ClientStruct::send(std::vector<uint8_t> data)
         client.write((char*)data.data(), data.size());
 }
 
-int TcpServer::receiveThread() 
+int TcpServer::receiveThread()
 {
     socket.init();
     socket.reusing(true);
@@ -138,21 +160,50 @@ int TcpServer::receiveThread()
         exit(EXIT_FAILURE);
     }
 
-    while(1) 
+    while (!stopped.load() && !is_shutdown_requested())
     {
         delete_marked();
+
+        // Use select with timeout to make accept() interruptible
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(socket.fd(), &readfds);
+
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000; // 100ms timeout
+
+        int ret = select(socket.fd() + 1, &readfds, nullptr, nullptr, &tv);
+        if (ret < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            break;
+        }
+        if (ret == 0)
+            continue; // timeout, check shutdown flag
+
+        if (!FD_ISSET(socket.fd(), &readfds))
+            continue;
+
         auto client = socket.accept();
-        if (client.good()) 
+        if (client.good())
         {
             ClientStruct * c = new ClientStruct(client, this);
             clients.move_back(*c);
             c->start_receive_thread();
         }
-        else 
+        else
+        {
+            if (stopped.load() || is_shutdown_requested())
+                break;
             return -1;
+        }
     }
 
+    nos::println("TcpServer receiveThread stopped");
     socket.close();
+    return 0;
 }
 
 
