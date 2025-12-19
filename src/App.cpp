@@ -331,11 +331,13 @@ void App::appFork()
     pfd.fd = fd;
     pfd.events = POLLIN;
 
+    int loop_count = 0;
     while (true)
     {
+        loop_count++;
         if (cancel_reading)
         {
-            nos::println("stopped because reading was canceled");
+            nos::fprintln("[appFork] '{}' cancel_reading=true, breaking (loop {})", name(), loop_count);
             break;
         }
 
@@ -345,7 +347,11 @@ void App::appFork()
         if (poll_result < 0)
         {
             if (errno == EINTR)
+            {
+                nos::fprintln("[appFork] '{}' poll EINTR (loop {})", name(), loop_count);
                 continue;
+            }
+            nos::fprintln("[appFork] '{}' poll error (loop {})", name(), loop_count);
             perror("poll");
             break;
         }
@@ -357,16 +363,26 @@ void App::appFork()
             pid_t result = waitpid(proc.pid(), &status, WNOHANG);
             if (result > 0)
             {
+                nos::fprintln("[appFork] '{}' waitpid returned {} (loop {})", name(), result, loop_count);
                 nos::println("Process finished with status:",
                              WEXITSTATUS(status));
                 break;
             }
+            else if (result < 0)
+            {
+                // ECHILD - process already reaped by SIGCHLD handler
+                nos::fprintln("[appFork] '{}' waitpid returned -1 (ECHILD), process already reaped (loop {})", name(), loop_count);
+                break;
+            }
+            // result == 0 means process still running, continue polling
             continue;
         }
 
         // Есть данные для чтения или ошибка
         if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
         {
+            nos::fprintln("[appFork] '{}' poll returned POLLERR/HUP/NVAL revents=0x{:x} (loop {})",
+                         name(), pfd.revents, loop_count);
             // PTY закрыт или ошибка - процесс вероятно завершился
             int status;
             pid_t result = waitpid(proc.pid(), &status, WNOHANG);
@@ -374,6 +390,10 @@ void App::appFork()
             {
                 nos::println("Process finished with status:",
                              WEXITSTATUS(status));
+            }
+            else if (result < 0)
+            {
+                nos::fprintln("[appFork] '{}' process already reaped by SIGCHLD", name());
             }
             break;
         }
