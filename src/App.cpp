@@ -8,6 +8,7 @@
 #include <nos/fprint.h>
 #include <poll.h>
 #include <pwd.h>
+#include <shutdown.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -587,10 +588,13 @@ nos::trent App::toTrent() const
 
 void AppManager::update_systemctl_projects_status()
 {
-    while (true)
+    while (!is_shutdown_requested())
     {
         for (std::shared_ptr<App> p : applications())
         {
+            if (is_shutdown_requested())
+                break;
+
             if (p->is_systemctl_process())
             {
                 auto name = p->systemd_bind;
@@ -615,6 +619,9 @@ void AppManager::update_systemctl_projects_status()
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        // Use wait_for_shutdown instead of plain sleep for faster response
+        if (wait_for_shutdown_ms(300))
+            break;
     }
+    nos::println("Systemd updater thread stopped");
 }

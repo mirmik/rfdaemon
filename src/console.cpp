@@ -1,24 +1,32 @@
 #include <AppManager.h>
 #include <console.h>
+#include <errno.h>
 #include <functional>
+#include <unistd.h>
 #include <igris/util/base64.h>
 #include <iostream>
 #include <modes.h>
+#include <mutex>
 #include <nos/inet/tcp_client.h>
 #include <nos/inet/tcp_server.h>
 #include <nos/input.h>
+#include <sys/select.h>
 #include <nos/io/buffered_file.h>
 #include <nos/shell/argv.h>
 #include <nos/shell/executor.h>
 #include <nos/trent/json.h>
 #include <nos/trent/json_print.h>
 #include <rxcpp/rx.hpp>
+#include <shutdown.h>
 #include <thread>
 #include <version.h>
 
 extern std::unique_ptr<AppManager> appManager;
-std::vector<std::thread> server_threads;
-std::thread userIOThread;
+
+static std::vector<std::thread> server_threads;
+static std::vector<nos::inet::tcp_server*> tcp_servers;
+static std::mutex tcp_servers_mutex;
+static std::thread userIOThread;
 
 struct client_context
 {
@@ -665,16 +673,57 @@ void server_spin(int port)
     server.bind("0.0.0.0", port);
     server.listen();
 
-    nos::println("Starting tcp console on port", port);
-    while (true)
+    // Register server for shutdown
     {
-        nos::println("Waiting for client...");
+        std::lock_guard<std::mutex> lock(tcp_servers_mutex);
+        tcp_servers.push_back(&server);
+    }
+
+    nos::println("Starting tcp console on port", port);
+    while (!is_shutdown_requested())
+    {
+        // Use select with timeout to check for shutdown periodically
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(server.fd(), &readfds);
+
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000; // 100ms timeout
+
+        int ret = select(server.fd() + 1, &readfds, nullptr, nullptr, &tv);
+        if (ret < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            break;
+        }
+        if (ret == 0)
+            continue; // timeout, check shutdown flag
+
+        if (!FD_ISSET(server.fd(), &readfds))
+            continue;
+
         nos::inet::tcp_client client = server.accept();
+        if (client.fd() < 0)
+            break;
+
+        // Run client handler in same thread (simpler for shutdown)
+        // For high concurrency, could use thread pool
         std::thread client_thread(client_spin, client);
-        client_thread.detach();
+        client_thread.detach(); // OK for short-lived connections
+    }
+
+    // Unregister server
+    {
+        std::lock_guard<std::mutex> lock(tcp_servers_mutex);
+        tcp_servers.erase(
+            std::remove(tcp_servers.begin(), tcp_servers.end(), &server),
+            tcp_servers.end());
     }
 
     server.close();
+    nos::println("TCP console on port", port, "stopped");
 }
 
 void start_tcp_console(int tcp_console_port)
@@ -683,21 +732,64 @@ void start_tcp_console(int tcp_console_port)
     server_threads.emplace_back(std::thread(server_spin, tcp_console_port));
 }
 
+void stop_tcp_consoles()
+{
+    // Close all server sockets to unblock accept()
+    std::lock_guard<std::mutex> lock(tcp_servers_mutex);
+    for (auto* server : tcp_servers)
+    {
+        if (server)
+            server->close();
+    }
+}
+
+void join_tcp_console_threads()
+{
+    for (auto& t : server_threads)
+    {
+        if (t.joinable())
+            t.join();
+    }
+    server_threads.clear();
+
+    if (userIOThread.joinable())
+    {
+        userIOThread.join();
+    }
+}
+
 int userIOThreadHandler()
 {
     std::string str;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     client_context context([](std::string str) { nos::print(str); });
-    while (1)
+    while (!is_shutdown_requested())
     {
-        std::cout << "$ ";
-        getline(std::cin, str);
+        std::cout << "$ " << std::flush;
+
+        // Use select to make stdin interruptible
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000; // 100ms
+
+        int ret = select(STDIN_FILENO + 1, &readfds, nullptr, nullptr, &tv);
+        if (ret <= 0)
+            continue;
+
+        if (!std::getline(std::cin, str))
+            break; // EOF or error
+
         nos::tokens tokens(str);
         auto sb = execute_tokens(tokens, &context);
         if (sb.size() == 0)
             continue;
         std::cout << sb;
     }
+    nos::println("User IO thread stopped");
     return 0;
 }
 

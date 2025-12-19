@@ -1,13 +1,13 @@
 ﻿#include "main.h"
 #include "AppManager.h"
 #include "RFDaemonServer.h"
-//#include <Beam.h>
 #include <console.h>
 #include <defs.h>
 #include <getopt.h>
 #include <httpserver.h>
 #include <iostream>
 #include <signal.h>
+#include <shutdown.h>
 #include <string.h>
 #include <version.h>
 #include <sys/wait.h>
@@ -144,28 +144,58 @@ int main(int argc, char *argv[])
         nos::println("RFDaemon started");
         srvRxThread = std::thread(tcpServerReceiveThreadHandler, srv.get(),
                                   appManager.get());
-        
 
         nos::println("Starting systemd updater thread");
         systemd_updater_thread = std::thread(
-            &AppManager::update_systemctl_projects_status, 
+            &AppManager::update_systemctl_projects_status,
             appManager.get());
-
 
         if (TERMINAL_MODE && !NOCONSOLE_MODE)
         {
             start_stdstream_console();
         }
-        try
+
+        // Wait for shutdown signal
+        nos::println("Waiting for shutdown signal...");
+        while (!is_shutdown_requested())
         {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        nos::println("Shutdown requested, cleaning up...");
+
+        // Stop all servers first
+        stop_httpserver();
+        stop_tcp_consoles();
+
+        // Stop managed applications
+        if (appManager)
+        {
+            appManager->closeApps();
+        }
+
+        // Join threads with timeout
+        nos::println("Waiting for threads to finish...");
+
+        if (systemd_updater_thread.joinable())
+        {
+            systemd_updater_thread.join();
+        }
+
+        if (srvRxThread.joinable())
+        {
+            // Give it a moment, then detach if still running
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            if (srv)
+            {
+                srv->stop();
+            }
             srvRxThread.join();
         }
-        catch (const std::exception &e)
-        {
-            nos::println("Error: {}", e.what());
-        }
-    
-    
+
+        join_tcp_console_threads();
+
+        nos::println("Shutdown complete.");
     }
     return 0;
 }
@@ -363,9 +393,8 @@ void stop_world()
 
 void interrupt_signal_handler(int sig)
 {
-    nos::println("Interrupt signal received.");
-    // Graceful shutdown can deadlock from signal handler context
-    // (mutex locks, thread joins are not async-signal-safe)
-    // Just exit immediately - OS will cleanup resources
-    _exit(128 + sig);
+    (void)sig;
+    // Only set the flag - this is async-signal-safe
+    // The main thread will handle cleanup
+    g_shutdown_requested.store(true, std::memory_order_release);
 }

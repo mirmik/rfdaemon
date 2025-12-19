@@ -39,7 +39,7 @@ void bind_static_html_resource(httplib::Server &srv, std::string path,
     }
 }*/
 
-std::thread httpserver_thread;
+static std::thread httpserver_thread;
 static std::unique_ptr<httplib::Server> http_server_ptr;
 
 void stop_httpserver()
@@ -48,6 +48,11 @@ void stop_httpserver()
     {
         http_server_ptr->stop();
     }
+    if (httpserver_thread.joinable())
+    {
+        httpserver_thread.join();
+    }
+    http_server_ptr.reset();
 }
 
 void start_httpserver(const std::string &host, uint16_t port)
