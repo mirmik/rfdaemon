@@ -389,20 +389,31 @@ void App::appFork()
         // Есть данные для чтения или ошибка
         if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
         {
-            nos::fprintln("[appFork] '{}' poll returned POLLERR/HUP/NVAL revents=0x{:x} (loop {})",
+            nos::fprintln("[appFork] '{}' POLLERR/HUP/NVAL revents=0x{:x} (loop {})",
                          name(), pfd.revents, loop_count);
+            std::cout.flush();
             // PTY закрыт или ошибка - процесс вероятно завершился
             int status;
+            nos::fprintln("[appFork] '{}' calling waitpid({}, WNOHANG)...", name(), proc.pid());
+            std::cout.flush();
             pid_t result = waitpid(proc.pid(), &status, WNOHANG);
+            nos::fprintln("[appFork] '{}' waitpid returned {}, errno={}", name(), result, errno);
+            std::cout.flush();
             if (result > 0)
             {
-                nos::println("Process finished with status:",
-                             WEXITSTATUS(status));
+                nos::fprintln("[appFork] '{}' process finished with status: {}", name(), WEXITSTATUS(status));
             }
             else if (result < 0)
             {
-                nos::fprintln("[appFork] '{}' process already reaped by SIGCHLD", name());
+                nos::fprintln("[appFork] '{}' process already reaped (ECHILD)", name());
             }
+            else
+            {
+                nos::fprintln("[appFork] '{}' waitpid returned 0 (process still running?)", name());
+            }
+            std::cout.flush();
+            nos::fprintln("[appFork] '{}' breaking from poll loop", name());
+            std::cout.flush();
             break;
         }
 
@@ -452,9 +463,11 @@ void App::appFork()
     }
 
     // Убедимся, что процесс полностью завершился
-    nos::fprintln("[appFork] '{}' calling proc.wait()...", name());
+    nos::fprintln("[appFork] '{}' exited poll loop, calling proc.wait() for pid={}...", name(), proc.pid());
+    std::cout.flush();
     proc.wait();
     nos::fprintln("[appFork] '{}' proc.wait() returned", name());
+    std::cout.flush();
 
     cancel_reading = false;
     nos::println("Finish subprocess:", name());
