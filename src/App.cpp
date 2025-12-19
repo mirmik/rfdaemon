@@ -300,6 +300,7 @@ void App::set_systemd_bind(const std::string &service)
 // Call only in a separate thread
 void App::appFork()
 {
+    nos::fprintln("[appFork] '{}' ENTER", name());
     _exitStatus = 0;
     increment_attempt_counter();
 
@@ -309,8 +310,11 @@ void App::appFork()
     auto envp = envp_for_execve(envp_base);
     auto args = tokens_for_execve(tokens);
 
+    nos::fprintln("[appFork] '{}' calling proc.exec()...", name());
     proc.exec(tokens[0].data(), args, envp);
+    nos::fprintln("[appFork] '{}' proc.exec() returned, pid={}", name(), proc.pid());
     int fd = proc.output_fd();
+    nos::fprintln("[appFork] '{}' output_fd={}", name(), fd);
 
     std::vector<uint8_t> buffer;
     char buf[1024];
@@ -331,10 +335,14 @@ void App::appFork()
     pfd.fd = fd;
     pfd.events = POLLIN;
 
+    nos::fprintln("[appFork] '{}' entering poll loop", name());
     int loop_count = 0;
     while (true)
     {
         loop_count++;
+        if (loop_count % 100 == 1)
+            nos::fprintln("[appFork] '{}' poll loop iteration {}", name(), loop_count);
+
         if (cancel_reading)
         {
             nos::fprintln("[appFork] '{}' cancel_reading=true, breaking (loop {})", name(), loop_count);
