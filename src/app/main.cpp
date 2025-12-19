@@ -364,6 +364,8 @@ void stop_world()
 void interrupt_signal_handler(int sig)
 {
     nos::println("Interrupt signal received.");
-    stop_world();
-    exitHandler(sig);
+    // Graceful shutdown can deadlock from signal handler context
+    // (mutex locks, thread joins are not async-signal-safe)
+    // Just exit immediately - OS will cleanup resources
+    _exit(128 + sig);
 }
