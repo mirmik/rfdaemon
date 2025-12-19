@@ -54,28 +54,13 @@ void start_httpserver(const std::string &host, uint16_t port)
 
         server.Get("/apps_state.json", [](const httplib::Request &,
                                           httplib::Response &res) {
-            auto &apps = appManager->applications();
-            nos::trent tr;
-            for (size_t i = 0; i < apps.size(); i++)
-            {
-                tr["apps"][(int)i]["name"] = apps[i]->name();
-                tr["apps"][(int)i]["state"] = apps[i]->status_string();
-                tr["apps"][(int)i]["pid"] = apps[i]->pid();
-            }
+            auto tr = appManager->getAppsState();
             res.set_content(nos::json::to_string(tr), "application/json");
         });
 
         server.Get("/apps_full_state.json", [](const httplib::Request &,
                                                httplib::Response &res) {
-            auto &apps = appManager->applications();
-            nos::trent tr;
-            for (size_t i = 0; i < apps.size(); i++)
-            {
-                tr["apps"][(int)i]["name"] = apps[i]->name();
-                tr["apps"][(int)i]["state"] = apps[i]->status_string();
-                tr["apps"][(int)i]["pid"] = apps[i]->pid();
-                tr["apps"][(int)i]["command"] = apps[i]->command();
-            }
+            auto tr = appManager->getAppsFullState();
             res.set_content(nos::json::to_string(tr), "application/json");
         });
 
@@ -97,7 +82,12 @@ void start_httpserver(const std::string &host, uint16_t port)
                                       httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "stop " << index << std::endl;
-            appManager->applications()[index]->stop();
+            auto app = appManager->getApp(index);
+            if (!app) {
+                res.set_content("{\"error\":\"not found\"}", "application/json");
+                return;
+            }
+            app->stop();
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
@@ -105,7 +95,12 @@ void start_httpserver(const std::string &host, uint16_t port)
                                        httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "start " << index << std::endl;
-            appManager->applications()[index]->start();
+            auto app = appManager->getApp(index);
+            if (!app) {
+                res.set_content("{\"error\":\"not found\"}", "application/json");
+                return;
+            }
+            app->start();
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
@@ -113,7 +108,12 @@ void start_httpserver(const std::string &host, uint16_t port)
                                          httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "restart " << index << std::endl;
-            appManager->applications()[index]->restart();
+            auto app = appManager->getApp(index);
+            if (!app) {
+                res.set_content("{\"error\":\"not found\"}", "application/json");
+                return;
+            }
+            app->restart();
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });
 
@@ -121,7 +121,11 @@ void start_httpserver(const std::string &host, uint16_t port)
                                           httplib::Response &res) {
             auto index = std::stoi(req.get_param_value("index"));
             std::cout << "get_logs " << index << std::endl;
-            auto &app = appManager->applications()[index];
+            auto app = appManager->getApp(index);
+            if (!app) {
+                res.set_content("{\"error\":\"not found\"}", "application/json");
+                return;
+            }
             auto logs = httplib::detail::base64_encode(app->show_stdout());
             nos::trent tr;
             tr["stdout"] = logs;
@@ -177,6 +181,10 @@ void start_httpserver(const std::string &host, uint16_t port)
                                             httplib::Response &res) {
             int index = std::stoi(req.get_param_value("index"));
             std::cout << "app_delete " << index << std::endl;
+            if (index < 0 || static_cast<size_t>(index) >= appManager->getAppCount()) {
+                res.set_content("{\"error\":\"not found\"}", "application/json");
+                return;
+            }
             appManager->removeApp(index);
             res.set_content("{\"status\":\"ok\"}", "application/json");
         });

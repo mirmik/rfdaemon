@@ -32,6 +32,7 @@ private:
     std::string runtimeSettingsFilename = "/home/rfmeas/project/runtime.json";
     nos::inet::tcpspam_server spamserver = {};
     std::mutex spam_mutex = {};
+    mutable std::mutex apps_mutex = {};
     static std::mutex ioMutex;
 
 public:
@@ -95,4 +96,8 @@ public:
     void removeApp(size_t index);
     nos::trent toJson() const;
     void saveConfig();
+
+    // Thread-safe state getters for HTTP API
+    nos::trent getAppsState() const;
+    nos::trent getAppsFullState() const;
 };

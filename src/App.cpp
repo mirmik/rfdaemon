@@ -52,10 +52,12 @@ std::string App::status_string() const
 
 std::string App::command() const
 {
-    std::string cmd = "";
-    for (auto &arg : tokens)
+    std::string cmd;
+    for (size_t i = 0; i < tokens.size(); i++)
     {
-        cmd += arg + " ";
+        cmd += tokens[i];
+        if (i + 1 < tokens.size())
+            cmd += " ";
     }
     return cmd;
 }
@@ -571,6 +573,13 @@ nos::trent App::toTrent() const
         for (const auto &kv : _env)
         {
             tr["env"][kv.first] = kv.second;
+        }
+    }
+    if (!_linked_files.empty())
+    {
+        for (size_t i = 0; i < _linked_files.size(); i++)
+        {
+            tr["files"][(int)i] = _linked_files[i].to_trent();
         }
     }
     return tr;

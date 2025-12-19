@@ -164,6 +164,7 @@ bool AppManager::loadConfigFile()
 
 void AppManager::runApps()
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     for (auto &a : apps)
     {
         if (a->stopped())
@@ -173,12 +174,13 @@ void AppManager::runApps()
 
 void AppManager::closeApps()
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     for (auto &a : apps)
     {
         if (!a->stopped())
             a->stop();
     }
-    
+
     nos::println("All created processes have just been killed.");
 }
 
@@ -191,6 +193,7 @@ void AppManager::restartApps()
 
 size_t AppManager::getAppCount() const
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     return apps.size();
 }
 
@@ -210,6 +213,8 @@ std::shared_ptr<App> AppManager::findApp(const std::string &name)
     {
         return nullptr;
     }
+
+    std::lock_guard<std::mutex> lock(apps_mutex);
 
     if (std::isdigit(static_cast<unsigned char>(name[0])))
     {
@@ -239,6 +244,7 @@ std::shared_ptr<App> AppManager::findApp(const std::string &name)
 
 std::shared_ptr<App> AppManager::getApp(size_t index)
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     if (index < apps.size())
         return apps[index];
 
@@ -325,6 +331,7 @@ void AppManager::on_child_finished(pid_t pid)
 
 std::shared_ptr<App> AppManager::get_app_by_pid(pid_t pid)
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     for (auto &a : apps)
     {
         if (a->pid() == pid)
@@ -336,12 +343,14 @@ std::shared_ptr<App> AppManager::get_app_by_pid(pid_t pid)
 void AppManager::addApp(const std::string &name, const std::string &command,
                         App::RestartMode mode)
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     apps.emplace_back(std::make_shared<App>(
         apps.size(), name, command, mode, std::vector<LinkedFile>{}, ""));
 }
 
 void AppManager::removeApp(size_t index)
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     if (index < apps.size())
     {
         apps[index]->stop();
@@ -351,10 +360,15 @@ void AppManager::removeApp(size_t index)
 
 nos::trent AppManager::toJson() const
 {
+    std::lock_guard<std::mutex> lock(apps_mutex);
     nos::trent root;
     for (size_t i = 0; i < apps.size(); i++)
     {
         root["apps"][(int)i] = apps[i]->toTrent();
+    }
+    for (size_t i = 0; i < systemLogPaths.size(); i++)
+    {
+        root["sys_logs"][(int)i] = systemLogPaths[i];
     }
     return root;
 }
@@ -365,4 +379,31 @@ void AppManager::saveConfig()
     file << nos::json::to_string(toJson());
     file.close();
     nos::println("Config saved to", appFilename);
+}
+
+nos::trent AppManager::getAppsState() const
+{
+    std::lock_guard<std::mutex> lock(apps_mutex);
+    nos::trent tr;
+    for (size_t i = 0; i < apps.size(); i++)
+    {
+        tr["apps"][(int)i]["name"] = apps[i]->name();
+        tr["apps"][(int)i]["state"] = apps[i]->status_string();
+        tr["apps"][(int)i]["pid"] = apps[i]->pid();
+    }
+    return tr;
+}
+
+nos::trent AppManager::getAppsFullState() const
+{
+    std::lock_guard<std::mutex> lock(apps_mutex);
+    nos::trent tr;
+    for (size_t i = 0; i < apps.size(); i++)
+    {
+        tr["apps"][(int)i]["name"] = apps[i]->name();
+        tr["apps"][(int)i]["state"] = apps[i]->status_string();
+        tr["apps"][(int)i]["pid"] = apps[i]->pid();
+        tr["apps"][(int)i]["command"] = apps[i]->command();
+    }
+    return tr;
 }

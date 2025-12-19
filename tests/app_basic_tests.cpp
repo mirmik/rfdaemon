@@ -46,7 +46,7 @@ TEST_CASE(
     std::vector<LinkedFile> linkeds;
     App app(0, "echo_app", "echo 1 2", App::RestartMode::ONCE, linkeds, "");
 
-    CHECK_EQ(app.command(), std::string("echo 1 2 "));
+    CHECK_EQ(app.command(), std::string("echo 1 2"));
     CHECK_EQ(app.token_list_as_string(), std::string("[echo,1,2]"));
 }
 
