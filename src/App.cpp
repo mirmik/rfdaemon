@@ -462,11 +462,38 @@ void App::appFork()
         }
     }
 
-    // Убедимся, что процесс полностью завершился
-    nos::fprintln("[appFork] '{}' exited poll loop, calling proc.wait() for pid={}...", name(), proc.pid());
+    // Убедимся, что процесс полностью завершился (non-blocking чтобы избежать гонки с SIGCHLD)
+    nos::fprintln("[appFork] '{}' exited poll loop, waiting for pid={} (non-blocking)...", name(), proc.pid());
     std::cout.flush();
-    proc.wait();
-    nos::fprintln("[appFork] '{}' proc.wait() returned", name());
+
+    // Используем non-blocking waitpid вместо blocking proc.wait()
+    // потому что SIGCHLD handler может забрать процесс раньше
+    int wait_loops = 0;
+    while (true)
+    {
+        int status;
+        pid_t result = waitpid(proc.pid(), &status, WNOHANG);
+        if (result > 0)
+        {
+            nos::fprintln("[appFork] '{}' waitpid returned {} (exited)", name(), result);
+            break;
+        }
+        else if (result < 0)
+        {
+            // ECHILD - процесс уже забран SIGCHLD хендлером
+            nos::fprintln("[appFork] '{}' waitpid returned -1 (already reaped by SIGCHLD)", name());
+            break;
+        }
+        // result == 0 - процесс ещё работает
+        if (++wait_loops > 50) // 5 секунд максимум
+        {
+            nos::fprintln("[appFork] '{}' wait timeout, giving up", name());
+            break;
+        }
+        std::this_thread::sleep_for(100ms);
+    }
+
+    nos::fprintln("[appFork] '{}' wait done", name());
     std::cout.flush();
 
     cancel_reading = false;
