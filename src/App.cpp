@@ -202,6 +202,15 @@ void App::stop()
         _attempts = 0;
         cancel_reading = true;
         proc.kill();
+
+        // Закрываем fd чтобы poll() в watcher thread вернулся с ошибкой
+        int fd = proc.output_fd();
+        if (fd >= 0)
+        {
+            nos::fprintln("[App::stop] '{}' closing output fd {}...", name(), fd);
+            ::close(fd);
+        }
+
         nos::fprintln("[App::stop] '{}' process killed, joining watcher...", name());
 
         // Ждем завершения watcher thread
@@ -357,7 +366,18 @@ void App::appFork()
         }
 
         // poll с таймаутом 100ms
+        if (loop_count <= 3)
+        {
+            nos::fprintln("[appFork] '{}' calling poll(), loop {}", name(), loop_count);
+            std::cout.flush();
+        }
         int poll_result = poll(&pfd, 1, 100);
+        if (loop_count <= 3)
+        {
+            nos::fprintln("[appFork] '{}' poll returned {}, revents=0x{:x}, loop {}",
+                         name(), poll_result, pfd.revents, loop_count);
+            std::cout.flush();
+        }
 
         if (poll_result < 0)
         {
@@ -426,7 +446,17 @@ void App::appFork()
 
         if (pfd.revents & POLLIN)
         {
+            if (loop_count <= 3)
+            {
+                nos::fprintln("[appFork] '{}' POLLIN, calling read(), loop {}", name(), loop_count);
+                std::cout.flush();
+            }
             int n = read(fd, buf, sizeof(buf));
+            if (loop_count <= 3)
+            {
+                nos::fprintln("[appFork] '{}' read returned {}, loop {}", name(), n, loop_count);
+                std::cout.flush();
+            }
             if (n > 0)
             {
                 logdata_append(buf, n);
