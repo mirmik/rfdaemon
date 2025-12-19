@@ -1,18 +1,13 @@
 #pragma once
 
-#include <igris/sclonner.h>
 #include <mutex>
 #include <nos/trent/trent.h>
 #include <optional>
 #include <pwd.h>
 #include <queue>
-#include <rxcpp/rx.hpp>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
-
-#include <rxcpp/rx-subjects.hpp>
 
 class LinkedFile
 {
@@ -41,36 +36,20 @@ private:
     std::vector<std::string> _args = {};
     std::vector<LinkedFile> _linked_files = {};
     int task_index = {};
-    std::chrono::time_point<std::chrono::system_clock> _startTime = {};
     std::vector<std::string> tokens = {};
-    int32_t _attempts_initializer = 5;
-    int32_t _attempts = _attempts_initializer;
-    bool _watcher_guard = false;
-    std::thread _watcher_thread = {};
-    int _exitStatus = 0;
     RestartMode _restartMode = RestartMode::ALWAYS;
     std::string _name = {};
     std::queue<int> _errors = {};
-    // int _pid = 0;
-    igris::subprocess proc = {};
-    bool cancel_reading = false;
-    std::string _stdout_record = {};
     std::unordered_map<std::string, std::string> _env;
-    int _wakeup_pipe[2] = {-1, -1};  // pipe для пробуждения poll()
 
-    rxcpp::subjects::subject<std::string> logstream_subject;
-    int systemd_pid = 0;
+    // systemd integration
+    std::string _service_name = {};   // e.g. "rfd-myapp"
+    std::string _service_path = {};   // e.g. "/etc/systemd/system/rfd-myapp.service"
 
 public:
-    std::string systemd_bind;
     bool isStopped = true;
 
 public:
-    auto logstream_subject_observable()
-    {
-        return logstream_subject.get_observable();
-    }
-
     App(int task_index, const std::string &name, const std::string &cmd,
         RestartMode mode, const std::vector<LinkedFile> &linkeds,
         std::string user);
@@ -80,54 +59,38 @@ public:
     App(App &&) = default;
     App &operator=(App &&) = default;
 
-    bool is_systemctl_process(); 
+    // Lifecycle management (via systemd)
     void stop();
     void start();
     void restart();
     bool stopped() const;
+
+    // Getters
     void set_user(const std::string &user);
     RestartMode restartMode() const;
     int pid() const;
-    void set_pid(int p);
     const std::string &name() const;
     const std::vector<std::string> &args() const;
     int64_t uptime() const;
-    uint32_t restartAttempts() const;
-    pid_t waitFinish();
-    void run();
     std::vector<std::string> logPaths() const;
     std::queue<int> &errors();
     std::string status_string() const;
     std::string command() const;
-    std::vector<std::string> envp_base_for_execve();
-    std::vector<char *> envp_for_execve(const std::vector<std::string> &args);
-    void set_systemd_bind(const std::string& service);
-    std::string get_journal_data(int lcount);
-    void start_systemd();
 
-    bool need_to_another_attempt() const;
-    void increment_attempt_counter();
-    void restart_attempt_counter();
+    // Journal/logs
+    std::string get_journal_data(int lcount) const;
+    std::string show_stdout() const;
 
-    static std::vector<char *>
-    tokens_for_execve(const std::vector<std::string> &args);
-
-    void logdata_append(const char *data, size_t size);
-    size_t logdata_size() const;
-    void logdata_clear();
-    int64_t logdata_read(char *data, size_t size, size_t offset);
-    void on_child_finished();
     void set_environment_variables(
         const std::unordered_map<std::string, std::string> &env);
 
     std::string token_list_as_string() const;
 
-    bool is_runned()
+    bool is_runned() const
     {
         return !isStopped;
     }
 
-    const std::string &show_stdout() const;
     const std::vector<LinkedFile> &linked_files() const
     {
         return _linked_files;
@@ -139,23 +102,16 @@ public:
     void setName(const std::string &name);
     nos::trent toTrent() const;
 
-    ~App()
-    {
-        try
-        {
-            stop();
-            if (_watcher_thread.joinable())
-            {
-                _watcher_thread.join();
-            }
-        }
-        catch (...)
-        {
-            // path
-        }
-    }
+    // systemd service file management
+    std::string generate_service_content() const;
+    bool sync_service_file();
+    const std::string &service_name() const { return _service_name; }
+    const std::string &service_path() const { return _service_path; }
+    static bool daemon_reload();
+
+    ~App() = default;
 
 private:
-    void watchFunc();
-    void appFork();
+    std::string exec_command(const std::string &cmd) const;
+    int exec_command_status(const std::string &cmd) const;
 };
