@@ -62,6 +62,13 @@ public:
     void on_child_finished(pid_t pid);
     App *get_app_by_pid(pid_t pid);
 
+    // Runtime editing methods
+    void addApp(const std::string &name, const std::string &command,
+                App::RestartMode mode);
+    void removeApp(size_t index);
+    nos::trent toJson() const;
+    void saveConfig();
+
 private:
     std::vector<App> apps;
     std::vector<std::string> systemLogPaths;

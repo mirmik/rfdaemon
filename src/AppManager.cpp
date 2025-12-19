@@ -5,6 +5,7 @@
 #include <iostream>
 #include <mutex>
 #include <nos/trent/json.h>
+#include <nos/trent/json_print.h>
 #include <unistd.h>
 
 extern bool VERBOSE;
@@ -299,4 +300,38 @@ App *AppManager::get_app_by_pid(pid_t pid)
             return &a;
     }
     return nullptr;
+}
+
+void AppManager::addApp(const std::string &name, const std::string &command,
+                        App::RestartMode mode)
+{
+    apps.emplace_back(apps.size(), name, command, mode,
+                      std::vector<LinkedFile>{}, "");
+}
+
+void AppManager::removeApp(size_t index)
+{
+    if (index < apps.size())
+    {
+        apps[index].stop();
+        apps.erase(apps.begin() + index);
+    }
+}
+
+nos::trent AppManager::toJson() const
+{
+    nos::trent root;
+    for (size_t i = 0; i < apps.size(); i++)
+    {
+        root["apps"][(int)i] = apps[i].toTrent();
+    }
+    return root;
+}
+
+void AppManager::saveConfig()
+{
+    std::ofstream file(appFilename);
+    file << nos::json::to_string(toJson());
+    file.close();
+    nos::println("Config saved to", appFilename);
 }

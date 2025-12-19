@@ -6,6 +6,7 @@
 #include <memory>
 #include <nos/fprint.h>
 #include <nos/io/sstream.h>
+#include <nos/trent/json.h>
 #include <nos/trent/json_print.h>
 #include <thread>
 
@@ -126,6 +127,68 @@ void start_httpserver(uint16_t port)
             tr["stdout"] = logs;
             res.set_content(nos::json::to_string(tr), "application/json");
         });
+
+        // Update app parameters
+        server.Post("/app_update.action",
+                    [](const httplib::Request &req, httplib::Response &res) {
+                        std::cout << "app_update" << std::endl;
+                        auto body = nos::json::parse(req.body);
+                        int index = body["index"].as_int();
+                        auto *app = appManager->getApp(index);
+                        if (!app)
+                        {
+                            res.set_content("{\"error\":\"not found\"}",
+                                            "application/json");
+                            return;
+                        }
+                        if (body.contains("name"))
+                            app->setName(body["name"].as_string());
+                        if (body.contains("command"))
+                            app->setCommand(body["command"].as_string());
+                        if (body.contains("restart"))
+                        {
+                            auto mode =
+                                body["restart"].as_string() == "always"
+                                    ? App::RestartMode::ALWAYS
+                                    : App::RestartMode::ONCE;
+                            app->setRestartMode(mode);
+                        }
+                        res.set_content("{\"status\":\"ok\"}",
+                                        "application/json");
+                    });
+
+        // Add new app
+        server.Post(
+            "/app_add.action",
+            [](const httplib::Request &req, httplib::Response &res) {
+                std::cout << "app_add" << std::endl;
+                auto body = nos::json::parse(req.body);
+                std::string name = body["name"].as_string();
+                std::string command = body["command"].as_string();
+                auto mode = body["restart"].as_string() == "always"
+                                ? App::RestartMode::ALWAYS
+                                : App::RestartMode::ONCE;
+                appManager->addApp(name, command, mode);
+                res.set_content("{\"status\":\"ok\"}", "application/json");
+            });
+
+        // Delete app
+        server.Get("/app_delete.action", [](const httplib::Request &req,
+                                            httplib::Response &res) {
+            int index = std::stoi(req.get_param_value("index"));
+            std::cout << "app_delete " << index << std::endl;
+            appManager->removeApp(index);
+            res.set_content("{\"status\":\"ok\"}", "application/json");
+        });
+
+        // Save config to disk
+        server.Get("/save_config.action",
+                   [](const httplib::Request &, httplib::Response &res) {
+                       std::cout << "save_config" << std::endl;
+                       appManager->saveConfig();
+                       res.set_content("{\"status\":\"ok\"}",
+                                       "application/json");
+                   });
 
         server.set_error_handler([](const auto &req, auto &res) {
             auto fmt = "<p>Error Path:%s Status: <span "

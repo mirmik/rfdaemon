@@ -2,26 +2,86 @@
 <html>
 
 <head>
-  <script type="text/javascript" src="functions.js"></script>
-  <link rel="stylesheet" type="text/css" href="style.css">
-  <meta charset="utf-8" />
-  <title>RFDaemon. Control panel.</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFDaemon Control Panel</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
-<body style="background-color:rgb(52, 50, 53);">
-  <div id="divtext" class="container_tasks"></div>
+<body>
+    <div class="main-container">
+        <header class="header">
+            <h1>RFDaemon Control Panel</h1>
+            <div class="header-buttons">
+                <button class="secondary" onclick="stopAll()">Stop All</button>
+                <button class="secondary" onclick="startAll()">Start All</button>
+                <button class="success" onclick="saveConfig()">Save Config</button>
+                <button onclick="addApp()">+ Add App</button>
+            </div>
+        </header>
 
-  <script type="text/javascript">
-    init_function();
-    state_update_loop();
-  </script>
+        <div class="content">
+            <aside class="apps-panel">
+                <div class="apps-panel-header">Applications</div>
+                <div id="apps-list"></div>
+            </aside>
 
-  <button onclick="stop_all()">stop all</button>
-  <button onclick="start_all()">start all</button>
+            <main class="details-panel" id="details-panel">
+                <div class="empty-state" id="empty-state">
+                    <p>Select an application to view details</p>
+                </div>
 
-  <div>
-    <textarea id="log_area">LogZone</textarea>
-  </div>
+                <div id="app-details" style="display: none;">
+                    <section class="details-section">
+                        <h2>Configuration</h2>
+                        <div class="form-group">
+                            <label for="detail-name">Name</label>
+                            <input type="text" id="detail-name" placeholder="Application name">
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-command">Command</label>
+                            <input type="text" id="detail-command" placeholder="/path/to/executable --args">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-restart">Restart Mode</label>
+                                <select id="detail-restart">
+                                    <option value="always">Always</option>
+                                    <option value="once">Once</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="status-display">
+                            <div class="status-item">
+                                <span class="label">Status</span>
+                                <span class="value" id="detail-status">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="label">PID</span>
+                                <span class="value" id="detail-pid">-</span>
+                            </div>
+                        </div>
+
+                        <button onclick="applyChanges()">Apply Changes</button>
+                    </section>
+
+                    <section class="logs-section">
+                        <div class="logs-header">
+                            <h2>Logs</h2>
+                            <button class="secondary" onclick="refreshLogs()">Refresh</button>
+                        </div>
+                        <textarea id="logs-area" readonly placeholder="Click 'Refresh' to load logs..."></textarea>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="functions.js"></script>
+    <script type="text/javascript">
+        init();
+    </script>
 </body>
 
 </html>

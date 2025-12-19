@@ -123,6 +123,12 @@ public:
         return _linked_files;
     }
 
+    // Setters for runtime editing
+    void setCommand(const std::string &cmd);
+    void setRestartMode(RestartMode mode);
+    void setName(const std::string &name);
+    nos::trent toTrent() const;
+
     ~App()
     {
         try

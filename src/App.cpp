@@ -341,3 +341,38 @@ void App::set_environment_variables(
 {
     _env = env;
 }
+
+void App::setCommand(const std::string &cmd)
+{
+    tokens = igris::split_cmdargs(cmd);
+}
+
+void App::setRestartMode(RestartMode mode)
+{
+    _restartMode = mode;
+}
+
+void App::setName(const std::string &name)
+{
+    _name = name;
+}
+
+nos::trent App::toTrent() const
+{
+    nos::trent tr;
+    tr["name"] = _name;
+    tr["command"] = command();
+    tr["restart"] = (_restartMode == ALWAYS) ? "always" : "once";
+    if (!_username.empty())
+    {
+        tr["user"] = _username;
+    }
+    if (!_env.empty())
+    {
+        for (const auto &kv : _env)
+        {
+            tr["env"][kv.first] = kv.second;
+        }
+    }
+    return tr;
+}
