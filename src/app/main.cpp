@@ -60,16 +60,14 @@ void proc_exit(int sig)
     (void)sig;
     int retcode;
 
+    // Просто reap все завершившиеся процессы
+    // НЕ вызываем on_child_finished - это вызывает deadlock с apps_mutex!
+    // Завершение обрабатывается в appFork через poll/waitpid
     while (true)
     {
         pid_t pid = wait3(&retcode, WNOHANG, (struct rusage *)NULL);
         if (pid == 0 || pid == -1)
-        {
             return;
-        }
-        nos::fprintln("[SIGCHLD] Process {} finished (retcode={})", pid, retcode);
-        if (appManager)
-            appManager->on_child_finished(pid);
     }
 }
 
