@@ -79,11 +79,15 @@ void TcpServer::stop()
         PacketHeader header;
         auto ret = client.recv((char*)&header, sizeof(PacketHeader), MSG_WAITALL);
         if (ret.is_error()) {
+            nos::println("[read_header] recv error");
             return nos::output_error();
         }
         if (*ret != sizeof(PacketHeader)) {
+            nos::fprintln("[read_header] incomplete header, got {} bytes", *ret);
             return nos::output_error();
         }
+        nos::fprintln("[read_header] preamble=0x{:08X}, size={}, crc=0x{:08X}",
+                      header.preamble, header.size, header.crc32);
         return header;
     }
 
