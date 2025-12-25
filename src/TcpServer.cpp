@@ -143,19 +143,23 @@ void TcpServer::stop()
         receive_thread = std::thread([this](){ run(); });
     }
 
-void ClientStruct::send(std::vector<uint8_t> data) 
+void ClientStruct::send(std::vector<uint8_t> data)
 {
         if (data.empty())
         {
             return;
         }
 
-        PacketHeader h;
-        h.preamble = tcp_server->HeaderPreamble;
-        h.size = (uint32_t)data.size();
-        h.crc32 = crc32_ccitt(data.data(), h.size, 0);
-        client.write((char*)&h, sizeof(PacketHeader));
-        client.write((char*)data.data(), data.size());
+        try {
+            PacketHeader h;
+            h.preamble = tcp_server->HeaderPreamble;
+            h.size = (uint32_t)data.size();
+            h.crc32 = crc32_ccitt(data.data(), h.size, 0);
+            client.write((char*)&h, sizeof(PacketHeader));
+            client.write((char*)data.data(), data.size());
+        } catch (const nos::inet::tcp_write_error&) {
+            nos::println("[ClientStruct] Write error (client disconnected)");
+        }
 }
 
 int TcpServer::receiveThread()
