@@ -44,7 +44,6 @@ struct ClientStruct
     PacketHeader currentHeader;
 
     ClientStruct(nos::inet::tcp_client client, TcpServer* tcp_server);
-    bool recv_exact(char* buf, size_t size);
     void run();
     void start_receive_thread();
     bool send(std::vector<uint8_t> data);

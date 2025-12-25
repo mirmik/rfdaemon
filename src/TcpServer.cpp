@@ -75,86 +75,70 @@ void TcpServer::stop()
         this->tcp_server = tcp_server;
     }
 
-    bool ClientStruct::recv_exact(char* buf, size_t size)
-    {
-        nos::fprintln("[recv_exact] want {} bytes", size);
-        size_t received = 0;
-        while (received < size)
-        {
-            nos::fprintln("[recv_exact] calling recv, need {} more bytes", size - received);
-            auto ret = client.recv(buf + received, size - received, 0);
-            if (ret.is_error())
-            {
-                nos::println("[recv_exact] recv error");
-                return false;
-            }
-            if (*ret == 0)
-            {
-                nos::println("[recv_exact] connection closed");
-                return false;
-            }
-            nos::fprintln("[recv_exact] got {} bytes", *ret);
-            received += *ret;
-        }
-        nos::fprintln("[recv_exact] done, received {} bytes", received);
-        return true;
-    }
-
     void ClientStruct::run()
     {
+        std::vector<uint8_t> buffer;
+        char tmp[65536];
+
         while (true)
         {
-            // 1. Читаем заголовок
-            PacketHeader header;
-            if (!recv_exact((char*)&header, sizeof(header)))
+            // Читаем что есть в сокете
+            auto ret = client.recv(tmp, sizeof(tmp), 0);
+            if (ret.is_error() || *ret == 0)
                 break;
 
-            nos::println("=== HEADER ===");
-            nos::print_dump(&header, sizeof(header));
-            nos::fprintln("preamble=0x{:08X} crc=0x{:08X} size={}",
-                          header.preamble, header.crc32, header.size);
+            // Добавляем в буфер
+            size_t len = *ret;
+            buffer.insert(buffer.end(), tmp, tmp + len);
+            nos::fprintln("<<< RECV {} bytes, buffer now {} bytes >>>", len, buffer.size());
 
-            // 2. Проверяем preamble
-            if (header.preamble != tcp_server->HeaderPreamble)
+            // Обрабатываем все полные пакеты в буфере
+            while (buffer.size() >= sizeof(PacketHeader))
             {
-                nos::println("!!! Invalid preamble !!!");
-                break;
+                PacketHeader* header = (PacketHeader*)buffer.data();
+
+                // Проверяем preamble
+                if (header->preamble != tcp_server->HeaderPreamble)
+                {
+                    nos::println("!!! Invalid preamble, dropping 1 byte !!!");
+                    buffer.erase(buffer.begin());
+                    continue;
+                }
+
+                // Проверяем есть ли все данные
+                size_t packet_size = sizeof(PacketHeader) + header->size;
+                if (buffer.size() < packet_size)
+                {
+                    nos::fprintln("--- Need {} more bytes ---", packet_size - buffer.size());
+                    break; // Ждём больше данных
+                }
+
+                // Полный пакет есть!
+                nos::fprintln("=== PACKET: size={} ===", header->size);
+                uint8_t* data = buffer.data() + sizeof(PacketHeader);
+
+                // Проверяем CRC
+                uint32_t calc_crc = crc32_ccitt(data, header->size, 0);
+                if (calc_crc != header->crc32)
+                {
+                    nos::fprintln("!!! CRC mismatch: calc=0x{:08X} header=0x{:08X} !!!",
+                                  calc_crc, header->crc32);
+                    buffer.erase(buffer.begin());
+                    continue;
+                }
+
+                // Обрабатываем
+                std::vector<uint8_t> packet_data(data, data + header->size);
+                auto response = tcp_server->parseReceivedData(packet_data);
+                nos::fprintln("=== RESPONSE {} bytes ===", response.size());
+
+                // Отправляем ответ
+                if (!response.empty() && !send(response))
+                    break;
+
+                // Удаляем обработанный пакет из буфера
+                buffer.erase(buffer.begin(), buffer.begin() + packet_size);
             }
-
-            // 3. Читаем данные
-            std::vector<uint8_t> data(header.size);
-            if (!recv_exact((char*)data.data(), header.size))
-            {
-                nos::println("!!! recv_exact failed for data !!!");
-                break;
-            }
-
-            nos::fprintln("=== DATA {} bytes ===", header.size);
-            nos::print_dump(data.data(), header.size);
-
-            // 4. Проверяем CRC
-            uint32_t calc_crc = crc32_ccitt(data.data(), header.size, 0);
-            nos::fprintln("calc_crc=0x{:08X} header_crc=0x{:08X}", calc_crc, header.crc32);
-            if (calc_crc != header.crc32)
-            {
-                nos::println("!!! CRC mismatch !!!");
-                break;
-            }
-
-            // 5. Обрабатываем и отправляем ответ
-            nos::println("=== PROCESSING ===");
-            auto response = tcp_server->parseReceivedData(data);
-            nos::fprintln("=== RESPONSE {} bytes (NOT SENDING) ===", response.size());
-            // if (!response.empty())
-            // {
-            //     nos::print_dump(response.data(), response.size());
-            //     if (!send(response))
-            //     {
-            //         nos::println("!!! send failed !!!");
-            //         break;
-            //     }
-            // }
-            nos::println("=== DONE ===\n");
         }
 
         client.close();
