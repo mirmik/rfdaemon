@@ -44,10 +44,10 @@ struct ClientStruct
     PacketHeader currentHeader;
 
     ClientStruct(nos::inet::tcp_client client, TcpServer* tcp_server);
-    nos::expected<PacketHeader, nos::output_error> read_header();
+    bool recv_exact(char* buf, size_t size);
     void run();
     void start_receive_thread();
-    bool send(std::vector<uint8_t> txQueue);
+    bool send(std::vector<uint8_t> data);
 };
 
 class TcpServer

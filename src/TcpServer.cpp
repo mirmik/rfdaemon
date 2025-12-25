@@ -75,115 +75,56 @@ void TcpServer::stop()
         this->tcp_server = tcp_server;
     }
 
-    nos::expected<PacketHeader, nos::output_error> ClientStruct::read_header() {
-        PacketHeader header;
-        nos::fprintln("[read_header] fd={}, waiting for header...", client.fd());
-        auto ret = client.recv((char*)&header, sizeof(PacketHeader), MSG_WAITALL);
-        if (ret.is_error()) {
-            nos::println("[read_header] recv error");
-            return nos::output_error();
+    bool ClientStruct::recv_exact(char* buf, size_t size)
+    {
+        size_t received = 0;
+        while (received < size)
+        {
+            auto ret = client.recv(buf + received, size - received, 0);
+            if (ret.is_error() || *ret == 0)
+                return false;
+            received += *ret;
         }
-        nos::fprintln("[read_header] recv returned {} bytes", *ret);
-        // Dump raw header bytes
-        uint8_t* hdr_bytes = (uint8_t*)&header;
-        nos::fprintln("[read_header] raw: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
-                      hdr_bytes[0], hdr_bytes[1], hdr_bytes[2], hdr_bytes[3],
-                      hdr_bytes[4], hdr_bytes[5], hdr_bytes[6], hdr_bytes[7],
-                      hdr_bytes[8], hdr_bytes[9], hdr_bytes[10], hdr_bytes[11]);
-        if (*ret != sizeof(PacketHeader)) {
-            nos::fprintln("[read_header] incomplete header, got {} bytes", *ret);
-            return nos::output_error();
-        }
-        nos::fprintln("[read_header] preamble=0x{:08X}, size={}, crc=0x{:08X}",
-                      header.preamble, header.size, header.crc32);
-        return header;
+        return true;
     }
 
     void ClientStruct::run()
     {
-        nos::fprintln("[ClientStruct] run() started, fd={}", client.fd());
-        char buf[4096];
-        while(1)
+        while (true)
         {
-            auto ret = client.recv(buf, sizeof(buf), 0);
-            if (ret.is_error())
+            // 1. Читаем заголовок
+            PacketHeader header;
+            if (!recv_exact((char*)&header, sizeof(header)))
+                break;
+
+            // 2. Проверяем preamble
+            if (header.preamble != tcp_server->HeaderPreamble)
             {
-                nos::println("[run] recv error");
+                nos::println("Invalid preamble");
                 break;
             }
-            size_t len = *ret;
-            if (len == 0)
+
+            // 3. Читаем данные
+            std::vector<uint8_t> data(header.size);
+            if (!recv_exact((char*)data.data(), header.size))
+                break;
+
+            // 4. Проверяем CRC
+            if (crc32_ccitt(data.data(), header.size, 0) != header.crc32)
             {
-                nos::println("[run] connection closed");
+                nos::println("CRC error");
                 break;
             }
-            nos::fprintln("[run] received {} bytes:", len);
-            nos::print_dump(buf, len);
+
+            // 5. Обрабатываем и отправляем ответ
+            auto response = tcp_server->parseReceivedData(data);
+            if (!response.empty() && !send(response))
+                break;
         }
-        nos::println("[ClientStruct] run() finishing...");
+
         client.close();
         tcp_server->mark_as_deleted(this);
     }
-
-    // void ClientStruct::run_ORIGINAL()
-    // {
-    //     nos::fprintln("[ClientStruct] run() started, thread ID: {}", std::this_thread::get_id());
-    //     std::vector<uint8_t> data;
-    //     while(1)
-    //     {
-    //         nos::expected<PacketHeader, nos::output_error> errheader = read_header();
-    //         if (errheader.is_error())
-    //         {
-    //             nos::println("Socket receive error.");
-    //             goto finish;
-    //         }
-    //         PacketHeader header = *errheader;
-    //         size_t size = header.size;
-
-    //         nos::fprintln("[run] fd={}, receiving {} bytes of data...", client.fd(), size);
-
-    //         if (size > data.size())
-    //             data.resize(size);
-
-    //         auto ret = client.recv((char*)data.data(), size, MSG_WAITALL);
-    //         if (ret.is_error())
-    //         {
-    //             nos::println("[run] recv error");
-    //             goto finish;
-    //         }
-    //         if (*ret != size)
-    //         {
-    //             nos::fprintln("[run] incomplete data, got {} bytes", *ret);
-    //             goto finish;
-    //         }
-    //         nos::fprintln("[run] received {} bytes", *ret);
-    //         size_t datacrc = crc32_ccitt(data.data(), size, 0);
-    //         nos::fprintln("[run] data CRC=0x{:08X}, header CRC=0x{:08X}", datacrc, header.crc32);
-    //         if (datacrc == header.crc32)
-    //         {
-    //             data.resize(size+1024);
-    //             auto sdata = tcp_server->parseReceivedData(data);
-    //             nos::fprintln("[run] sending response, size={}", sdata.size());
-    //             if (!send(sdata))
-    //             {
-    //                 nos::println("Socket send error (client disconnected).");
-    //                 goto finish;
-    //             }
-    //             nos::println("[run] response sent, reading next header...");
-    //         }
-    //         else
-    //         {
-    //             nos::println("CRC error");
-    //             goto finish;
-    //         }
-    //     }
-
-    //     finish:
-    //         nos::println("[ClientStruct] run() finishing, closing client...");
-    //         client.close();
-    //         tcp_server->mark_as_deleted(this);
-    //         nos::println("[ClientStruct] run() done");
-    // }
 
     void ClientStruct::start_receive_thread()
     {
