@@ -64,20 +64,24 @@ public:
 
     void mark_as_deleted(ClientStruct *client)
     {
-        mQueue.lock();
+        std::lock_guard<std::mutex> lock(mQueue);
         marked_for_delete.push_back(client);
         client->lnk.unlink();
-        mQueue.unlock();
     }
 
     void delete_marked()
     {
-        std::lock_guard<std::mutex> lock(mQueue);
-        for (auto client : marked_for_delete)
+        std::vector<ClientStruct*> to_delete;
+        {
+            std::lock_guard<std::mutex> lock(mQueue);
+            to_delete = std::move(marked_for_delete);
+            marked_for_delete.clear();
+        }
+        // Join threads outside of lock to avoid deadlock
+        for (auto client : to_delete)
         {
             delete_client(client);
         }
-        marked_for_delete.clear();
     }
 
     void delete_client(ClientStruct *client)

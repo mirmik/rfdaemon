@@ -85,11 +85,16 @@ void TcpServer::stop()
         {
             // Читаем что есть в сокете
             auto ret = client.recv(tmp, sizeof(tmp), 0);
-            if (ret.is_error() || *ret == 0)
+            if (ret.is_error() || *ret <= 0)
+                break;
+
+            // Проверка корректности размера
+            size_t bytes_received = static_cast<size_t>(*ret);
+            if (bytes_received > sizeof(tmp))
                 break;
 
             // Добавляем в буфер
-            buffer.insert(buffer.end(), tmp, tmp + *ret);
+            buffer.insert(buffer.end(), tmp, tmp + bytes_received);
 
             // Обрабатываем все полные пакеты в буфере
             while (buffer.size() >= sizeof(PacketHeader))
