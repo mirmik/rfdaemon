@@ -43,6 +43,7 @@ void RFDaemonServer::addCmd(uint32_t code, std::string name,
 bool RFDaemonServer::writeFile(const std::string &filename, const uint8_t *data,
                                uint32_t size)
 {
+    nos::fprintln("[writeFile] filename='{}', size={}", filename, size);
     bool error = false;
     std::fstream f;
     f.open(filename, std::fstream::out | std::fstream::trunc);
@@ -52,6 +53,12 @@ bool RFDaemonServer::writeFile(const std::string &filename, const uint8_t *data,
         f.write((const char *)data, size);
         error = (f.rdstate() & (std::ios::failbit | std::ios::badbit)) != 0;
         f.flush();
+        nos::fprintln("[writeFile] write completed, error={}", error);
+    }
+    else
+    {
+        nos::fprintln("[writeFile] ERROR: failed to open file '{}'", filename);
+        error = true;
     }
     return error;
 }
@@ -287,8 +294,7 @@ RFDaemonServer::parseReceivedData(const std::vector<uint8_t> &data)
         answer[i * 2 + 2] = static_cast<uint8_t>(cmdIndex);
         auto &cmd = commands[cmdIndex];
 
-        if (VERBOSE)
-            nos::println("Command: ", cmd.name);
+        nos::fprintln("[parseReceivedData] Command: {} (argSize={})", cmd.name, argSize);
 
         auto cmdRet = cmd.cmd(data.data() + argOffset, argSize);
         argOffset += argSize;
