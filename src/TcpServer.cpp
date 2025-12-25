@@ -77,14 +77,26 @@ void TcpServer::stop()
 
     bool ClientStruct::recv_exact(char* buf, size_t size)
     {
+        nos::fprintln("[recv_exact] want {} bytes", size);
         size_t received = 0;
         while (received < size)
         {
+            nos::fprintln("[recv_exact] calling recv, need {} more bytes", size - received);
             auto ret = client.recv(buf + received, size - received, 0);
-            if (ret.is_error() || *ret == 0)
+            if (ret.is_error())
+            {
+                nos::println("[recv_exact] recv error");
                 return false;
+            }
+            if (*ret == 0)
+            {
+                nos::println("[recv_exact] connection closed");
+                return false;
+            }
+            nos::fprintln("[recv_exact] got {} bytes", *ret);
             received += *ret;
         }
+        nos::fprintln("[recv_exact] done, received {} bytes", received);
         return true;
     }
 
