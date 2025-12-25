@@ -226,6 +226,7 @@ int TcpServer::receiveThread()
         auto client = socket.accept();
         if (client.good())
         {
+            nos::fprintln("[TcpServer] Client connected on port {}, fd={}", usedPort, client.fd());
             ClientStruct * c = new ClientStruct(client, this);
             clients.move_back(*c);
             c->start_receive_thread();
