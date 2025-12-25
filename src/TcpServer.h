@@ -47,7 +47,7 @@ struct ClientStruct
     nos::expected<PacketHeader, nos::output_error> read_header();
     void run();
     void start_receive_thread();
-    void send(std::vector<uint8_t> txQueue);
+    bool send(std::vector<uint8_t> txQueue);
 };
 
 class TcpServer

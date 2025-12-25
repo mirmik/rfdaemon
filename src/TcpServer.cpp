@@ -117,11 +117,15 @@ void TcpServer::stop()
                 goto finish;
             }            
             size_t datacrc = crc32_ccitt(data.data(), size, 0);
-            if (datacrc == header.crc32) 
+            if (datacrc == header.crc32)
             {
                 data.resize(size+1024);
                 auto sdata = tcp_server->parseReceivedData(data);
-                send(sdata);
+                if (!send(sdata))
+                {
+                    nos::println("Socket send error (client disconnected).");
+                    goto finish;
+                }
             }
             else 
             {
@@ -143,11 +147,11 @@ void TcpServer::stop()
         receive_thread = std::thread([this](){ run(); });
     }
 
-void ClientStruct::send(std::vector<uint8_t> data)
+bool ClientStruct::send(std::vector<uint8_t> data)
 {
         if (data.empty())
         {
-            return;
+            return true;
         }
 
         try {
@@ -157,8 +161,9 @@ void ClientStruct::send(std::vector<uint8_t> data)
             h.crc32 = crc32_ccitt(data.data(), h.size, 0);
             client.write((char*)&h, sizeof(PacketHeader));
             client.write((char*)data.data(), data.size());
+            return true;
         } catch (const nos::inet::tcp_write_error&) {
-            nos::println("[ClientStruct] Write error (client disconnected)");
+            return false;
         }
 }
 
