@@ -106,21 +106,25 @@ void TcpServer::stop()
             PacketHeader header = *errheader;
             size_t size = header.size;
 
+            nos::fprintln("[run] receiving {} bytes of data...", size);
+
             if (size > data.size())
                 data.resize(size);
 
             auto ret = client.recv((char*)data.data(), size, MSG_WAITALL);
-            if (ret.is_error()) 
+            if (ret.is_error())
             {
-                nos::println("Socket receive error.");
+                nos::println("[run] recv error");
                 goto finish;
             }
-            if (*ret != size) 
+            if (*ret != size)
             {
-                nos::println("Socket receive error.");
+                nos::fprintln("[run] incomplete data, got {} bytes", *ret);
                 goto finish;
-            }            
+            }
+            nos::fprintln("[run] received {} bytes", *ret);
             size_t datacrc = crc32_ccitt(data.data(), size, 0);
+            nos::fprintln("[run] data CRC=0x{:08X}, header CRC=0x{:08X}", datacrc, header.crc32);
             if (datacrc == header.crc32)
             {
                 data.resize(size+1024);
