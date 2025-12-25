@@ -77,6 +77,7 @@ void TcpServer::stop()
 
     nos::expected<PacketHeader, nos::output_error> ClientStruct::read_header() {
         PacketHeader header;
+        nos::println("[read_header] waiting for header...");
         auto ret = client.recv((char*)&header, sizeof(PacketHeader), MSG_WAITALL);
         if (ret.is_error()) {
             nos::println("[read_header] recv error");
@@ -86,8 +87,8 @@ void TcpServer::stop()
             nos::fprintln("[read_header] incomplete header, got {} bytes", *ret);
             return nos::output_error();
         }
-        nos::fprintln("[read_header] preamble=0x{:08X}, size={}, crc=0x{:08X}",
-                      header.preamble, header.size, header.crc32);
+        nos::fprintln("[read_header] got {} bytes: preamble=0x{:08X}, size={}, crc=0x{:08X}",
+                      *ret, header.preamble, header.size, header.crc32);
         return header;
     }
 
@@ -129,11 +130,13 @@ void TcpServer::stop()
             {
                 data.resize(size+1024);
                 auto sdata = tcp_server->parseReceivedData(data);
+                nos::fprintln("[run] sending response, size={}", sdata.size());
                 if (!send(sdata))
                 {
                     nos::println("Socket send error (client disconnected).");
                     goto finish;
                 }
+                nos::println("[run] response sent, reading next header...");
             }
             else 
             {
