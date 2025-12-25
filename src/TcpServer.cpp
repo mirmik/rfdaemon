@@ -90,22 +90,61 @@ void TcpServer::stop()
 
     void ClientStruct::run()
     {
-        char buf[65536];
-        size_t total = 0;
-
         while (true)
         {
-            auto ret = client.recv(buf, sizeof(buf), 0);
-            if (ret.is_error() || *ret == 0)
+            // 1. Читаем заголовок
+            PacketHeader header;
+            if (!recv_exact((char*)&header, sizeof(header)))
                 break;
 
-            size_t len = *ret;
-            total += len;
-            nos::fprintln("=== RECV {} bytes (total {}) ===", len, total);
-            nos::print_dump(buf, len);
+            nos::println("=== HEADER ===");
+            nos::print_dump(&header, sizeof(header));
+            nos::fprintln("preamble=0x{:08X} crc=0x{:08X} size={}",
+                          header.preamble, header.crc32, header.size);
+
+            // 2. Проверяем preamble
+            if (header.preamble != tcp_server->HeaderPreamble)
+            {
+                nos::println("!!! Invalid preamble !!!");
+                break;
+            }
+
+            // 3. Читаем данные
+            std::vector<uint8_t> data(header.size);
+            if (!recv_exact((char*)data.data(), header.size))
+            {
+                nos::println("!!! recv_exact failed for data !!!");
+                break;
+            }
+
+            nos::fprintln("=== DATA {} bytes ===", header.size);
+            nos::print_dump(data.data(), header.size);
+
+            // 4. Проверяем CRC
+            uint32_t calc_crc = crc32_ccitt(data.data(), header.size, 0);
+            nos::fprintln("calc_crc=0x{:08X} header_crc=0x{:08X}", calc_crc, header.crc32);
+            if (calc_crc != header.crc32)
+            {
+                nos::println("!!! CRC mismatch !!!");
+                break;
+            }
+
+            // 5. Обрабатываем и отправляем ответ
+            nos::println("=== PROCESSING ===");
+            auto response = tcp_server->parseReceivedData(data);
+            nos::fprintln("=== RESPONSE {} bytes ===", response.size());
+            if (!response.empty())
+            {
+                nos::print_dump(response.data(), response.size());
+                if (!send(response))
+                {
+                    nos::println("!!! send failed !!!");
+                    break;
+                }
+            }
+            nos::println("=== DONE ===\n");
         }
 
-        nos::fprintln("=== CONNECTION CLOSED (total {} bytes) ===", total);
         client.close();
         tcp_server->mark_as_deleted(this);
     }
