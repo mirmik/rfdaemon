@@ -457,6 +457,14 @@ nos::trent App::toTrent() const
     return tr;
 }
 
+void App::update_cached_status()
+{
+    // Update all cached values from systemd (called from background thread)
+    isStopped = stopped();
+    _cached_pid.store(pid());
+    _cached_uptime.store(uptime());
+}
+
 // Update isStopped for all apps from systemd status
 void AppManager::update_systemctl_projects_status()
 {
@@ -472,8 +480,8 @@ void AppManager::update_systemctl_projects_status()
                 if (is_shutdown_requested())
                     break;
 
-                // Update isStopped from systemd status
-                app->isStopped = app->stopped();
+                // Update all cached values from systemd
+                app->update_cached_status();
             }
         }
 

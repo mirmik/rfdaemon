@@ -88,9 +88,7 @@ void TcpServer::stop()
                 break;
 
             // Добавляем в буфер
-            size_t len = *ret;
-            buffer.insert(buffer.end(), tmp, tmp + len);
-            nos::fprintln("<<< RECV {} bytes, buffer now {} bytes >>>", len, buffer.size());
+            buffer.insert(buffer.end(), tmp, tmp + *ret);
 
             // Обрабатываем все полные пакеты в буфере
             while (buffer.size() >= sizeof(PacketHeader))
@@ -100,7 +98,6 @@ void TcpServer::stop()
                 // Проверяем preamble
                 if (header->preamble != tcp_server->HeaderPreamble)
                 {
-                    nos::println("!!! Invalid preamble, dropping 1 byte !!!");
                     buffer.erase(buffer.begin());
                     continue;
                 }
@@ -108,21 +105,13 @@ void TcpServer::stop()
                 // Проверяем есть ли все данные
                 size_t packet_size = sizeof(PacketHeader) + header->size;
                 if (buffer.size() < packet_size)
-                {
-                    nos::fprintln("--- Need {} more bytes ---", packet_size - buffer.size());
-                    break; // Ждём больше данных
-                }
+                    break;
 
-                // Полный пакет есть!
-                nos::fprintln("=== PACKET: size={} ===", header->size);
                 uint8_t* data = buffer.data() + sizeof(PacketHeader);
 
                 // Проверяем CRC
-                uint32_t calc_crc = crc32_ccitt(data, header->size, 0);
-                if (calc_crc != header->crc32)
+                if (crc32_ccitt(data, header->size, 0) != header->crc32)
                 {
-                    nos::fprintln("!!! CRC mismatch: calc=0x{:08X} header=0x{:08X} !!!",
-                                  calc_crc, header->crc32);
                     buffer.erase(buffer.begin());
                     continue;
                 }
@@ -130,7 +119,6 @@ void TcpServer::stop()
                 // Обрабатываем
                 std::vector<uint8_t> packet_data(data, data + header->size);
                 auto response = tcp_server->parseReceivedData(packet_data);
-                nos::fprintln("=== RESPONSE {} bytes ===", response.size());
 
                 // Отправляем ответ
                 if (!response.empty() && !send(response))

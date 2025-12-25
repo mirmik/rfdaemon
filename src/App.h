@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <nos/trent/trent.h>
 #include <optional>
@@ -45,6 +46,10 @@ private:
     // systemd integration
     std::string _service_name = {};   // e.g. "rfd-myapp"
     std::string _service_path = {};   // e.g. "/etc/systemd/system/rfd-myapp.service"
+
+    // Cached status from background updater (to avoid expensive systemctl calls)
+    std::atomic<int> _cached_pid{0};
+    std::atomic<int64_t> _cached_uptime{0};
 
 public:
     bool isStopped = true;
@@ -108,6 +113,14 @@ public:
     const std::string &service_name() const { return _service_name; }
     const std::string &service_path() const { return _service_path; }
     static bool daemon_reload();
+
+    // Cached status accessors (fast, no systemctl calls)
+    int cached_pid() const { return _cached_pid.load(); }
+    int64_t cached_uptime() const { return _cached_uptime.load(); }
+    bool cached_stopped() const { return isStopped; }
+
+    // Update cached values (called from background thread)
+    void update_cached_status();
 
     ~App() = default;
 

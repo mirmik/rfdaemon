@@ -155,10 +155,11 @@ std::vector<uint8_t> RFDaemonServer::getAppsInfo(const uint8_t *, uint32_t)
     auto &apps = AppManager::instance()->getAppsList();
     for (int i = 0; i < appCount; i++)
     {
-        pAppData[i].state = !apps[i]->stopped();
+        // Use cached values to avoid expensive systemctl calls
+        pAppData[i].state = !apps[i]->cached_stopped();
         pAppData[i].startSuccess = true; // Не используется
-        pAppData[i].uptime = apps[i]->uptime();
-        pAppData[i].pid = apps[i]->pid();
+        pAppData[i].uptime = apps[i]->cached_uptime();
+        pAppData[i].pid = apps[i]->cached_pid();
         if (apps[i]->errors().size())
         {
             pAppData[i].error = (int8_t)apps[i]->errors().front();
@@ -294,7 +295,7 @@ RFDaemonServer::parseReceivedData(const std::vector<uint8_t> &data)
         answer[i * 2 + 2] = static_cast<uint8_t>(cmdIndex);
         auto &cmd = commands[cmdIndex];
 
-        nos::fprintln("[parseReceivedData] Command: {} (argSize={})", cmd.name, argSize);
+        // nos::fprintln("[parseReceivedData] Command: {} (argSize={})", cmd.name, argSize);
 
         auto cmdRet = cmd.cmd(data.data() + argOffset, argSize);
         argOffset += argSize;
