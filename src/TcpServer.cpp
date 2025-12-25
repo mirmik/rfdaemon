@@ -97,6 +97,11 @@ void TcpServer::stop()
             if (!recv_exact((char*)&header, sizeof(header)))
                 break;
 
+            nos::println("=== HEADER ===");
+            nos::print_dump(&header, sizeof(header));
+            nos::fprintln("preamble=0x{:08X} crc=0x{:08X} size={}",
+                          header.preamble, header.crc32, header.size);
+
             // 2. Проверяем preamble
             if (header.preamble != tcp_server->HeaderPreamble)
             {
@@ -109,8 +114,13 @@ void TcpServer::stop()
             if (!recv_exact((char*)data.data(), header.size))
                 break;
 
+            nos::fprintln("=== DATA ({} bytes) ===", header.size);
+            nos::print_dump(data.data(), std::min((size_t)64, (size_t)header.size));
+
             // 4. Проверяем CRC
-            if (crc32_ccitt(data.data(), header.size, 0) != header.crc32)
+            uint32_t calc_crc = crc32_ccitt(data.data(), header.size, 0);
+            nos::fprintln("calc_crc=0x{:08X} header_crc=0x{:08X}", calc_crc, header.crc32);
+            if (calc_crc != header.crc32)
             {
                 nos::println("CRC error");
                 break;
@@ -118,6 +128,7 @@ void TcpServer::stop()
 
             // 5. Обрабатываем и отправляем ответ
             auto response = tcp_server->parseReceivedData(data);
+            nos::fprintln("=== RESPONSE ({} bytes) ===", response.size());
             if (!response.empty() && !send(response))
                 break;
         }
