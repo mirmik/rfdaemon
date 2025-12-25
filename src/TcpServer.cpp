@@ -144,16 +144,16 @@ void TcpServer::stop()
             // 5. Обрабатываем и отправляем ответ
             nos::println("=== PROCESSING ===");
             auto response = tcp_server->parseReceivedData(data);
-            nos::fprintln("=== RESPONSE {} bytes ===", response.size());
-            if (!response.empty())
-            {
-                nos::print_dump(response.data(), response.size());
-                if (!send(response))
-                {
-                    nos::println("!!! send failed !!!");
-                    break;
-                }
-            }
+            nos::fprintln("=== RESPONSE {} bytes (NOT SENDING) ===", response.size());
+            // if (!response.empty())
+            // {
+            //     nos::print_dump(response.data(), response.size());
+            //     if (!send(response))
+            //     {
+            //         nos::println("!!! send failed !!!");
+            //         break;
+            //     }
+            // }
             nos::println("=== DONE ===\n");
         }
 
