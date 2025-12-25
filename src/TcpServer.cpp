@@ -79,6 +79,7 @@ void TcpServer::stop()
     {
         std::vector<uint8_t> buffer;
         char tmp[65536];
+        constexpr size_t MAX_PACKET_SIZE = 10 * 1024 * 1024; // 10 MB max
 
         while (true)
         {
@@ -97,6 +98,13 @@ void TcpServer::stop()
 
                 // Проверяем preamble
                 if (header->preamble != tcp_server->HeaderPreamble)
+                {
+                    buffer.erase(buffer.begin());
+                    continue;
+                }
+
+                // Проверяем разумность размера
+                if (header->size > MAX_PACKET_SIZE)
                 {
                     buffer.erase(buffer.begin());
                     continue;
