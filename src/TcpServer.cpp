@@ -75,66 +75,75 @@ void TcpServer::stop()
         this->tcp_server = tcp_server;
     }
 
-    nos::expected<PacketHeader, nos::output_error> ClientStruct::read_header() {
-        PacketHeader header;
-        auto ret = client.recv((char*)&header, sizeof(PacketHeader), MSG_WAITALL);
-        if (ret.is_error()) {
-            return nos::output_error();
-        }
-        if (*ret != sizeof(PacketHeader)) {
-            return nos::output_error();
-        }
-        return header;
-    }
-
     void ClientStruct::run()
     {
-        nos::fprintln("[ClientStruct] run() started, thread ID: {}", std::this_thread::get_id());
-        std::vector<uint8_t> data;
-        while(1)
+        std::vector<uint8_t> buffer;
+        char tmp[65536];
+        constexpr size_t MAX_PACKET_SIZE = 10 * 1024 * 1024; // 10 MB max
+
+        while (true)
         {
-            nos::expected<PacketHeader, nos::output_error> errheader = read_header();
-            if (errheader.is_error()) 
-            {
-                nos::println("Socket receive error.");
-                goto finish;
-            }
-            PacketHeader header = *errheader;
-            size_t size = header.size;
+            // Читаем что есть в сокете
+            auto ret = client.recv(tmp, sizeof(tmp), 0);
+            if (ret.is_error() || *ret <= 0)
+                break;
 
-            if (size > data.size())
-                data.resize(size);
+            // Проверка корректности размера
+            size_t bytes_received = static_cast<size_t>(*ret);
+            if (bytes_received > sizeof(tmp))
+                break;
 
-            auto ret = client.recv((char*)data.data(), size, MSG_WAITALL);
-            if (ret.is_error()) 
+            // Добавляем в буфер
+            buffer.insert(buffer.end(), tmp, tmp + bytes_received);
+
+            // Обрабатываем все полные пакеты в буфере
+            while (buffer.size() >= sizeof(PacketHeader))
             {
-                nos::println("Socket receive error.");
-                goto finish;
-            }
-            if (*ret != size) 
-            {
-                nos::println("Socket receive error.");
-                goto finish;
-            }            
-            size_t datacrc = crc32_ccitt(data.data(), size, 0);
-            if (datacrc == header.crc32) 
-            {
-                data.resize(size+1024);
-                auto sdata = tcp_server->parseReceivedData(data);
-                send(sdata);
-            }
-            else 
-            {
-                nos::println("CRC error");
-                goto finish;
+                PacketHeader* header = (PacketHeader*)buffer.data();
+
+                // Проверяем preamble
+                if (header->preamble != tcp_server->HeaderPreamble)
+                {
+                    buffer.erase(buffer.begin());
+                    continue;
+                }
+
+                // Проверяем разумность размера
+                if (header->size > MAX_PACKET_SIZE)
+                {
+                    buffer.erase(buffer.begin());
+                    continue;
+                }
+
+                // Проверяем есть ли все данные
+                size_t packet_size = sizeof(PacketHeader) + header->size;
+                if (buffer.size() < packet_size)
+                    break;
+
+                uint8_t* data = buffer.data() + sizeof(PacketHeader);
+
+                // Проверяем CRC
+                if (crc32_ccitt(data, header->size, 0) != header->crc32)
+                {
+                    buffer.erase(buffer.begin());
+                    continue;
+                }
+
+                // Обрабатываем
+                std::vector<uint8_t> packet_data(data, data + header->size);
+                auto response = tcp_server->parseReceivedData(packet_data);
+
+                // Отправляем ответ
+                if (!response.empty() && !send(response))
+                    break;
+
+                // Удаляем обработанный пакет из буфера
+                buffer.erase(buffer.begin(), buffer.begin() + packet_size);
             }
         }
 
-        finish:
-            nos::println("[ClientStruct] run() finishing, closing client...");
-            client.close();
-            tcp_server->mark_as_deleted(this);
-            nos::println("[ClientStruct] run() done");
+        client.close();
+        tcp_server->mark_as_deleted(this);
     }
 
     void ClientStruct::start_receive_thread()
@@ -143,11 +152,11 @@ void TcpServer::stop()
         receive_thread = std::thread([this](){ run(); });
     }
 
-void ClientStruct::send(std::vector<uint8_t> data)
+bool ClientStruct::send(std::vector<uint8_t> data)
 {
         if (data.empty())
         {
-            return;
+            return true;
         }
 
         try {
@@ -157,8 +166,9 @@ void ClientStruct::send(std::vector<uint8_t> data)
             h.crc32 = crc32_ccitt(data.data(), h.size, 0);
             client.write((char*)&h, sizeof(PacketHeader));
             client.write((char*)data.data(), data.size());
+            return true;
         } catch (const nos::inet::tcp_write_error&) {
-            nos::println("[ClientStruct] Write error (client disconnected)");
+            return false;
         }
 }
 
@@ -213,6 +223,7 @@ int TcpServer::receiveThread()
         auto client = socket.accept();
         if (client.good())
         {
+            nos::fprintln("[TcpServer] Client connected on port {}, fd={}", usedPort, client.fd());
             ClientStruct * c = new ClientStruct(client, this);
             clients.move_back(*c);
             c->start_receive_thread();
