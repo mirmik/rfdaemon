@@ -1,8 +1,12 @@
 #include "App.h"
 #include "AppManager.h"
 #include <array>
+#include <cctype>
+#include <cstdint>
+#include <ctime>
 #include <cstdio>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <nos/fprint.h>
 #include <pwd.h>
@@ -14,6 +18,73 @@
 #include <igris/util/string.h>
 
 using namespace std::chrono_literals;
+
+extern "C"
+{
+struct sd_journal;
+
+int sd_journal_open(sd_journal **ret, int flags);
+void sd_journal_close(sd_journal *j);
+int sd_journal_add_match(sd_journal *j, const void *data, size_t size);
+int sd_journal_seek_tail(sd_journal *j);
+int sd_journal_next(sd_journal *j);
+int sd_journal_wait(sd_journal *j, uint64_t timeout_usec);
+int sd_journal_get_data(sd_journal *j,
+                        const char *field,
+                        const void **data,
+                        size_t *length);
+int sd_journal_get_realtime_usec(sd_journal *j, uint64_t *ret_usec);
+}
+
+namespace
+{
+std::string journal_field_value(sd_journal *journal, const char *field)
+{
+    const void *data = nullptr;
+    size_t length = 0;
+    int ret = sd_journal_get_data(journal, field, &data, &length);
+    if (ret < 0 || data == nullptr)
+        return {};
+
+    std::string entry(static_cast<const char *>(data), length);
+    std::string prefix = std::string(field) + "=";
+    if (entry.rfind(prefix, 0) == 0)
+        return entry.substr(prefix.size());
+
+    return entry;
+}
+
+std::string format_journal_entry(sd_journal *journal)
+{
+    std::ostringstream ss;
+
+    uint64_t timestamp_usec = 0;
+    if (sd_journal_get_realtime_usec(journal, &timestamp_usec) >= 0)
+    {
+        std::time_t timestamp_sec = static_cast<std::time_t>(timestamp_usec / 1000000);
+        std::tm tm = {};
+        localtime_r(&timestamp_sec, &tm);
+        ss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << " ";
+    }
+
+    auto identifier = journal_field_value(journal, "SYSLOG_IDENTIFIER");
+    if (identifier.empty())
+        identifier = journal_field_value(journal, "_COMM");
+    if (!identifier.empty())
+        ss << "[" << identifier << "] ";
+
+    auto message = journal_field_value(journal, "MESSAGE");
+    if (message.empty())
+        message = "<empty journal message>";
+    ss << message;
+
+    std::string line = ss.str();
+    if (line.empty() || line.back() != '\n')
+        line.push_back('\n');
+
+    return line;
+}
+}
 
 nos::trent LinkedFile::to_trent() const
 {
@@ -372,6 +443,62 @@ std::string App::show_stdout() const
 {
     // Return recent journal logs (last 100 lines)
     return get_journal_data(100);
+}
+
+bool App::stream_journal(
+    const std::function<bool(const std::string &)> &sink) const
+{
+    sd_journal *journal = nullptr;
+    int ret = sd_journal_open(&journal, 0);
+    if (ret < 0 || journal == nullptr)
+    {
+        return sink("Failed to open systemd journal\n");
+    }
+
+    struct JournalCloser
+    {
+        sd_journal *journal;
+        ~JournalCloser()
+        {
+            if (journal != nullptr)
+                sd_journal_close(journal);
+        }
+    } closer{journal};
+
+    const std::string match = "_SYSTEMD_UNIT=" + _service_name + ".service";
+    ret = sd_journal_add_match(journal, match.c_str(), match.size());
+    if (ret < 0)
+    {
+        return sink("Failed to filter systemd journal\n");
+    }
+
+    ret = sd_journal_seek_tail(journal);
+    if (ret < 0)
+    {
+        return sink("Failed to seek systemd journal tail\n");
+    }
+
+    while (!is_shutdown_requested())
+    {
+        while ((ret = sd_journal_next(journal)) > 0)
+        {
+            if (!sink(format_journal_entry(journal)))
+                return false;
+        }
+
+        if (ret < 0)
+        {
+            return sink("Failed to read from systemd journal\n");
+        }
+
+        ret = sd_journal_wait(journal, 500000);
+        if (ret < 0)
+        {
+            return sink("Failed while waiting for journal updates\n");
+        }
+    }
+
+    return true;
 }
 
 App::RestartMode App::restartMode() const

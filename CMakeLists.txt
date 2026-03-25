@@ -10,6 +10,17 @@ add_compile_options(
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CC_STANDARD 11)
 
+find_library(SYSTEMD_LIBRARY NAMES systemd libsystemd.so.0)
+if(NOT SYSTEMD_LIBRARY)
+  find_file(SYSTEMD_LIBRARY
+    NAMES libsystemd.so.0
+    PATHS /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /lib /lib64 /lib/x86_64-linux-gnu
+  )
+endif()
+if(NOT SYSTEMD_LIBRARY)
+  message(FATAL_ERROR "libsystemd is required to build rfdaemon")
+endif()
+
 execute_process(COMMAND ircc resources.txt -o ircc_resources.gen.cpp --sources-cmake
                 OUTPUT_VARIABLE RESOURCE_LIST)
 add_custom_command(
@@ -42,6 +53,7 @@ target_link_libraries(rfdaemon
   igris
   nos
   util
+  ${SYSTEMD_LIBRARY}
 )
 
 target_link_libraries(rfdaemonctl
@@ -67,6 +79,7 @@ if(TEST_SOURCES)
     igris
     nos
     util
+    ${SYSTEMD_LIBRARY}
   )
 
   add_test(NAME rfdaemon_tests COMMAND rfdaemon_tests)

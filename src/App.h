@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
 #include <mutex>
 #include <nos/trent/trent.h>
 #include <optional>
@@ -85,6 +86,8 @@ public:
     // Journal/logs
     std::string get_journal_data(int lcount) const;
     std::string show_stdout() const;
+    bool stream_journal(
+        const std::function<bool(const std::string &)> &sink) const;
 
     void set_environment_variables(
         const std::unordered_map<std::string, std::string> &env);

@@ -1,0 +1,9 @@
+{
+    "apps": [
+        {
+            "command": "/bin/bash /home/rfmeas/positioner-env/rfdaemon/tools/logprobe.sh logprobe 1",
+            "name": "logprobe",
+            "restart": "always"
+        }
+    ]
+}

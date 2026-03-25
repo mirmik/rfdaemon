@@ -226,12 +226,40 @@ int show_application_stdout(const nos::argv &args, nos::ostream &out, Context)
 }
 
 int show_application_stdout_stream(const nos::argv &args, nos::ostream &out,
-                                   Context)
+                                   Context context)
 {
-    (void)args;
-    nos::println_to(out, "Error: logstream is not supported in systemd mode");
-    nos::println_to(out, "Use 'log <app_name>' or 'journalctl -u rfd-<app_name> -f' instead");
-    return -1;
+    if (args.size() < 2)
+    {
+        nos::println_to(out, "Usage: logstream <app_name>");
+        return -1;
+    }
+
+    auto app = appManager->findApp(args[1].to_string());
+    if (!app)
+    {
+        nos::println_to(out, "Application not found: " + args[1].to_string());
+        return -1;
+    }
+
+    if (context == nullptr)
+    {
+        nos::println_to(out, "logstream requires interactive client context");
+        return -1;
+    }
+
+    return app->stream_journal([&](const std::string &entry) {
+               try
+               {
+                   context->print(entry);
+                   return true;
+               }
+               catch (...)
+               {
+                   return false;
+               }
+           })
+               ? 0
+               : -1;
 }
 
 int show_application_stdout_base64(const nos::argv &args, nos::ostream &out,
