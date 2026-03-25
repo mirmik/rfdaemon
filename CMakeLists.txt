@@ -22,10 +22,13 @@ if(NOT SYSTEMD_LIBRARY)
 endif()
 
 execute_process(COMMAND ircc resources.txt -o ircc_resources.gen.cpp --sources-cmake
+                WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                 OUTPUT_VARIABLE RESOURCE_LIST)
+set(IRCC_GENERATED_CPP "${CMAKE_CURRENT_BINARY_DIR}/ircc_resources.gen.cpp")
 add_custom_command(
-    OUTPUT ircc_resources.gen.cpp
-    COMMAND ircc resources.txt -o ircc_resources.gen.cpp
+    OUTPUT "${IRCC_GENERATED_CPP}"
+    COMMAND ircc resources.txt -o "${IRCC_GENERATED_CPP}"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     DEPENDS ${RESOURCE_LIST}
 )
 
@@ -39,7 +42,7 @@ file(GLOB SOURCES_RFDAEMONCTL CONFIGURE_DEPENDS
 )
 
 add_executable(rfdaemon 
-  ircc_resources.gen.cpp
+  "${IRCC_GENERATED_CPP}"
   ${SOURCES}
   src/app/main.cpp)
 target_include_directories(rfdaemon PRIVATE src)
@@ -67,7 +70,7 @@ file(GLOB TEST_SOURCES CONFIGURE_DEPENDS
 
 if(TEST_SOURCES)
   add_executable(rfdaemon_tests
-  ircc_resources.gen.cpp
+    "${IRCC_GENERATED_CPP}"
     ${TEST_SOURCES}
     ${SOURCES}
   )
