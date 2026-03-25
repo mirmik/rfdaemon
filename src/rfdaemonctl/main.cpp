@@ -113,9 +113,22 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        nos::print_to(client, nos::format("b64out log {}\n", args[1]));
-        std::string b64str = *nos::readline_from(client);
-        std::string text = igris::base64_decode(b64str);
+        nos::print_to(client, nos::format("journal_base64 {} 100\n", args[1]));
+
+        std::string text;
+        while (1)
+        {
+            auto estr = nos::readline_from(client);
+            if (estr.is_error())
+                break;
+
+            std::string chunk = igris::base64_decode(*estr);
+            if (chunk == "__END_MARKER__")
+                break;
+
+            text += chunk;
+        }
+
         std::cout << text << std::endl;
         return 0;
     }

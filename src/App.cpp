@@ -434,7 +434,8 @@ std::string App::token_list_as_string() const
 
 std::string App::get_journal_data(int lines_count) const
 {
-    std::string cmd = "journalctl -u " + _service_name + " --no-pager -n " +
+    std::string cmd = "journalctl -u " + _service_name +
+                      " --no-pager --all -n " +
                       std::to_string(lines_count) + " 2>/dev/null";
     return exec_command(cmd);
 }
