@@ -1,5 +1,7 @@
 [Unit]
 Description=RFDaemon
+Requires=ico300-com.service
+After=ico300-com.service
 
 [Service]
 Type=simple
