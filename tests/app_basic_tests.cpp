@@ -1,9 +1,7 @@
 #include "App.h"
 #include "guard/guard.h"
 
-#include <chrono>
 #include <string>
-#include <thread>
 #include <vector>
 
 TEST_CASE(
@@ -21,24 +19,6 @@ TEST_CASE(
     CHECK_EQ(tr["editable"].as_bool(), lf.editable);
 }
 
-TEST_CASE("App::status_string зависит только от флага isStopped")
-{
-    std::vector<LinkedFile> linkeds;
-    // Используем долгоживущий процесс для проверки состояния running
-    App app(0, "test_app", "sleep 10", App::RestartMode::ONCE, linkeds, "");
-
-    CHECK_EQ(app.status_string(), std::string("stopped"));
-
-    app.start();
-    // Даем время на запуск
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    CHECK_EQ(app.status_string(), std::string("running"));
-
-    app.stop();
-    // Даем время на остановку
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    CHECK_EQ(app.status_string(), std::string("stopped"));
-}
 
 TEST_CASE(
     "App::command и App::token_list_as_string строят строку из токенов команды")
@@ -50,50 +30,38 @@ TEST_CASE(
     CHECK_EQ(app.token_list_as_string(), std::string("[echo,1,2]"));
 }
 
-TEST_CASE("App::stop корректно завершает процесс и поток")
+// Lifecycle integration is checked separately on a target with systemd.
+// These tests must never create units or start processes on the build host.
+TEST_CASE("App generates a systemd unit with the requested restart policy")
 {
-    std::vector<LinkedFile> linkeds;
-    App app(0, "sleep_app", "sleep 10", App::RestartMode::ONCE, linkeds, "");
-
-    // Проверяем начальное состояние
-    CHECK_EQ(app.stopped(), true);
-    CHECK_EQ(app.status_string(), std::string("stopped"));
-
-    // Запускаем процесс
-    app.start();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    CHECK_EQ(app.stopped(), false);
-    CHECK_EQ(app.status_string(), std::string("running"));
-
-    // Останавливаем процесс
-    app.stop();
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-    // Проверяем что процесс остановлен
-    CHECK_EQ(app.stopped(), true);
-    CHECK_EQ(app.status_string(), std::string("stopped"));
+    App app(0, "worker", "/usr/local/bin/rfmeas --debug", App::ALWAYS, {}, "rfmeas");
+    const auto unit = app.generate_service_content();
+    CHECK_NEQ(unit.find("ExecStart=/usr/local/bin/rfmeas --debug\n"), std::string::npos);
+    CHECK_NEQ(unit.find("Restart=always\n"), std::string::npos);
+    CHECK_NEQ(unit.find("User=rfmeas\n"), std::string::npos);
+    app.setRestartMode(App::ONCE);
+    CHECK_NEQ(app.generate_service_content().find("Restart=no\n"), std::string::npos);
 }
 
-TEST_CASE("App::start/stop цикл работает корректно")
+TEST_CASE("App updates and sanitizes its service identity")
 {
-    std::vector<LinkedFile> linkeds;
-    // Используем долгоживущий процесс
-    App app(0, "cycle_test", "sleep 10", App::RestartMode::ONCE, linkeds, "");
+    App app(0, "old", "sleep 10", App::ONCE, {}, "");
+    app.setName("positioner worker/1");
+    CHECK_EQ(app.service_name(), std::string("rfd-positioner_worker_1"));
+    CHECK_EQ(app.service_path(), std::string("/etc/systemd/system/rfd-positioner_worker_1.service"));
+    CHECK_NEQ(app.generate_service_content().find("Description=rfdaemon managed: positioner worker/1\n"), std::string::npos);
+}
 
-    // Проверяем начальное состояние
-    CHECK_EQ(app.stopped(), true);
-
-    // Запускаем процесс
-    app.start();
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    CHECK_EQ(app.stopped(), false);
-
-    // Останавливаем процесс
-    app.stop();
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    CHECK_EQ(app.stopped(), true);
-
-    // Проверяем что можно запустить снова (но без многократных итераций)
-    // Примечание: многократные start/stop могут быть нестабильны из-за
-    // особенностей igris::subprocess
+TEST_CASE("App serializes configuration edits without touching systemd")
+{
+    App app(0, "worker", "sleep 10", App::ONCE, {}, "rfmeas");
+    app.setCommand("echo updated");
+    app.setRestartMode(App::ALWAYS);
+    app.set_environment_variables({{"POSITIONER_PROFILE", "host"}});
+    const auto config = app.toTrent();
+    CHECK_EQ(config["command"].as_string(), std::string("echo updated"));
+    CHECK_EQ(config["restart"].as_string(), std::string("always"));
+    CHECK_EQ(config["user"].as_string(), std::string("rfmeas"));
+    CHECK_EQ(config["env"]["POSITIONER_PROFILE"].as_string(), std::string("host"));
+    CHECK_NEQ(app.generate_service_content().find("Environment=\"POSITIONER_PROFILE=host\"\n"), std::string::npos);
 }
